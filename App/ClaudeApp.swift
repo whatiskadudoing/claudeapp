@@ -62,20 +62,7 @@ struct DropdownView: View {
                 Text("Claude Usage")
                     .font(.headline)
                 Spacer()
-                Button {
-                    Task { await usageManager.refresh() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .rotationEffect(.degrees(usageManager.isLoading ? 360 : 0))
-                        .animation(
-                            usageManager.isLoading
-                                ? .linear(duration: 1).repeatForever(autoreverses: false)
-                                : .default,
-                            value: usageManager.isLoading
-                        )
-                }
-                .buttonStyle(.plain)
-                .disabled(usageManager.isLoading)
+                RefreshButton()
             }
 
             Divider()
@@ -115,11 +102,63 @@ struct DropdownView: View {
         .padding(16)
         .frame(width: 280)
         .background(Color(nsColor: .windowBackgroundColor))
+        .keyboardShortcut("r", modifiers: .command)
         .task {
-            // Refresh on dropdown open if no data
-            if usageManager.usageData == nil {
+            // Refresh on dropdown open if data is stale or missing
+            if usageManager.usageData == nil || usageManager.isStale {
                 await usageManager.refresh()
             }
+        }
+    }
+}
+
+// MARK: - Refresh Button
+
+/// Button for manual refresh with visual state feedback.
+/// Shows different icons based on refresh state: idle, loading, success, error.
+struct RefreshButton: View {
+    @Environment(UsageManager.self) private var usageManager
+
+    var body: some View {
+        Button {
+            Task { await usageManager.refresh() }
+        } label: {
+            Image(systemName: iconName)
+                .foregroundStyle(iconColor)
+                .rotationEffect(.degrees(usageManager.refreshState == .loading ? 360 : 0))
+                .animation(
+                    usageManager.refreshState == .loading
+                        ? .linear(duration: 1).repeatForever(autoreverses: false)
+                        : .default,
+                    value: usageManager.refreshState
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(usageManager.isLoading)
+        .keyboardShortcut("r", modifiers: .command)
+    }
+
+    private var iconName: String {
+        switch usageManager.refreshState {
+        case .idle:
+            "arrow.clockwise"
+        case .loading:
+            "arrow.clockwise"
+        case .success:
+            "checkmark.circle"
+        case .error:
+            "exclamationmark.circle"
+        }
+    }
+
+    private var iconColor: Color {
+        switch usageManager.refreshState {
+        case .idle, .loading:
+            .primary
+        case .success:
+            .green
+        case .error:
+            .red
         }
     }
 }

@@ -142,12 +142,13 @@ Add auto-refresh, manual refresh interactions, and loading/error states.
   - **Research:** `specs/features/refresh-usage.md` for lifecycle and backoff strategy
   - **Note:** Implemented in UsageManager with exponential backoff (consecutiveFailures counter, retryInterval computed property). AppContainer now starts auto-refresh on production init and registers NSWorkspace sleep/wake observers. Auth errors (notAuthenticated) don't trigger retry, rate-limited errors use server-provided retry-after. Added 11 new tests for backoff and sleep/wake handling (total 75 tests passing).
 
-- [ ] **Implement manual refresh with button states** [spec: features/refresh-usage.md]
+- [x] **Implement manual refresh with button states** [spec: features/refresh-usage.md]
   - Refresh button in dropdown header (Cmd+R keyboard shortcut)
   - Button states: idle (arrow), loading (spinner), success (checkmark 1s), error (warning icon)
   - Debounce: prevent concurrent refresh requests
   - Auto-refresh on dropdown open if data stale (> 1 minute old)
   - **Research:** `specs/features/refresh-usage.md` for interaction patterns
+  - **Note:** Added RefreshState enum in Core package with idle/loading/success/error states. RefreshButton component shows state-based icons with color feedback (green for success, red for error). Added isStale computed property (>60s threshold). Auto-refresh triggers on dropdown open when stale. Cmd+R keyboard shortcut added to both dropdown and button. 6 new tests for isStale and refreshState (total 81 tests passing).
 
 - [ ] **Implement error and loading states** [spec: features/view-usage.md]
   - Loading: show skeleton/spinner in dropdown while fetching

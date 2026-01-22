@@ -1,6 +1,16 @@
 import Domain
 import Foundation
 
+// MARK: - RefreshState
+
+/// Visual state of the refresh button for UI feedback.
+public enum RefreshState: Sendable, Equatable {
+    case idle
+    case loading
+    case success
+    case error
+}
+
 // MARK: - UsageManager
 
 /// Main state manager for usage data.
@@ -21,6 +31,9 @@ public final class UsageManager {
 
     /// Timestamp of last successful data fetch
     public private(set) var lastUpdated: Date?
+
+    /// Current visual state of the refresh button
+    public private(set) var refreshState: RefreshState = .idle
 
     // MARK: - Dependencies
 
@@ -76,21 +89,33 @@ public final class UsageManager {
         refreshTask != nil
     }
 
+    /// Whether the current data is considered stale (older than 1 minute).
+    /// Returns true if no data exists or if data is older than 60 seconds.
+    public var isStale: Bool {
+        guard let lastUpdated else { return true }
+        return Date().timeIntervalSince(lastUpdated) > 60
+    }
+
     // MARK: - Public Methods
 
     /// Fetches fresh usage data from the repository.
     /// Updates `usageData` on success, `lastError` on failure.
     /// Tracks consecutive failures for exponential backoff.
+    /// Manages `refreshState` for visual feedback (success/error flash).
     public func refresh() async {
         guard !isLoading else { return }
 
         isLoading = true
+        refreshState = .loading
         lastError = nil
+
+        var succeeded = false
 
         do {
             usageData = try await usageRepository.fetchUsage()
             lastUpdated = Date()
             consecutiveFailures = 0 // Reset backoff on success
+            succeeded = true
         } catch let error as AppError {
             lastError = error
             // Only increment failures for retryable errors
@@ -103,6 +128,16 @@ public final class UsageManager {
         }
 
         isLoading = false
+
+        // Show success/error flash briefly, then return to idle
+        refreshState = succeeded ? .success : .error
+        Task {
+            try? await Task.sleep(for: .seconds(1))
+            // Only reset to idle if we're still in the flash state
+            if self.refreshState == .success || self.refreshState == .error {
+                self.refreshState = .idle
+            }
+        }
     }
 
     /// Determines if an error should trigger retry with backoff.

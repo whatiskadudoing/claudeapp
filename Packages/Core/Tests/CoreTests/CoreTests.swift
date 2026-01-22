@@ -392,6 +392,93 @@ struct UsageManagerTests {
         manager.stopAutoRefresh()
         #expect(manager.isAutoRefreshing == false)
     }
+
+    // MARK: - isStale Tests
+
+    @Test("isStale returns true when no data")
+    @MainActor
+    func isStaleReturnsTrueWhenNoData() {
+        let mockRepo = MockUsageRepository()
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        #expect(manager.isStale == true)
+    }
+
+    @Test("isStale returns false after recent refresh")
+    @MainActor
+    func isStaleReturnsFalseAfterRecentRefresh() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        await manager.refresh()
+
+        #expect(manager.isStale == false)
+    }
+
+    // MARK: - RefreshState Tests
+
+    @Test("refreshState starts as idle")
+    @MainActor
+    func refreshStateStartsAsIdle() {
+        let mockRepo = MockUsageRepository()
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        #expect(manager.refreshState == .idle)
+    }
+
+    @Test("refreshState transitions to success after successful refresh")
+    @MainActor
+    func refreshStateTransitionsToSuccessOnSuccess() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        await manager.refresh()
+
+        // Immediately after refresh, should be in success state
+        #expect(manager.refreshState == .success)
+    }
+
+    @Test("refreshState transitions to error after failed refresh")
+    @MainActor
+    func refreshStateTransitionsToErrorOnFailure() async {
+        let mockRepo = MockUsageRepository(error: .networkError(message: "Connection failed"))
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        await manager.refresh()
+
+        // Immediately after refresh, should be in error state
+        #expect(manager.refreshState == .error)
+    }
+
+    @Test("refreshState returns to idle after flash duration")
+    @MainActor
+    func refreshStateReturnsToIdleAfterFlash() async throws {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        await manager.refresh()
+        #expect(manager.refreshState == .success)
+
+        // Wait for flash duration (1 second) plus buffer
+        try await Task.sleep(for: .milliseconds(1100))
+
+        #expect(manager.refreshState == .idle)
+    }
 }
 
 // MARK: - AppContainer Tests
