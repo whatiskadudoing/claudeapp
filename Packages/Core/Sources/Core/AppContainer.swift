@@ -1,6 +1,7 @@
 import AppKit
 import Domain
 import Services
+import UserNotifications
 
 // MARK: - AppContainer
 
@@ -27,6 +28,12 @@ public final class AppContainer {
 
     /// Manager for launch at login functionality
     public let launchAtLoginManager: LaunchAtLoginManager
+
+    /// Manager for system notifications
+    public let notificationManager: NotificationManager
+
+    /// Checker for triggering usage notifications
+    public let notificationChecker: UsageNotificationChecker
 
     // MARK: - Configuration
 
@@ -57,8 +64,19 @@ public final class AppContainer {
         // Create launch at login manager
         self.launchAtLoginManager = LaunchAtLoginManager()
 
+        // Create notification manager and checker
+        let notifManager = NotificationManager()
+        self.notificationManager = notifManager
+        self.notificationChecker = UsageNotificationChecker(
+            notificationManager: notifManager,
+            settingsManager: settings
+        )
+
         // Create usage manager
         self.usageManager = UsageManager(usageRepository: apiClient)
+
+        // Connect notification checker to usage manager
+        usageManager.setNotificationChecker(notificationChecker)
 
         // Configure settings callback to update refresh interval
         settings.onRefreshIntervalChanged = { [weak self] newInterval in
@@ -67,6 +85,13 @@ public final class AppContainer {
 
         // Start auto-refresh using settings interval
         usageManager.startAutoRefresh(interval: settings.refreshIntervalSeconds)
+
+        // Request notification permission if notifications are enabled
+        if settings.notificationsEnabled {
+            Task {
+                _ = await notifManager.requestPermission()
+            }
+        }
 
         // Register sleep/wake observers
         registerSleepWakeObservers()
@@ -79,19 +104,32 @@ public final class AppContainer {
     ///   - usageRepository: Custom usage repository
     ///   - settingsRepository: Custom settings repository (optional)
     ///   - launchAtLoginService: Custom launch at login service (optional)
+    ///   - notificationService: Custom notification service (optional)
     ///   - startAutoRefresh: Whether to start auto-refresh (default false for tests)
     public init(
         credentialsRepository: CredentialsRepository,
         usageRepository: UsageRepository,
         settingsRepository: SettingsRepository? = nil,
         launchAtLoginService: LaunchAtLoginService? = nil,
+        notificationService: NotificationService? = nil,
         startAutoRefresh: Bool = false
     ) {
         self.credentialsRepository = credentialsRepository
         self.usageRepository = usageRepository
-        self.settingsManager = SettingsManager(repository: settingsRepository ?? UserDefaultsSettingsRepository())
+        let settings = SettingsManager(repository: settingsRepository ?? UserDefaultsSettingsRepository())
+        self.settingsManager = settings
         self.launchAtLoginManager = launchAtLoginService.map { LaunchAtLoginManager(service: $0) } ?? LaunchAtLoginManager()
+
+        // Create notification manager and checker
+        let notifManager = notificationService.map { NotificationManager(notificationCenter: $0) } ?? NotificationManager()
+        self.notificationManager = notifManager
+        self.notificationChecker = UsageNotificationChecker(
+            notificationManager: notifManager,
+            settingsManager: settings
+        )
+
         self.usageManager = UsageManager(usageRepository: usageRepository)
+        usageManager.setNotificationChecker(notificationChecker)
 
         if startAutoRefresh {
             usageManager.startAutoRefresh(interval: Self.defaultRefreshInterval)

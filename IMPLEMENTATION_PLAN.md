@@ -121,7 +121,7 @@ Implement proactive notifications for usage warnings, capacity full, and reset c
   - **Design:** Notification identifiers: "usage-warning-{window}", "capacity-full-{window}", "reset-complete"
   - **Completed:** Created `UsageNotificationChecker` class with full trigger logic; implements warning (crosses threshold from below), capacity full (hits 100%), and reset complete (7-day drops from >50% to <10%); 5% hysteresis prevents notification spam; respects global and individual notification toggles; includes reset times in notification bodies; 24 new tests added (156 total passing)
 
-- [ ] **Integrate notifications into UsageManager refresh cycle** [spec: features/notifications.md] [file: Packages/Core/Sources/Core/UsageManager.swift, App/]
+- [x] **Integrate notifications into UsageManager refresh cycle** [spec: features/notifications.md] [file: Packages/Core/Sources/Core/UsageManager.swift, App/]
   - Add `previousUsageData: UsageData?` property to UsageManager
   - After successful refresh, call `UsageNotificationChecker.check(current:previous:)`
   - Store current as previous after notification check
@@ -129,6 +129,7 @@ Implement proactive notifications for usage warnings, capacity full, and reset c
   - Request notification permission on app launch if notifications enabled in settings
   - Add UNUserNotificationCenterDelegate to handle notification clicks (open dropdown)
   - **Note:** Only check notifications when notificationsEnabled is true
+  - **Completed:** Added `previousUsageData` property and `setNotificationChecker()` method to UsageManager; integrated check into refresh cycle; added NotificationManager and UsageNotificationChecker to AppContainer with proper wiring; added NotificationDelegate to ClaudeApp for handling notification clicks (activates app) and foreground presentation; updated AppContainer test init to accept NotificationService mock; 155 tests passing
 
 - [ ] **Add notification permission UI and denied state handling** [spec: features/notifications.md] [file: App/]
   - In Settings NOTIFICATIONS section, show permission status

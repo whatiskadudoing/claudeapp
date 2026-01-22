@@ -1,13 +1,47 @@
 import Core
 import Domain
 import SwiftUI
+import UserNotifications
+
+// MARK: - Notification Delegate
+
+/// Handles notification interactions (clicks, actions).
+/// Configured at app launch to handle notification responses.
+final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+    /// Called when user interacts with a notification (clicks it).
+    /// Opens the dropdown by activating the app.
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        // Activate the app - this will show the menu bar dropdown
+        NSApp.activate(ignoringOtherApps: true)
+        completionHandler()
+    }
+
+    /// Called when notification should be presented while app is in foreground.
+    /// Shows the notification banner even when app is active.
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        // Show notification even when app is in foreground
+        completionHandler([.banner, .sound])
+    }
+}
 
 @main
 struct ClaudeApp: App {
     @State private var container: AppContainer
+    private let notificationDelegate = NotificationDelegate()
 
     init() {
         _container = State(initialValue: AppContainer())
+
+        // Set up notification delegate
+        UNUserNotificationCenter.current().delegate = notificationDelegate
     }
 
     var body: some Scene {

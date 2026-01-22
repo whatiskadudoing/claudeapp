@@ -23,6 +23,10 @@ public final class UsageManager {
     /// Current usage data (nil if not yet fetched or on error)
     public private(set) var usageData: UsageData?
 
+    /// Previous usage data for notification comparison
+    /// Stored after each successful refresh to detect threshold crossings
+    public private(set) var previousUsageData: UsageData?
+
     /// Whether a refresh is currently in progress
     public private(set) var isLoading: Bool = false
 
@@ -38,6 +42,7 @@ public final class UsageManager {
     // MARK: - Dependencies
 
     private let usageRepository: UsageRepository
+    private var notificationChecker: UsageNotificationChecker?
 
     // MARK: - Auto-Refresh State
 
@@ -66,6 +71,13 @@ public final class UsageManager {
     /// - Parameter usageRepository: Repository for fetching usage data
     public init(usageRepository: UsageRepository) {
         self.usageRepository = usageRepository
+    }
+
+    /// Sets the notification checker for triggering usage notifications.
+    /// This should be called after initialization when the checker is available.
+    /// - Parameter checker: The notification checker to use
+    public func setNotificationChecker(_ checker: UsageNotificationChecker) {
+        self.notificationChecker = checker
     }
 
     // MARK: - Computed Properties
@@ -112,7 +124,16 @@ public final class UsageManager {
         var succeeded = false
 
         do {
-            usageData = try await usageRepository.fetchUsage()
+            let newData = try await usageRepository.fetchUsage()
+
+            // Check notifications before updating state (needs previous data)
+            if let checker = notificationChecker {
+                await checker.check(current: newData, previous: usageData)
+            }
+
+            // Update previous data before current (for next comparison)
+            previousUsageData = usageData
+            usageData = newData
             lastUpdated = Date()
             consecutiveFailures = 0 // Reset backoff on success
             succeeded = true
