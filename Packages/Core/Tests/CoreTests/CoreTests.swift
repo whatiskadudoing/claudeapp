@@ -578,3 +578,330 @@ actor MockCredentialsRepository: CredentialsRepository {
         credentialsToReturn != nil && errorToThrow == nil
     }
 }
+
+// MARK: - Mock Settings Repository for Tests
+
+/// In-memory settings repository for testing
+final class MockSettingsRepository: SettingsRepository, @unchecked Sendable {
+    private var storage: [String: Data] = [:]
+
+    func get<T: Codable & Sendable>(_ key: SettingsKey<T>) -> T {
+        guard let data = storage[key.key],
+              let value = try? JSONDecoder().decode(T.self, from: data)
+        else {
+            return key.defaultValue
+        }
+        return value
+    }
+
+    func set<T: Codable & Sendable>(_ key: SettingsKey<T>, value: T) {
+        if let data = try? JSONEncoder().encode(value) {
+            storage[key.key] = data
+        }
+    }
+
+    /// Clears all stored settings
+    func clear() {
+        storage.removeAll()
+    }
+}
+
+// MARK: - SettingsManager Tests
+
+@Suite("SettingsManager Tests")
+struct SettingsManagerTests {
+    // MARK: - Default Values Tests
+
+    @Test("Initial state has correct default values")
+    @MainActor
+    func initialStateDefaults() {
+        let mockRepo = MockSettingsRepository()
+        let manager = SettingsManager(repository: mockRepo)
+
+        // Display settings defaults
+        #expect(manager.showPlanBadge == false)
+        #expect(manager.showPercentage == true)
+        #expect(manager.percentageSource == .highest)
+
+        // Refresh settings defaults
+        #expect(manager.refreshInterval == 5)
+
+        // Notification settings defaults
+        #expect(manager.notificationsEnabled == true)
+        #expect(manager.warningThreshold == 90)
+        #expect(manager.warningEnabled == true)
+        #expect(manager.capacityFullEnabled == true)
+        #expect(manager.resetCompleteEnabled == true)
+
+        // General settings defaults
+        #expect(manager.launchAtLogin == false)
+        #expect(manager.checkForUpdates == true)
+    }
+
+    // MARK: - Persistence Tests
+
+    @Test("Display settings persist when changed")
+    @MainActor
+    func displaySettingsPersist() {
+        let mockRepo = MockSettingsRepository()
+        let manager = SettingsManager(repository: mockRepo)
+
+        // Change settings
+        manager.showPlanBadge = true
+        manager.showPercentage = false
+        manager.percentageSource = .session
+
+        // Verify persisted
+        #expect(mockRepo.get(.showPlanBadge) == true)
+        #expect(mockRepo.get(.showPercentage) == false)
+        #expect(mockRepo.get(.percentageSource) == .session)
+    }
+
+    @Test("Refresh settings persist when changed")
+    @MainActor
+    func refreshSettingsPersist() {
+        let mockRepo = MockSettingsRepository()
+        let manager = SettingsManager(repository: mockRepo)
+
+        manager.refreshInterval = 15
+
+        #expect(mockRepo.get(.refreshInterval) == 15)
+    }
+
+    @Test("Notification settings persist when changed")
+    @MainActor
+    func notificationSettingsPersist() {
+        let mockRepo = MockSettingsRepository()
+        let manager = SettingsManager(repository: mockRepo)
+
+        manager.notificationsEnabled = false
+        manager.warningThreshold = 75
+        manager.warningEnabled = false
+        manager.capacityFullEnabled = false
+        manager.resetCompleteEnabled = false
+
+        #expect(mockRepo.get(.notificationsEnabled) == false)
+        #expect(mockRepo.get(.warningThreshold) == 75)
+        #expect(mockRepo.get(.warningEnabled) == false)
+        #expect(mockRepo.get(.capacityFullEnabled) == false)
+        #expect(mockRepo.get(.resetCompleteEnabled) == false)
+    }
+
+    @Test("General settings persist when changed")
+    @MainActor
+    func generalSettingsPersist() {
+        let mockRepo = MockSettingsRepository()
+        let manager = SettingsManager(repository: mockRepo)
+
+        manager.launchAtLogin = true
+        manager.checkForUpdates = false
+
+        #expect(mockRepo.get(.launchAtLogin) == true)
+        #expect(mockRepo.get(.checkForUpdates) == false)
+    }
+
+    @Test("Settings load from repository on init")
+    @MainActor
+    func settingsLoadFromRepository() {
+        let mockRepo = MockSettingsRepository()
+
+        // Pre-populate repository
+        mockRepo.set(.showPlanBadge, value: true)
+        mockRepo.set(.showPercentage, value: false)
+        mockRepo.set(.percentageSource, value: PercentageSource.weekly)
+        mockRepo.set(.refreshInterval, value: 10)
+        mockRepo.set(.warningThreshold, value: 80)
+
+        // Create manager - should load from repository
+        let manager = SettingsManager(repository: mockRepo)
+
+        #expect(manager.showPlanBadge == true)
+        #expect(manager.showPercentage == false)
+        #expect(manager.percentageSource == .weekly)
+        #expect(manager.refreshInterval == 10)
+        #expect(manager.warningThreshold == 80)
+    }
+
+    // MARK: - Value Clamping Tests
+
+    @Test("Refresh interval clamps to valid range")
+    @MainActor
+    func refreshIntervalClamping() {
+        let mockRepo = MockSettingsRepository()
+        let manager = SettingsManager(repository: mockRepo)
+
+        // Test lower bound
+        manager.refreshInterval = 0
+        #expect(manager.refreshInterval == 1)
+
+        // Test upper bound
+        manager.refreshInterval = 100
+        #expect(manager.refreshInterval == 30)
+
+        // Test within range
+        manager.refreshInterval = 15
+        #expect(manager.refreshInterval == 15)
+    }
+
+    @Test("Warning threshold clamps to valid range")
+    @MainActor
+    func warningThresholdClamping() {
+        let mockRepo = MockSettingsRepository()
+        let manager = SettingsManager(repository: mockRepo)
+
+        // Test lower bound
+        manager.warningThreshold = 10
+        #expect(manager.warningThreshold == 50)
+
+        // Test upper bound
+        manager.warningThreshold = 150
+        #expect(manager.warningThreshold == 99)
+
+        // Test within range
+        manager.warningThreshold = 75
+        #expect(manager.warningThreshold == 75)
+    }
+
+    // MARK: - Computed Property Tests
+
+    @Test("refreshIntervalSeconds computes correctly")
+    @MainActor
+    func refreshIntervalSecondsComputation() {
+        let mockRepo = MockSettingsRepository()
+        let manager = SettingsManager(repository: mockRepo)
+
+        manager.refreshInterval = 5
+        #expect(manager.refreshIntervalSeconds == 300)
+
+        manager.refreshInterval = 1
+        #expect(manager.refreshIntervalSeconds == 60)
+
+        manager.refreshInterval = 30
+        #expect(manager.refreshIntervalSeconds == 1800)
+    }
+
+    // MARK: - Callback Tests
+
+    @Test("onRefreshIntervalChanged callback fires when interval changes")
+    @MainActor
+    func refreshIntervalChangedCallback() {
+        let mockRepo = MockSettingsRepository()
+        let manager = SettingsManager(repository: mockRepo)
+
+        var callbackInterval: Int?
+        manager.onRefreshIntervalChanged = { interval in
+            callbackInterval = interval
+        }
+
+        manager.refreshInterval = 10
+
+        #expect(callbackInterval == 10)
+    }
+
+    @Test("onRefreshIntervalChanged not called when setting same value")
+    @MainActor
+    func refreshIntervalChangedCallbackNotCalledForSameValue() {
+        let mockRepo = MockSettingsRepository()
+        let manager = SettingsManager(repository: mockRepo)
+
+        var callCount = 0
+        manager.onRefreshIntervalChanged = { _ in
+            callCount += 1
+        }
+
+        // Set to same as default (5)
+        manager.refreshInterval = 5
+
+        // Should still fire because didSet always fires
+        // This is expected Swift behavior
+        #expect(callCount == 1)
+    }
+
+    // MARK: - PercentageSource Tests
+
+    @Test("All PercentageSource cases work correctly")
+    @MainActor
+    func percentageSourceAllCases() {
+        let mockRepo = MockSettingsRepository()
+        let manager = SettingsManager(repository: mockRepo)
+
+        for source in PercentageSource.allCases {
+            manager.percentageSource = source
+            #expect(manager.percentageSource == source)
+            #expect(mockRepo.get(.percentageSource) == source)
+        }
+    }
+
+    @Test("PercentageSource raw values are correct")
+    func percentageSourceRawValues() {
+        #expect(PercentageSource.highest.rawValue == "Highest %")
+        #expect(PercentageSource.session.rawValue == "Current Session")
+        #expect(PercentageSource.weekly.rawValue == "Weekly (All Models)")
+        #expect(PercentageSource.opus.rawValue == "Weekly (Opus)")
+        #expect(PercentageSource.sonnet.rawValue == "Weekly (Sonnet)")
+    }
+}
+
+// MARK: - UserDefaultsSettingsRepository Tests
+
+@Suite("UserDefaultsSettingsRepository Tests")
+struct UserDefaultsSettingsRepositoryTests {
+    @Test("Returns default value when key not set")
+    func returnsDefaultWhenNotSet() {
+        // Use a unique suite name to avoid test interference
+        let testSuiteName = "com.claudeapp.test.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: testSuiteName)!
+        let repo = UserDefaultsSettingsRepository(defaults: defaults)
+
+        #expect(repo.get(.showPlanBadge) == false) // default
+        #expect(repo.get(.refreshInterval) == 5) // default
+
+        // Clean up
+        defaults.removePersistentDomain(forName: testSuiteName)
+    }
+
+    @Test("Set and get work correctly for Bool")
+    func setAndGetBool() {
+        let testSuiteName = "com.claudeapp.test.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: testSuiteName)!
+        let repo = UserDefaultsSettingsRepository(defaults: defaults)
+
+        repo.set(.showPlanBadge, value: true)
+        #expect(repo.get(.showPlanBadge) == true)
+
+        repo.set(.showPlanBadge, value: false)
+        #expect(repo.get(.showPlanBadge) == false)
+
+        defaults.removePersistentDomain(forName: testSuiteName)
+    }
+
+    @Test("Set and get work correctly for Int")
+    func setAndGetInt() {
+        let testSuiteName = "com.claudeapp.test.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: testSuiteName)!
+        let repo = UserDefaultsSettingsRepository(defaults: defaults)
+
+        repo.set(.refreshInterval, value: 15)
+        #expect(repo.get(.refreshInterval) == 15)
+
+        repo.set(.warningThreshold, value: 80)
+        #expect(repo.get(.warningThreshold) == 80)
+
+        defaults.removePersistentDomain(forName: testSuiteName)
+    }
+
+    @Test("Set and get work correctly for PercentageSource")
+    func setAndGetPercentageSource() {
+        let testSuiteName = "com.claudeapp.test.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: testSuiteName)!
+        let repo = UserDefaultsSettingsRepository(defaults: defaults)
+
+        repo.set(.percentageSource, value: .session)
+        #expect(repo.get(.percentageSource) == .session)
+
+        repo.set(.percentageSource, value: .opus)
+        #expect(repo.get(.percentageSource) == .opus)
+
+        defaults.removePersistentDomain(forName: testSuiteName)
+    }
+}

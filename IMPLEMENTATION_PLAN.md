@@ -1,25 +1,25 @@
 # Implementation Plan
 
-## Recommended SLC Release: Usage Monitor
+## Recommended SLC Release: Notifications & Settings (SLC 2)
 
-**Audience:** Professional developers using Claude Code (Pro, Max 5x, Max 20x plans) who want to monitor their usage limits without interrupting their workflow.
+**Audience:** Professional developers using Claude Code (Pro, Max 5x, Max 20x plans) who want proactive alerts before hitting limits and the ability to customize app behavior.
 
-**Value proposition:** Glanceable menu bar monitoring that shows your Claude usage at a glance—percentage in the menu bar, detailed breakdown in a click. Never be surprised by hitting limits again.
+**Value proposition:** Never be surprised by rate limits. Get warned at 90% capacity, notified when limits reset, and customize everything to your workflow. The app now anticipates problems instead of just reporting status.
 
 **Activities included:**
 
 | Activity | Depth | Why Included |
 |----------|-------|--------------|
-| View Usage | Basic | Core job: see usage at a glance (< 1 second) |
-| Refresh Usage | Basic | Keeps data current with auto-refresh |
+| Notifications | Basic | Core value: proactive warnings before hitting limits (Job 3) |
+| Settings | Basic | Required for notification config + customization (Job 7) |
 
 **What's NOT in this slice:**
-- Notifications (warning alerts, capacity full, reset complete) → SLC 2
-- Settings panel (configurable thresholds, display options) → SLC 2
-- Launch at Login → SLC 2
-- Update checking → SLC 3
-- Accessibility polish (VoiceOver, keyboard nav) → SLC 3
-- Internationalization → Future
+- Update checking (GitHub Releases API) → SLC 3
+- Accessibility polish (VoiceOver, full keyboard nav) → SLC 3
+- Distribution tooling (DMG, Homebrew, CI/CD) → SLC 3
+- Quiet hours for notifications → Future
+- Notification history view → Future
+- Export/import settings → Future
 
 ---
 
@@ -29,187 +29,226 @@ Key research documents for this implementation:
 
 | Topic | Document | Why Relevant |
 |-------|----------|--------------|
-| OAuth API | `research/apis/anthropic-oauth.md` | Endpoint, headers, response schema |
-| Keychain | `research/approaches/keychain-access.md` | Read Claude Code credentials |
-| Menu Bar | `research/approaches/menubar-extra.md` | Native MenuBarExtra implementation |
-| Inspiration | `research/inspiration.md` | UI patterns from similar apps |
+| System Notifications | `research/approaches/system-notifications.md` | UNUserNotificationCenter patterns, hysteresis logic |
+| Launch at Login | `research/approaches/launch-at-login.md` | SMAppService implementation |
+| Design System | `specs/design-system.md` | Settings UI components, colors, typography |
+| Notifications Spec | `specs/features/notifications.md` | Notification types, trigger logic, acceptance criteria |
+| Settings Spec | `specs/features/settings.md` | Settings categories, UI design, persistence patterns |
 
 ---
 <!-- HUMAN VERIFICATION: Does this slice form a coherent, valuable product? -->
-<!-- Answer: YES - Users can monitor all usage windows, see reset times, and plan their Claude Code sessions. This solves the primary JTBD completely. -->
+<!-- Answer: YES - Users get proactive warnings before hitting limits (the #1 pain point),
+     can customize thresholds, and configure the app to their workflow. This transforms
+     ClaudeApp from a passive monitor into an active assistant. -->
 
-## Phase 1: Project Foundation
+## Phase 1: Settings Infrastructure - CRITICAL
 
-Establish the project structure, build system, and domain models that all features depend on.
+Build the settings persistence layer and UI foundation that notifications will depend on.
 
-- [x] **Initialize Swift Package project with modular architecture** [spec: architecture.md]
-  - Create Package.swift with 4-package structure (Domain, Services, Core, UI)
-  - Set up App target that imports all packages
-  - Configure macOS 14+ deployment target and Swift 5.9+
-  - Add Info.plist with LSUIElement=YES (menu bar only)
-  - Create Makefile with build, run, clean, test targets
-  - **Research:** `specs/architecture.md` for package structure, `specs/toolchain.md` for Makefile
-  - **Note:** SPM doesn't support Info.plist as a resource; for menu bar app LSUIElement behavior, the app relies on MenuBarExtra which works without explicit plist configuration
+- [x] **Implement SettingsManager with @Observable state and UserDefaults persistence** [spec: features/settings.md] [file: Packages/Core/Sources/Core/]
+  - Create `SettingsKey<Value>` struct for type-safe settings access
+  - Create `PercentageSource` enum (highest, session, weekly, opus, sonnet)
+  - Create `@MainActor @Observable class SettingsManager` with all settings properties
+  - Implement UserDefaults persistence with automatic save on property change
+  - Settings: showPlanBadge, showPercentage, percentageSource, refreshInterval, notificationsEnabled, warningThreshold (50-99), warningEnabled, capacityFullEnabled, resetCompleteEnabled, launchAtLogin
+  - Include protocol `SettingsRepository` for testability
+  - **Research:** `specs/features/settings.md` for settings keys and defaults
+  - **Design:** Use `@AppStorage` pattern documented in spec
+  - **Completed:** Created `PercentageSource` enum, `SettingsKey<T>` struct, `SettingsRepository` protocol in Domain; `SettingsManager` and `UserDefaultsSettingsRepository` in Core; 17 new tests (98 total passing)
 
-- [x] **Implement Domain models and protocols** [spec: architecture.md, api-documentation.md]
-  - Create `UsageData` struct with four `UsageWindow` properties
-  - Create `UsageWindow` struct (utilization: Double, resetsAt: Date?)
-  - Create `Credentials` struct (accessToken: String, expiresAt: Date?)
-  - Create `AppError` enum (notAuthenticated, networkError, apiError, keychainError)
-  - Define `UsageRepository` protocol with `fetchUsage() async throws -> UsageData`
-  - Define `CredentialsRepository` protocol with `getCredentials() async throws -> Credentials`
-  - All types must be `Sendable`
-  - **Research:** `research/apis/anthropic-oauth.md` for response schema and Swift types
-  - **Note:** Added `rateLimited(retryAfter: Int)` case to AppError for 429 handling. All Domain types require `import Foundation` for `Date` type.
+- [ ] **Implement LaunchAtLoginManager using SMAppService** [spec: features/settings.md] [file: Packages/Core/Sources/Core/]
+  - Create `@MainActor class LaunchAtLoginManager` with `isEnabled` computed property
+  - Use `SMAppService.mainApp.register()` and `unregister()`
+  - Handle status states: notRegistered, enabled, requiresApproval
+  - Revert `isEnabled` on registration failure
+  - **Research:** `research/approaches/launch-at-login.md` for implementation pattern
+  - **Note:** Requires `import ServiceManagement`
 
-- [x] **Implement Keychain credentials repository** [spec: api-documentation.md]
-  - Create `KeychainCredentialsRepository` actor implementing `CredentialsRepository`
-  - Use `/usr/bin/security find-generic-password -s "Claude Code-credentials" -w`
-  - Parse JSON response with `claudeAiOauth.accessToken` extraction
-  - Handle missing keychain entry → throw `AppError.notAuthenticated`
-  - Handle invalid JSON → throw `AppError.keychainError`
-  - **Research:** `research/approaches/keychain-access.md` for implementation pattern
-  - **Note:** Actor-based implementation ensures thread-safety. Internal JSON models (`KeychainCredentials`, `OAuthCredentials`) handle the nested JSON structure from Claude Code.
+- [ ] **Build Settings window with all sections** [spec: features/settings.md, design-system.md] [file: App/]
+  - Create `SettingsView` as a 320x500pt window with scrollable content
+  - Sections: DISPLAY, REFRESH, NOTIFICATIONS, GENERAL, ABOUT
+  - DISPLAY: showPlanBadge toggle, showPercentage toggle, percentageSource picker
+  - REFRESH: refreshInterval slider (1-30 min) with min/max labels
+  - NOTIFICATIONS: master toggle, warningThreshold slider (50-99%), individual toggles
+  - GENERAL: launchAtLogin toggle
+  - ABOUT: App icon, version, "Check for Updates" button (placeholder), GitHub link
+  - Add Settings button (gear icon) to dropdown header
+  - Open settings in a separate window (not in dropdown)
+  - **Research:** `specs/design-system.md` for component styles, spacing, typography
+  - **Design:** Use SectionHeader component, SettingsToggle component for consistency
 
-- [x] **Implement Claude API client** [spec: api-documentation.md]
-  - Create `ClaudeAPIClient` actor implementing `UsageRepository`
-  - Endpoint: `GET https://api.anthropic.com/api/oauth/usage`
-  - Required headers: Authorization Bearer, anthropic-beta: oauth-2025-04-20
-  - Parse ISO8601 dates with fractional seconds (custom decoder)
-  - Map API response to domain `UsageData`
-  - Handle 401 → `AppError.notAuthenticated`, 429 → `AppError.rateLimited` with retry-after
-  - **Research:** `research/apis/anthropic-oauth.md` for complete API reference
-  - **Note:** Actor-based implementation with dependency injection for testability. Internal `APIUsageResponse` and `APIUsageWindow` models handle snake_case API response. Added 13 new tests for API client and response parsing (total 53 tests passing).
-
----
-<!-- CHECKPOINT: Phase 1 delivers the data layer. Verify credentials read and API calls work before UI. -->
-
-## Phase 2: Menu Bar UI
-
-Build the visible product: menu bar icon with percentage and dropdown with detailed usage.
-
-- [x] **Create menu bar app entry point with MenuBarExtra** [spec: features/view-usage.md]
-  - Set up `@main` App struct with MenuBarExtra scene
-  - Use `.menuBarExtraStyle(.window)` for custom SwiftUI content
-  - Create `AppContainer` for dependency injection (credentials repo → API client → usage manager)
-  - Pass `UsageManager` via SwiftUI Environment
-  - **Research:** `research/approaches/menubar-extra.md` for MenuBarExtra setup
-  - **Note:** Implemented in App/ClaudeApp.swift with AppContainer in Core package. Uses SwiftUI Environment to pass UsageManager to views.
-
-- [x] **Implement UsageManager with @Observable state** [spec: architecture.md]
-  - Create `@MainActor @Observable class UsageManager`
-  - State: `usageData: UsageData?`, `isLoading: Bool`, `lastError: AppError?`, `lastUpdated: Date?`
-  - Computed: `highestUtilization` (max across all windows)
-  - Method: `refresh() async` - fetches from repository, updates state
-  - Method: `startAutoRefresh(interval: TimeInterval)` - background Task loop
-  - Method: `stopAutoRefresh()` - cancels refresh Task
-  - **Research:** `specs/architecture.md` for state management patterns
-  - **Note:** Implemented in Packages/Core/Sources/Core/UsageManager.swift with 11 new tests covering state management, concurrent refresh prevention, error handling, and auto-refresh lifecycle.
-
-- [x] **Build menu bar label view** [spec: features/view-usage.md, design-system.md]
-  - Display Claude icon (16x16 template image) + percentage text
-  - Percentage: SF Mono 12pt medium, monospacedDigit()
-  - States: normal (icon + %), loading (icon + spinner), error (icon + "--")
-  - 4px spacing between icon and text
-  - **Research:** `specs/design-system.md` for typography and spacing
-  - **Note:** Implemented MenuBarLabel view in App/ClaudeApp.swift. Uses SF symbol "sparkle" as placeholder icon until brand icon is added. Shows loading spinner when no data, percentage when available, "--" on error.
-
-- [x] **Build dropdown view with usage bars** [spec: features/view-usage.md, design-system.md]
-  - Fixed 280px width, 12px corner radius, 16px padding
-  - Solid opaque background: `Color(nsColor: .windowBackgroundColor)`
-  - Header: title "Claude Usage", refresh button (circular arrow)
-  - Four progress bars: 5-hour session, 7-day all, 7-day Opus, 7-day Sonnet
-  - Each bar: label, percentage (monospaced), 6px height bar, reset time
-  - Footer: "Last updated" timestamp, quit button
-  - Color thresholds: green (0-49%), yellow (50-89%), red (90-100%)
-  - **Research:** `specs/design-system.md` for colors and component patterns
-  - **Note:** Implemented DropdownView, UsageContent, UsageProgressBar, LoadingView, ErrorView, EmptyStateView components. Progress bars use green/yellow/red colors based on utilization thresholds. Error states show specific messages for notAuthenticated, networkError, rateLimited, etc.
+- [ ] **Connect settings to existing UI (menu bar display + refresh interval)** [spec: features/settings.md] [file: App/ClaudeApp.swift]
+  - Update MenuBarLabel to respect showPercentage, percentageSource settings
+  - Add plan badge display when showPlanBadge is true
+  - Update UsageManager to read refreshInterval from SettingsManager
+  - Restart auto-refresh when refreshInterval changes
+  - Inject SettingsManager via SwiftUI Environment alongside UsageManager
+  - **Note:** Menu bar should update live when settings change
 
 ---
-<!-- CHECKPOINT: Phase 2 delivers the complete visible product. Test manually: menu bar shows %, click opens dropdown with all 4 usage windows. -->
+<!-- CHECKPOINT: Phase 1 delivers configurable settings. Verify settings persist across restarts, menu bar updates with settings, refresh interval changes take effect. -->
 
-## Phase 3: Refresh & Polish
+## Phase 2: Notification System
 
-Add auto-refresh, manual refresh interactions, and loading/error states.
+Implement proactive notifications for usage warnings, capacity full, and reset complete.
 
-- [x] **Implement auto-refresh lifecycle** [spec: features/refresh-usage.md]
-  - Start auto-refresh on app launch (5-minute interval)
-  - Pause during system sleep (NSWorkspace notifications)
-  - Resume 5 seconds after wake
-  - Cancel on app termination
-  - Exponential backoff on errors: 1m → 2m → 4m → max 15m
-  - Reset backoff on successful refresh
-  - **Research:** `specs/features/refresh-usage.md` for lifecycle and backoff strategy
-  - **Note:** Implemented in UsageManager with exponential backoff (consecutiveFailures counter, retryInterval computed property). AppContainer now starts auto-refresh on production init and registers NSWorkspace sleep/wake observers. Auth errors (notAuthenticated) don't trigger retry, rate-limited errors use server-provided retry-after. Added 11 new tests for backoff and sleep/wake handling (total 75 tests passing).
+- [ ] **Implement NotificationManager actor with permission handling** [spec: features/notifications.md] [file: Packages/Core/Sources/Core/]
+  - Create `actor NotificationManager` for thread-safe notification handling
+  - Method: `requestPermission() async -> Bool` using UNUserNotificationCenter
+  - Method: `checkPermissionStatus() async -> UNAuthorizationStatus`
+  - Method: `send(title:body:identifier:) async` for immediate notification delivery
+  - Track `hasRequestedPermission` to avoid repeated prompts
+  - Track notification state per identifier to prevent duplicates within cycle
+  - Method: `resetState(for identifier: String)` to clear notification state
+  - **Research:** `research/approaches/system-notifications.md` for implementation patterns
+  - **Note:** Request permission when user first enables notifications in settings
 
-- [x] **Implement manual refresh with button states** [spec: features/refresh-usage.md]
-  - Refresh button in dropdown header (Cmd+R keyboard shortcut)
-  - Button states: idle (arrow), loading (spinner), success (checkmark 1s), error (warning icon)
-  - Debounce: prevent concurrent refresh requests
-  - Auto-refresh on dropdown open if data stale (> 1 minute old)
-  - **Research:** `specs/features/refresh-usage.md` for interaction patterns
-  - **Note:** Added RefreshState enum in Core package with idle/loading/success/error states. RefreshButton component shows state-based icons with color feedback (green for success, red for error). Added isStale computed property (>60s threshold). Auto-refresh triggers on dropdown open when stale. Cmd+R keyboard shortcut added to both dropdown and button. 6 new tests for isStale and refreshState (total 81 tests passing).
+- [ ] **Implement notification trigger logic with hysteresis** [spec: features/notifications.md] [file: Packages/Core/Sources/Core/]
+  - Create `UsageNotificationChecker` class that evaluates usage changes
+  - Inject: NotificationManager, SettingsManager
+  - Method: `check(current: UsageData, previous: UsageData?) async`
+  - Usage Warning: fires when utilization crosses warningThreshold from below
+  - Capacity Full: fires when utilization hits 100% (was below 100%)
+  - Reset Complete: fires when 7-day drops from >50% to <10%
+  - Implement 5% hysteresis: reset notification state when util drops below (threshold - 5%)
+  - Respect individual notification toggles from settings
+  - Include reset time in notification body when available
+  - **Research:** `specs/features/notifications.md` for trigger logic pseudocode
+  - **Design:** Notification identifiers: "usage-warning-{window}", "capacity-full-{window}", "reset-complete"
 
-- [x] **Implement error and loading states** [spec: features/view-usage.md]
-  - Loading: show skeleton/spinner in dropdown while fetching
-  - Not authenticated: message with "Run `claude login` in terminal" guidance
-  - Network error: show cached data with "stale" indicator, retry button
-  - Display `lastUpdated` timestamp in footer
-  - **Research:** `specs/features/view-usage.md` for state designs
-  - **Note:** Added StaleDataBanner component that displays above cached usage data when refresh fails. Shows error reason (network, rate limit, server error, etc.) with a retry button. Footer shows "Data may be stale" warning with orange indicator when in error state with cached data. LoadingView, ErrorView, and EmptyStateView were already implemented in previous tasks.
+- [ ] **Integrate notifications into UsageManager refresh cycle** [spec: features/notifications.md] [file: Packages/Core/Sources/Core/UsageManager.swift, App/]
+  - Add `previousUsageData: UsageData?` property to UsageManager
+  - After successful refresh, call `UsageNotificationChecker.check(current:previous:)`
+  - Store current as previous after notification check
+  - Add NotificationManager to AppContainer dependency injection
+  - Request notification permission on app launch if notifications enabled in settings
+  - Add UNUserNotificationCenterDelegate to handle notification clicks (open dropdown)
+  - **Note:** Only check notifications when notificationsEnabled is true
+
+- [ ] **Add notification permission UI and denied state handling** [spec: features/notifications.md] [file: App/]
+  - In Settings NOTIFICATIONS section, show permission status
+  - If denied: show warning banner with "Open System Settings" button
+  - Use `NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!)`
+  - Disable notification toggles when permission denied
+  - Re-check permission status when settings window opens
+  - **Research:** `specs/features/notifications.md` for permission denied UI mockup
 
 ---
-<!-- CHECKPOINT: Phase 3 completes the SLC. The app now monitors usage continuously, handles errors gracefully, and provides a polished experience. -->
+<!-- CHECKPOINT: Phase 2 delivers proactive notifications. Test: enable notifications, set threshold to 50%, verify warning fires when crossing threshold, verify hysteresis prevents spam, verify reset notification when weekly drops. -->
+
+## Phase 3: Polish & Testing
+
+Complete the feature with tests, edge cases, and UI polish.
+
+- [ ] **Add comprehensive tests for Settings and Notifications** [file: Tests/]
+  - SettingsManager tests: persistence, defaults, type safety, refresh interval changes
+  - LaunchAtLoginManager tests: mock SMAppService, status handling
+  - NotificationManager tests: permission flow, send, state tracking, reset
+  - UsageNotificationChecker tests: threshold crossing, hysteresis (5%), reset detection
+  - Integration test: settings change → notification behavior change
+  - Target: maintain 80%+ test coverage for new code
+  - **Note:** Use protocol-based mocking for UNUserNotificationCenter and SMAppService
+
+- [ ] **Implement settings button and window lifecycle** [file: App/]
+  - Settings gear button in dropdown header (next to refresh button)
+  - Open settings in separate NSWindow (not replacing dropdown content)
+  - Single settings window instance (bring to front if already open)
+  - Close dropdown when settings opens
+  - Handle window close gracefully
+  - Keyboard shortcut: Cmd+, to open settings
+  - **Design:** Use `NSApp.keyWindow` / `NSWindow` for settings window management
+
+---
+<!-- CHECKPOINT: Phase 3 completes SLC 2. The app now warns before limits, lets users customize everything, and starts at login. All features have test coverage. -->
 
 ## Future Work (Outside Current Scope)
 
 The following items were identified during analysis but are deferred to maintain SLC focus:
 
-### SLC 2: Notifications & Settings
-- Usage warning notifications at configurable threshold (default 90%)
-- Capacity full notifications (100%)
-- Reset complete notifications
-- Settings panel with all configuration options
-- Launch at Login toggle
-- Configurable refresh interval (1-30 minutes)
-- Display preferences (show plan badge, percentage source)
-- **Research:** `research/approaches/system-notifications.md`, `research/approaches/launch-at-login.md`
-
-### SLC 3: Distribution & Polish
-- Update checking via GitHub Releases API
-- Accessibility (VoiceOver, keyboard navigation)
-- Homebrew Cask formula
-- DMG creation script
-- CI/CD with GitHub Actions
+### SLC 3: Distribution & Accessibility
+- Update checking via GitHub Releases API (manual + auto-check on launch)
+- Full accessibility audit (VoiceOver labels, keyboard navigation, focus states)
+- Homebrew Cask formula for easy installation
+- DMG creation script with code signing
+- CI/CD pipeline with GitHub Actions
 - **Research:** `research/apis/github-releases.md`, `specs/accessibility.md`, `specs/toolchain.md`
 
 ### Future Releases
+- Quiet hours setting (pause notifications during focus time)
+- Notification history view
+- Export/import settings
+- Different sounds per notification type
+- Custom app icon (replace SF symbol placeholder)
 - Internationalization (multiple languages)
 - Local JSONL fallback when API unavailable
-- Historical usage trends
-- Widget support
-- **Research:** `specs/internationalization.md`, `specs/api-documentation.md` (fallback section)
+- Historical usage trends visualization
+- Widget support for Notification Center
+- **Research:** `specs/internationalization.md`, `specs/features/updates.md`
+
+### Technical Debt Identified
+- UI package is minimal (10 lines) - consider moving shared UI components there
+- No UI tests - add snapshot tests for visual regression
+- No integration tests with mock network layer
+- Missing custom Claude brand icon (using SF symbol "sparkle" placeholder)
 
 ---
 
 ## Implementation Notes
 
-### Performance Targets (from specs/performance.md)
-- Memory: < 15 MB idle, < 25 MB active
-- CPU: < 0.1% idle, < 2% during refresh
-- Startup: < 500ms to menu bar visible
-- Energy: "Low" impact in Activity Monitor
+### Settings Persistence Strategy (from specs/features/settings.md)
+- Use `UserDefaults` with `@AppStorage` for SwiftUI binding where possible
+- Use `SettingsManager` @Observable class for complex settings logic
+- Settings keys are typed via `SettingsKey<T>` for compile-time safety
+- All settings persist immediately on change (no "Save" button needed)
+
+### Notification Hysteresis (from specs/features/notifications.md)
+- Purpose: Prevent notification spam when utilization hovers around threshold
+- Implementation: 5% buffer below threshold
+- Example: If threshold is 90%, warning fires at 90%. State resets when util drops below 85%.
+- Each usage window has independent notification state
+
+### Launch at Login (from research/approaches/launch-at-login.md)
+- Use SMAppService.mainApp (macOS 13+, we target 14+)
+- Status can be: notRegistered, enabled, requiresApproval, notFound
+- Handle requiresApproval by prompting user to check System Settings
+- Always check status before showing toggle state (can change externally)
 
 ### Design Tokens (from specs/design-system.md)
 - Primary color: #C15F3C (Crail)
-- Success: #22C55E (green)
-- Warning: #EAB308 (yellow)
-- Danger: #C15F3C (red)
+- Success: #22C55E (green) - low usage
+- Warning: #EAB308 (yellow) - medium usage
+- Danger: #C15F3C (red) - high usage
 - Spacing: xs=4, sm=8, md=12, lg=16, xl=24
 - Corner radius: sm=4, md=8, lg=12
+- Settings window: 320pt wide, 500pt tall
 
-### API Requirements (from research/apis/anthropic-oauth.md)
-- Endpoint: `GET https://api.anthropic.com/api/oauth/usage`
-- Header: `anthropic-beta: oauth-2025-04-20` (required)
-- ISO 8601 dates with fractional seconds
-- Handle null `seven_day_opus` and `seven_day_sonnet`
+### Performance Targets (from specs/performance.md)
+- Memory: < 15 MB idle, < 25 MB active
+- CPU: < 0.1% idle, < 2% during refresh
+- Notifications should not impact these targets significantly
+- Settings window should load instantly (<100ms)
+
+---
+
+## Previous SLC Releases
+
+### SLC 1: Usage Monitor ✅ COMPLETE
+
+All tasks completed with 81 passing tests.
+
+**Phase 1: Project Foundation** ✅
+- [x] Initialize Swift Package project with modular architecture
+- [x] Implement Domain models and protocols
+- [x] Implement Keychain credentials repository
+- [x] Implement Claude API client
+
+**Phase 2: Menu Bar UI** ✅
+- [x] Create menu bar app entry point with MenuBarExtra
+- [x] Implement UsageManager with @Observable state
+- [x] Build menu bar label view
+- [x] Build dropdown view with usage bars
+
+**Phase 3: Refresh & Polish** ✅
+- [x] Implement auto-refresh lifecycle with exponential backoff
+- [x] Implement manual refresh with button states
+- [x] Implement error and loading states with stale data display
