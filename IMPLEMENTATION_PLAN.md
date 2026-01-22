@@ -95,7 +95,7 @@ Build the settings persistence layer and UI foundation that notifications will d
 
 Implement proactive notifications for usage warnings, capacity full, and reset complete.
 
-- [ ] **Implement NotificationManager actor with permission handling** [spec: features/notifications.md] [file: Packages/Core/Sources/Core/]
+- [x] **Implement NotificationManager actor with permission handling** [spec: features/notifications.md] [file: Packages/Core/Sources/Core/]
   - Create `actor NotificationManager` for thread-safe notification handling
   - Method: `requestPermission() async -> Bool` using UNUserNotificationCenter
   - Method: `checkPermissionStatus() async -> UNAuthorizationStatus`
@@ -105,6 +105,7 @@ Implement proactive notifications for usage warnings, capacity full, and reset c
   - Method: `resetState(for identifier: String)` to clear notification state
   - **Research:** `research/approaches/system-notifications.md` for implementation patterns
   - **Note:** Request permission when user first enables notifications in settings
+  - **Completed:** Created `NotificationService` protocol for testability (allows mocking UNUserNotificationCenter); Created `actor NotificationManager` with permission handling (tracks `hasRequestedPermission`), duplicate notification prevention per identifier, and hysteresis support via `resetState(for:)` and `resetAllStates()`; Added `hasNotified(for:)` helper method; Added `removeDelivered(identifiers:)` method; 14 new tests added (132 total passing)
 
 - [ ] **Implement notification trigger logic with hysteresis** [spec: features/notifications.md] [file: Packages/Core/Sources/Core/]
   - Create `UsageNotificationChecker` class that evaluates usage changes

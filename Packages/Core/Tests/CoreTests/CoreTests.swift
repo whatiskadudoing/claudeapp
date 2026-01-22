@@ -3,6 +3,7 @@ import Foundation
 import ServiceManagement
 import Services
 import Testing
+import UserNotifications
 @testable import Core
 
 @Suite("Core Tests")
@@ -1189,5 +1190,353 @@ struct LaunchAtLoginManagerTests {
         mockService.setStatus(.notFound)
         manager.refreshStatus()
         #expect(manager.requiresUserApproval == false)
+    }
+}
+
+// MARK: - Mock NotificationService for Tests
+
+/// Mock notification service for testing NotificationManager.
+/// Uses a lock for thread-safe access to mutable state since it conforms to Sendable.
+final class MockNotificationService: NotificationService, @unchecked Sendable {
+    private let lock = NSLock()
+
+    private var _authorizationStatus: UNAuthorizationStatus = .notDetermined
+    private var _shouldGrantPermission: Bool = true
+    private var _shouldThrowOnRequest: Bool = false
+    private var _requestAuthorizationCallCount: Int = 0
+    private var _addedRequests: [UNNotificationRequest] = []
+    private var _removedIdentifiers: [String] = []
+
+    // MARK: - Configuration setters (thread-safe)
+
+    func setShouldGrantPermission(_ value: Bool) {
+        lock.lock()
+        defer { lock.unlock() }
+        _shouldGrantPermission = value
+    }
+
+    func setShouldThrowOnRequest(_ value: Bool) {
+        lock.lock()
+        defer { lock.unlock() }
+        _shouldThrowOnRequest = value
+    }
+
+    func setAuthorizationStatus(_ status: UNAuthorizationStatus) {
+        lock.lock()
+        defer { lock.unlock() }
+        _authorizationStatus = status
+    }
+
+    // MARK: - Test inspection methods (thread-safe)
+
+    func getRequestAuthorizationCallCount() -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return _requestAuthorizationCallCount
+    }
+
+    func getAddedRequestCount() -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return _addedRequests.count
+    }
+
+    func getLastRequest() -> UNNotificationRequest? {
+        lock.lock()
+        defer { lock.unlock() }
+        return _addedRequests.last
+    }
+
+    func getRemovedIdentifiers() -> [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return _removedIdentifiers
+    }
+
+    func reset() {
+        lock.lock()
+        defer { lock.unlock() }
+        _requestAuthorizationCallCount = 0
+        _addedRequests.removeAll()
+        _removedIdentifiers.removeAll()
+    }
+
+    // MARK: - NotificationService Protocol
+
+    func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool {
+        lock.lock()
+        _requestAuthorizationCallCount += 1
+        let shouldThrow = _shouldThrowOnRequest
+        let shouldGrant = _shouldGrantPermission
+        lock.unlock()
+
+        if shouldThrow {
+            throw NSError(domain: "TestError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Permission request failed"])
+        }
+
+        lock.lock()
+        if shouldGrant {
+            _authorizationStatus = .authorized
+        } else {
+            _authorizationStatus = .denied
+        }
+        lock.unlock()
+
+        return shouldGrant
+    }
+
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        lock.lock()
+        defer { lock.unlock() }
+        return _authorizationStatus
+    }
+
+    func add(_ request: UNNotificationRequest) async throws {
+        lock.lock()
+        defer { lock.unlock() }
+        _addedRequests.append(request)
+    }
+
+    func removeDeliveredNotifications(withIdentifiers identifiers: [String]) {
+        lock.lock()
+        defer { lock.unlock() }
+        _removedIdentifiers.append(contentsOf: identifiers)
+    }
+}
+
+// MARK: - NotificationManager Tests
+
+@Suite("NotificationManager Tests")
+struct NotificationManagerTests {
+    // MARK: - Permission Request Tests
+
+    @Test("requestPermission returns true when granted")
+    func requestPermissionGranted() async {
+        let mockService = MockNotificationService()
+        mockService.setAuthorizationStatus(.notDetermined)
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        let result = await manager.requestPermission()
+
+        #expect(result == true)
+        let callCount = mockService.getRequestAuthorizationCallCount()
+        #expect(callCount == 1)
+    }
+
+    @Test("requestPermission returns false when denied")
+    func requestPermissionDenied() async {
+        let mockService = MockNotificationService()
+        mockService.setShouldGrantPermission(false)
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        let result = await manager.requestPermission()
+
+        #expect(result == false)
+    }
+
+    @Test("requestPermission returns false when throws error")
+    func requestPermissionError() async {
+        let mockService = MockNotificationService()
+        mockService.setShouldThrowOnRequest(true)
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        let result = await manager.requestPermission()
+
+        #expect(result == false)
+    }
+
+    @Test("requestPermission does not prompt twice in same session")
+    func requestPermissionOnlyOnce() async {
+        let mockService = MockNotificationService()
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        // First request
+        _ = await manager.requestPermission()
+        let firstCallCount = mockService.getRequestAuthorizationCallCount()
+        #expect(firstCallCount == 1)
+
+        // Second request should not prompt again
+        _ = await manager.requestPermission()
+        let secondCallCount = mockService.getRequestAuthorizationCallCount()
+        #expect(secondCallCount == 1) // Still 1, not 2
+    }
+
+    @Test("checkPermissionStatus returns current status")
+    func checkPermissionStatus() async {
+        let mockService = MockNotificationService()
+        mockService.setAuthorizationStatus(.authorized)
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        let status = await manager.checkPermissionStatus()
+
+        #expect(status == .authorized)
+    }
+
+    @Test("checkPermissionStatus reflects denied status")
+    func checkPermissionStatusDenied() async {
+        let mockService = MockNotificationService()
+        mockService.setAuthorizationStatus(.denied)
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        let status = await manager.checkPermissionStatus()
+
+        #expect(status == .denied)
+    }
+
+    // MARK: - Send Notification Tests
+
+    @Test("send creates notification request")
+    func sendCreatesRequest() async {
+        let mockService = MockNotificationService()
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        await manager.send(
+            title: "Test Title",
+            body: "Test Body",
+            identifier: "test-notification"
+        )
+
+        let count = mockService.getAddedRequestCount()
+        #expect(count == 1)
+
+        let request = mockService.getLastRequest()
+        #expect(request?.identifier == "test-notification")
+        #expect(request?.content.title == "Test Title")
+        #expect(request?.content.body == "Test Body")
+        #expect(request?.trigger == nil) // Immediate delivery
+    }
+
+    @Test("send prevents duplicate notifications")
+    func sendPreventsDuplicates() async {
+        let mockService = MockNotificationService()
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        // First send
+        await manager.send(title: "Title", body: "Body", identifier: "dup-test")
+
+        // Second send with same identifier
+        await manager.send(title: "Title 2", body: "Body 2", identifier: "dup-test")
+
+        // Should only have one notification
+        let count = mockService.getAddedRequestCount()
+        #expect(count == 1)
+    }
+
+    @Test("send allows different identifiers")
+    func sendAllowsDifferentIdentifiers() async {
+        let mockService = MockNotificationService()
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        await manager.send(title: "Title 1", body: "Body 1", identifier: "id-1")
+        await manager.send(title: "Title 2", body: "Body 2", identifier: "id-2")
+        await manager.send(title: "Title 3", body: "Body 3", identifier: "id-3")
+
+        let count = mockService.getAddedRequestCount()
+        #expect(count == 3)
+    }
+
+    // MARK: - State Management Tests
+
+    @Test("resetState allows notification to fire again")
+    func resetStateAllowsRenotification() async {
+        let mockService = MockNotificationService()
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        // First send
+        await manager.send(title: "Title", body: "Body", identifier: "reset-test")
+        var count = mockService.getAddedRequestCount()
+        #expect(count == 1)
+
+        // Try to send again - should be blocked
+        await manager.send(title: "Title", body: "Body", identifier: "reset-test")
+        count = mockService.getAddedRequestCount()
+        #expect(count == 1)
+
+        // Reset state
+        await manager.resetState(for: "reset-test")
+
+        // Now should be able to send again
+        await manager.send(title: "Title", body: "Body", identifier: "reset-test")
+        count = mockService.getAddedRequestCount()
+        #expect(count == 2)
+    }
+
+    @Test("resetAllStates clears all tracking")
+    func resetAllStatesClearsTracking() async {
+        let mockService = MockNotificationService()
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        // Send multiple notifications
+        await manager.send(title: "Title", body: "Body", identifier: "id-1")
+        await manager.send(title: "Title", body: "Body", identifier: "id-2")
+
+        // Reset all states
+        await manager.resetAllStates()
+
+        // Both should be able to fire again
+        await manager.send(title: "Title", body: "Body", identifier: "id-1")
+        await manager.send(title: "Title", body: "Body", identifier: "id-2")
+
+        let count = mockService.getAddedRequestCount()
+        #expect(count == 4) // 2 original + 2 after reset
+    }
+
+    @Test("hasNotified returns correct status")
+    func hasNotifiedReturnsCorrectStatus() async {
+        let mockService = MockNotificationService()
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        // Initially false
+        var hasNotified = await manager.hasNotified(for: "test-id")
+        #expect(hasNotified == false)
+
+        // After send, should be true
+        await manager.send(title: "Title", body: "Body", identifier: "test-id")
+        hasNotified = await manager.hasNotified(for: "test-id")
+        #expect(hasNotified == true)
+
+        // After reset, should be false again
+        await manager.resetState(for: "test-id")
+        hasNotified = await manager.hasNotified(for: "test-id")
+        #expect(hasNotified == false)
+    }
+
+    @Test("removeDelivered calls notification center")
+    func removeDeliveredCallsCenter() async {
+        let mockService = MockNotificationService()
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        await manager.removeDelivered(identifiers: ["id-1", "id-2"])
+
+        let removed = mockService.getRemovedIdentifiers()
+        #expect(removed == ["id-1", "id-2"])
+    }
+
+    // MARK: - Integration Tests
+
+    @Test("Full notification cycle with hysteresis pattern")
+    func fullNotificationCycle() async {
+        let mockService = MockNotificationService()
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        let warningId = "usage-warning-session"
+
+        // 1. First warning fires
+        await manager.send(title: "Warning", body: "At 90%", identifier: warningId)
+        var count = mockService.getAddedRequestCount()
+        #expect(count == 1)
+
+        // 2. Usage goes higher - still blocked (same cycle)
+        await manager.send(title: "Warning", body: "At 95%", identifier: warningId)
+        count = mockService.getAddedRequestCount()
+        #expect(count == 1) // Still 1
+
+        // 3. Usage drops below hysteresis threshold - reset state
+        await manager.resetState(for: warningId)
+
+        // 4. Usage rises again - warning can fire again
+        await manager.send(title: "Warning", body: "At 90%", identifier: warningId)
+        count = mockService.getAddedRequestCount()
+        #expect(count == 2)
     }
 }
