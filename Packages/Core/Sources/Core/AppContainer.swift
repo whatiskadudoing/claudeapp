@@ -22,6 +22,12 @@ public final class AppContainer {
     /// Manager for usage data state
     public let usageManager: UsageManager
 
+    /// Manager for app settings
+    public let settingsManager: SettingsManager
+
+    /// Manager for launch at login functionality
+    public let launchAtLoginManager: LaunchAtLoginManager
+
     // MARK: - Configuration
 
     /// Default auto-refresh interval (5 minutes)
@@ -44,11 +50,23 @@ public final class AppContainer {
         let apiClient = ClaudeAPIClient(credentialsRepository: keychainRepo)
         self.usageRepository = apiClient
 
-        // Create managers
+        // Create settings manager first (other managers may depend on it)
+        let settings = SettingsManager()
+        self.settingsManager = settings
+
+        // Create launch at login manager
+        self.launchAtLoginManager = LaunchAtLoginManager()
+
+        // Create usage manager
         self.usageManager = UsageManager(usageRepository: apiClient)
 
-        // Start auto-refresh on launch
-        usageManager.startAutoRefresh(interval: Self.defaultRefreshInterval)
+        // Configure settings callback to update refresh interval
+        settings.onRefreshIntervalChanged = { [weak self] newInterval in
+            self?.usageManager.restartAutoRefresh(interval: TimeInterval(newInterval * 60))
+        }
+
+        // Start auto-refresh using settings interval
+        usageManager.startAutoRefresh(interval: settings.refreshIntervalSeconds)
 
         // Register sleep/wake observers
         registerSleepWakeObservers()
@@ -59,14 +77,20 @@ public final class AppContainer {
     /// - Parameters:
     ///   - credentialsRepository: Custom credentials repository
     ///   - usageRepository: Custom usage repository
+    ///   - settingsRepository: Custom settings repository (optional)
+    ///   - launchAtLoginService: Custom launch at login service (optional)
     ///   - startAutoRefresh: Whether to start auto-refresh (default false for tests)
     public init(
         credentialsRepository: CredentialsRepository,
         usageRepository: UsageRepository,
+        settingsRepository: SettingsRepository? = nil,
+        launchAtLoginService: LaunchAtLoginService? = nil,
         startAutoRefresh: Bool = false
     ) {
         self.credentialsRepository = credentialsRepository
         self.usageRepository = usageRepository
+        self.settingsManager = SettingsManager(repository: settingsRepository ?? UserDefaultsSettingsRepository())
+        self.launchAtLoginManager = launchAtLoginService.map { LaunchAtLoginManager(service: $0) } ?? LaunchAtLoginManager()
         self.usageManager = UsageManager(usageRepository: usageRepository)
 
         if startAutoRefresh {

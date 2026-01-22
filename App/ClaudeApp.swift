@@ -14,11 +14,24 @@ struct ClaudeApp: App {
         MenuBarExtra {
             DropdownView()
                 .environment(container.usageManager)
+                .environment(container.settingsManager)
+                .environment(container.launchAtLoginManager)
         } label: {
             MenuBarLabel()
                 .environment(container.usageManager)
+                .environment(container.settingsManager)
         }
         .menuBarExtraStyle(.window)
+
+        // Settings window
+        Window("Settings", id: "settings") {
+            SettingsView()
+                .environment(container.settingsManager)
+                .environment(container.launchAtLoginManager)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
     }
 }
 
@@ -54,6 +67,7 @@ struct MenuBarLabel: View {
 /// Shows detailed usage information with progress bars.
 struct DropdownView: View {
     @Environment(UsageManager.self) private var usageManager
+    @Environment(\.openWindow) private var openWindow
 
     /// Whether we have an error but also have cached data to show
     private var hasErrorWithCachedData: Bool {
@@ -72,6 +86,9 @@ struct DropdownView: View {
                 Text("Claude Usage")
                     .font(.headline)
                 Spacer()
+                SettingsButton {
+                    openWindow(id: "settings")
+                }
                 RefreshButton()
             }
 
@@ -135,6 +152,22 @@ struct DropdownView: View {
                 await usageManager.refresh()
             }
         }
+    }
+}
+
+// MARK: - Settings Button
+
+/// Button to open the settings window.
+struct SettingsButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "gearshape")
+                .foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut(",", modifiers: .command)
     }
 }
 
@@ -446,5 +479,359 @@ struct EmptyStateView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
+    }
+}
+
+// MARK: - Settings View
+
+/// The main settings window showing all app configuration options.
+/// Organized into sections: Display, Refresh, Notifications, General, About.
+struct SettingsView: View {
+    @Environment(SettingsManager.self) private var settings
+    @Environment(LaunchAtLoginManager.self) private var launchAtLogin
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("Settings")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .font(.title3)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(16)
+
+            Divider()
+
+            // Scrollable content
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    DisplaySection()
+                    RefreshSection()
+                    NotificationsSection()
+                    GeneralSection()
+                    AboutSection()
+                }
+                .padding(16)
+            }
+        }
+        .frame(width: 320, height: 500)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+}
+
+// MARK: - Section Header
+
+/// Consistent header style for settings sections.
+struct SectionHeader: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.caption)
+            .fontWeight(.medium)
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+    }
+}
+
+// MARK: - Settings Toggle
+
+/// A toggle with consistent styling for settings.
+struct SettingsToggle: View {
+    let title: String
+    @Binding var isOn: Bool
+    var subtitle: String?
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.body)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .toggleStyle(.switch)
+        .controlSize(.small)
+    }
+}
+
+// MARK: - Display Section
+
+/// Settings for menu bar display options.
+struct DisplaySection: View {
+    @Environment(SettingsManager.self) private var settings
+
+    var body: some View {
+        @Bindable var settings = settings
+
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "Display")
+
+            SettingsToggle(
+                title: "Show Plan Badge",
+                isOn: $settings.showPlanBadge,
+                subtitle: "Display Pro, Max 5x, or Max 20x"
+            )
+
+            SettingsToggle(
+                title: "Show Percentage",
+                isOn: $settings.showPercentage
+            )
+
+            if settings.showPercentage {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Percentage Source")
+                        .font(.body)
+
+                    Picker("", selection: $settings.percentageSource) {
+                        ForEach(PercentageSource.allCases, id: \.self) { source in
+                            Text(source.rawValue).tag(source)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Refresh Section
+
+/// Settings for data refresh interval.
+struct RefreshSection: View {
+    @Environment(SettingsManager.self) private var settings
+
+    var body: some View {
+        @Bindable var settings = settings
+
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "Refresh")
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Refresh Interval")
+                    Spacer()
+                    Text("\(settings.refreshInterval) min")
+                        .foregroundStyle(.secondary)
+                        .font(.body.monospacedDigit())
+                }
+
+                Slider(
+                    value: Binding(
+                        get: { Double(settings.refreshInterval) },
+                        set: { settings.refreshInterval = Int($0) }
+                    ),
+                    in: 1...30,
+                    step: 1
+                )
+                .controlSize(.small)
+
+                HStack {
+                    Text("1 min")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                    Text("30 min")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Notifications Section
+
+/// Settings for notification preferences.
+struct NotificationsSection: View {
+    @Environment(SettingsManager.self) private var settings
+
+    var body: some View {
+        @Bindable var settings = settings
+
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "Notifications")
+
+            SettingsToggle(
+                title: "Enable Notifications",
+                isOn: $settings.notificationsEnabled
+            )
+
+            if settings.notificationsEnabled {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Warning Threshold")
+                        Spacer()
+                        Text("\(settings.warningThreshold)%")
+                            .foregroundStyle(.secondary)
+                            .font(.body.monospacedDigit())
+                    }
+
+                    Slider(
+                        value: Binding(
+                            get: { Double(settings.warningThreshold) },
+                            set: { settings.warningThreshold = Int($0) }
+                        ),
+                        in: 50...99,
+                        step: 1
+                    )
+                    .controlSize(.small)
+
+                    HStack {
+                        Text("50%")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                        Spacer()
+                        Text("99%")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+
+                Divider()
+
+                SettingsToggle(
+                    title: "Usage Warnings",
+                    isOn: $settings.warningEnabled,
+                    subtitle: "When usage crosses threshold"
+                )
+
+                SettingsToggle(
+                    title: "Capacity Full",
+                    isOn: $settings.capacityFullEnabled,
+                    subtitle: "When usage reaches 100%"
+                )
+
+                SettingsToggle(
+                    title: "Reset Complete",
+                    isOn: $settings.resetCompleteEnabled,
+                    subtitle: "When limits reset"
+                )
+            }
+        }
+    }
+}
+
+// MARK: - General Section
+
+/// General app settings like launch at login.
+struct GeneralSection: View {
+    @Environment(SettingsManager.self) private var settings
+    @Environment(LaunchAtLoginManager.self) private var launchAtLogin
+
+    var body: some View {
+        @Bindable var launchAtLogin = launchAtLogin
+        @Bindable var settings = settings
+
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "General")
+
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle(isOn: $launchAtLogin.isEnabled) {
+                    Text("Launch at Login")
+                        .font(.body)
+                }
+                .toggleStyle(.switch)
+                .controlSize(.small)
+
+                if launchAtLogin.requiresUserApproval {
+                    Button {
+                        openLoginItemsSettings()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.caption2)
+                            Text("Requires approval in System Settings")
+                                .font(.caption)
+                        }
+                        .foregroundStyle(.orange)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if let error = launchAtLogin.lastError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+
+            SettingsToggle(
+                title: "Check for Updates",
+                isOn: $settings.checkForUpdates,
+                subtitle: "Automatically check on launch"
+            )
+        }
+    }
+
+    private func openLoginItemsSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+}
+
+// MARK: - About Section
+
+/// About section showing app info and links.
+struct AboutSection: View {
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "About")
+
+            VStack(spacing: 12) {
+                // App icon
+                Image(systemName: "sparkle")
+                    .font(.system(size: 40))
+                    .foregroundStyle(Color(red: 0.757, green: 0.373, blue: 0.235))
+
+                Text("ClaudeApp")
+                    .font(.headline)
+
+                Text("v\(appVersion)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                // Check for Updates button (placeholder for SLC 3)
+                Button("Check for Updates") {
+                    // Will be implemented in SLC 3
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(true) // Disabled until SLC 3
+
+                // Links
+                HStack(spacing: 8) {
+                    if let githubURL = URL(string: "https://github.com/anthropics/claude-code") {
+                        Link("GitHub", destination: githubURL)
+                    }
+                    Text("•")
+                        .foregroundStyle(.tertiary)
+                    Text("Monitor your Claude usage")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+        }
     }
 }

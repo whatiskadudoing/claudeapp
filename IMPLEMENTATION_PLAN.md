@@ -65,7 +65,7 @@ Build the settings persistence layer and UI foundation that notifications will d
   - **Note:** Requires `import ServiceManagement`
   - **Completed:** Created `LaunchAtLoginManager` with `LaunchAtLoginService` protocol for testability, `isEnabled` property with auto-register/unregister, `refreshStatus()` for syncing with system state, `statusDescription` and `requiresUserApproval` helpers, error handling with revert logic; 17 new tests added (115 total passing)
 
-- [ ] **Build Settings window with all sections** [spec: features/settings.md, design-system.md] [file: App/]
+- [x] **Build Settings window with all sections** [spec: features/settings.md, design-system.md] [file: App/]
   - Create `SettingsView` as a 320x500pt window with scrollable content
   - Sections: DISPLAY, REFRESH, NOTIFICATIONS, GENERAL, ABOUT
   - DISPLAY: showPlanBadge toggle, showPercentage toggle, percentageSource picker
@@ -77,6 +77,7 @@ Build the settings persistence layer and UI foundation that notifications will d
   - Open settings in a separate window (not in dropdown)
   - **Research:** `specs/design-system.md` for component styles, spacing, typography
   - **Design:** Use SectionHeader component, SettingsToggle component for consistency
+  - **Completed:** Created full SettingsView with all sections in App/ClaudeApp.swift; Added SettingsButton to dropdown header; Settings window opens via SwiftUI Window scene with Cmd+, shortcut; Added SettingsManager and LaunchAtLoginManager to AppContainer with proper environment injection; Added restartAutoRefresh method to UsageManager; All 115 tests passing
 
 - [ ] **Connect settings to existing UI (menu bar display + refresh interval)** [spec: features/settings.md] [file: App/ClaudeApp.swift]
   - Update MenuBarLabel to respect showPercentage, percentageSource settings

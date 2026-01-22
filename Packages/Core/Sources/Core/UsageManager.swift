@@ -194,6 +194,18 @@ public final class UsageManager {
         refreshTask = nil
     }
 
+    /// Restarts auto-refresh with a new interval.
+    /// Use this when the user changes the refresh interval in settings.
+    /// - Parameter interval: New time between refresh attempts in seconds
+    public func restartAutoRefresh(interval: TimeInterval) {
+        if refreshTask != nil {
+            stopAutoRefresh()
+            startAutoRefresh(interval: interval)
+        } else {
+            currentInterval = interval
+        }
+    }
+
     // MARK: - Sleep/Wake Handling
 
     /// Pauses auto-refresh when system goes to sleep.
