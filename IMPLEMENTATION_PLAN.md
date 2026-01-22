@@ -51,7 +51,7 @@ Establish the project structure, build system, and domain models that all featur
   - **Research:** `specs/architecture.md` for package structure, `specs/toolchain.md` for Makefile
   - **Note:** SPM doesn't support Info.plist as a resource; for menu bar app LSUIElement behavior, the app relies on MenuBarExtra which works without explicit plist configuration
 
-- [ ] **Implement Domain models and protocols** [spec: architecture.md, api-documentation.md]
+- [x] **Implement Domain models and protocols** [spec: architecture.md, api-documentation.md]
   - Create `UsageData` struct with four `UsageWindow` properties
   - Create `UsageWindow` struct (utilization: Double, resetsAt: Date?)
   - Create `Credentials` struct (accessToken: String, expiresAt: Date?)
@@ -60,6 +60,7 @@ Establish the project structure, build system, and domain models that all featur
   - Define `CredentialsRepository` protocol with `getCredentials() async throws -> Credentials`
   - All types must be `Sendable`
   - **Research:** `research/apis/anthropic-oauth.md` for response schema and Swift types
+  - **Note:** Added `rateLimited(retryAfter: Int)` case to AppError for 429 handling. All Domain types require `import Foundation` for `Date` type.
 
 - [ ] **Implement Keychain credentials repository** [spec: api-documentation.md]
   - Create `KeychainCredentialsRepository` actor implementing `CredentialsRepository`
