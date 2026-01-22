@@ -10,6 +10,158 @@ struct DomainTests {
     }
 }
 
+// MARK: - BurnRateLevel Tests
+
+@Suite("BurnRateLevel Tests")
+struct BurnRateLevelTests {
+    @Test("BurnRateLevel raw values are correct")
+    func rawValues() {
+        #expect(BurnRateLevel.low.rawValue == "Low")
+        #expect(BurnRateLevel.medium.rawValue == "Med")
+        #expect(BurnRateLevel.high.rawValue == "High")
+        #expect(BurnRateLevel.veryHigh.rawValue == "V.High")
+    }
+
+    @Test("BurnRateLevel color values are correct")
+    func colorValues() {
+        #expect(BurnRateLevel.low.color == "green")
+        #expect(BurnRateLevel.medium.color == "yellow")
+        #expect(BurnRateLevel.high.color == "orange")
+        #expect(BurnRateLevel.veryHigh.color == "red")
+    }
+
+    @Test("BurnRateLevel conforms to CaseIterable")
+    func caseIterable() {
+        let allCases = BurnRateLevel.allCases
+        #expect(allCases.count == 4)
+        #expect(allCases.contains(.low))
+        #expect(allCases.contains(.medium))
+        #expect(allCases.contains(.high))
+        #expect(allCases.contains(.veryHigh))
+    }
+
+    @Test("BurnRateLevel is Equatable")
+    func equatable() {
+        #expect(BurnRateLevel.low == BurnRateLevel.low)
+        #expect(BurnRateLevel.low != BurnRateLevel.high)
+    }
+
+    @Test("BurnRateLevel is Codable")
+    func codable() throws {
+        let level = BurnRateLevel.medium
+        let data = try JSONEncoder().encode(level)
+        let decoded = try JSONDecoder().decode(BurnRateLevel.self, from: data)
+        #expect(decoded == level)
+    }
+}
+
+// MARK: - BurnRate Tests
+
+@Suite("BurnRate Tests")
+struct BurnRateTests {
+    @Test("BurnRate initializes with percentPerHour")
+    func initialization() {
+        let burnRate = BurnRate(percentPerHour: 15.0)
+        #expect(burnRate.percentPerHour == 15.0)
+    }
+
+    @Test("BurnRate level is low for rates below 10")
+    func levelLow() {
+        #expect(BurnRate(percentPerHour: 0.0).level == .low)
+        #expect(BurnRate(percentPerHour: 5.0).level == .low)
+        #expect(BurnRate(percentPerHour: 9.9).level == .low)
+    }
+
+    @Test("BurnRate level is medium for rates 10-25")
+    func levelMedium() {
+        #expect(BurnRate(percentPerHour: 10.0).level == .medium)
+        #expect(BurnRate(percentPerHour: 15.0).level == .medium)
+        #expect(BurnRate(percentPerHour: 24.9).level == .medium)
+    }
+
+    @Test("BurnRate level is high for rates 25-50")
+    func levelHigh() {
+        #expect(BurnRate(percentPerHour: 25.0).level == .high)
+        #expect(BurnRate(percentPerHour: 35.0).level == .high)
+        #expect(BurnRate(percentPerHour: 49.9).level == .high)
+    }
+
+    @Test("BurnRate level is veryHigh for rates above 50")
+    func levelVeryHigh() {
+        #expect(BurnRate(percentPerHour: 50.0).level == .veryHigh)
+        #expect(BurnRate(percentPerHour: 75.0).level == .veryHigh)
+        #expect(BurnRate(percentPerHour: 100.0).level == .veryHigh)
+    }
+
+    @Test("BurnRate level threshold edge cases")
+    func levelThresholdEdgeCases() {
+        // Exactly at boundaries
+        #expect(BurnRate(percentPerHour: 10.0).level == .medium)
+        #expect(BurnRate(percentPerHour: 25.0).level == .high)
+        #expect(BurnRate(percentPerHour: 50.0).level == .veryHigh)
+
+        // Just below boundaries
+        #expect(BurnRate(percentPerHour: 9.999).level == .low)
+        #expect(BurnRate(percentPerHour: 24.999).level == .medium)
+        #expect(BurnRate(percentPerHour: 49.999).level == .high)
+    }
+
+    @Test("BurnRate displayString formats correctly")
+    func displayString() {
+        #expect(BurnRate(percentPerHour: 15.0).displayString == "15%/hr")
+        #expect(BurnRate(percentPerHour: 0.0).displayString == "0%/hr")
+        #expect(BurnRate(percentPerHour: 100.0).displayString == "100%/hr")
+        #expect(BurnRate(percentPerHour: 15.7).displayString == "16%/hr") // Rounds
+    }
+
+    @Test("BurnRate displayString rounds decimals")
+    func displayStringRounding() {
+        #expect(BurnRate(percentPerHour: 15.4).displayString == "15%/hr")
+        #expect(BurnRate(percentPerHour: 15.5).displayString == "16%/hr")
+        #expect(BurnRate(percentPerHour: 15.9).displayString == "16%/hr")
+    }
+
+    @Test("BurnRate is Equatable")
+    func equatable() {
+        let rate1 = BurnRate(percentPerHour: 15.0)
+        let rate2 = BurnRate(percentPerHour: 15.0)
+        let rate3 = BurnRate(percentPerHour: 20.0)
+
+        #expect(rate1 == rate2)
+        #expect(rate1 != rate3)
+    }
+
+    @Test("BurnRate is Sendable")
+    func sendable() async {
+        let burnRate = BurnRate(percentPerHour: 15.0)
+
+        // Verify it can be passed across actor boundaries
+        let result = await Task.detached {
+            burnRate.percentPerHour
+        }.value
+
+        #expect(result == 15.0)
+    }
+
+    @Test("BurnRate is Codable")
+    func codable() throws {
+        let burnRate = BurnRate(percentPerHour: 25.5)
+        let data = try JSONEncoder().encode(burnRate)
+        let decoded = try JSONDecoder().decode(BurnRate.self, from: data)
+
+        #expect(decoded == burnRate)
+        #expect(decoded.percentPerHour == 25.5)
+    }
+
+    @Test("BurnRate handles negative values")
+    func negativeValues() {
+        // Negative rates can occur during resets but should map to low
+        let negativeRate = BurnRate(percentPerHour: -5.0)
+        #expect(negativeRate.level == .low)
+        #expect(negativeRate.displayString == "-5%/hr")
+    }
+}
+
 // MARK: - UsageWindow Tests
 
 @Suite("UsageWindow Tests")
