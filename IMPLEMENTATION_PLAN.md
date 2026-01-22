@@ -56,13 +56,14 @@ Build the settings persistence layer and UI foundation that notifications will d
   - **Design:** Use `@AppStorage` pattern documented in spec
   - **Completed:** Created `PercentageSource` enum, `SettingsKey<T>` struct, `SettingsRepository` protocol in Domain; `SettingsManager` and `UserDefaultsSettingsRepository` in Core; 17 new tests (98 total passing)
 
-- [ ] **Implement LaunchAtLoginManager using SMAppService** [spec: features/settings.md] [file: Packages/Core/Sources/Core/]
+- [x] **Implement LaunchAtLoginManager using SMAppService** [spec: features/settings.md] [file: Packages/Core/Sources/Core/]
   - Create `@MainActor class LaunchAtLoginManager` with `isEnabled` computed property
   - Use `SMAppService.mainApp.register()` and `unregister()`
   - Handle status states: notRegistered, enabled, requiresApproval
   - Revert `isEnabled` on registration failure
   - **Research:** `research/approaches/launch-at-login.md` for implementation pattern
   - **Note:** Requires `import ServiceManagement`
+  - **Completed:** Created `LaunchAtLoginManager` with `LaunchAtLoginService` protocol for testability, `isEnabled` property with auto-register/unregister, `refreshStatus()` for syncing with system state, `statusDescription` and `requiresUserApproval` helpers, error handling with revert logic; 17 new tests added (115 total passing)
 
 - [ ] **Build Settings window with all sections** [spec: features/settings.md, design-system.md] [file: App/]
   - Create `SettingsView` as a 320x500pt window with scrollable content

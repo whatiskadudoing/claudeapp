@@ -1,5 +1,6 @@
 import Domain
 import Foundation
+import ServiceManagement
 import Services
 import Testing
 @testable import Core
@@ -903,5 +904,290 @@ struct UserDefaultsSettingsRepositoryTests {
         #expect(repo.get(.percentageSource) == .opus)
 
         defaults.removePersistentDomain(forName: testSuiteName)
+    }
+}
+
+// MARK: - Mock LaunchAtLoginService for Tests
+
+/// Mock service for testing LaunchAtLoginManager
+final class MockLaunchAtLoginService: LaunchAtLoginService, @unchecked Sendable {
+    private var _status: SMAppService.Status
+    var shouldThrowOnRegister: Bool = false
+    var shouldThrowOnUnregister: Bool = false
+    var registerCallCount = 0
+    var unregisterCallCount = 0
+
+    init(initialStatus: SMAppService.Status = .notRegistered) {
+        self._status = initialStatus
+    }
+
+    var status: SMAppService.Status {
+        _status
+    }
+
+    func register() throws {
+        registerCallCount += 1
+        if shouldThrowOnRegister {
+            throw NSError(domain: "TestError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to register"])
+        }
+        _status = .enabled
+    }
+
+    func unregister() throws {
+        unregisterCallCount += 1
+        if shouldThrowOnUnregister {
+            throw NSError(domain: "TestError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to unregister"])
+        }
+        _status = .notRegistered
+    }
+
+    /// Set the status externally (simulates system changes)
+    func setStatus(_ newStatus: SMAppService.Status) {
+        _status = newStatus
+    }
+}
+
+// MARK: - LaunchAtLoginManager Tests
+
+@Suite("LaunchAtLoginManager Tests")
+struct LaunchAtLoginManagerTests {
+    // MARK: - Initialization Tests
+
+    @Test("Initial state reflects service status when not registered")
+    @MainActor
+    func initialStateNotRegistered() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .notRegistered)
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        #expect(manager.isEnabled == false)
+        #expect(manager.status == .notRegistered)
+        #expect(manager.lastError == nil)
+    }
+
+    @Test("Initial state reflects service status when enabled")
+    @MainActor
+    func initialStateEnabled() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .enabled)
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        #expect(manager.isEnabled == true)
+        #expect(manager.status == .enabled)
+        #expect(manager.lastError == nil)
+    }
+
+    @Test("Initial state reflects service status when requires approval")
+    @MainActor
+    func initialStateRequiresApproval() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .requiresApproval)
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        #expect(manager.isEnabled == false)
+        #expect(manager.status == .requiresApproval)
+        #expect(manager.requiresUserApproval == true)
+    }
+
+    // MARK: - Enable/Disable Tests
+
+    @Test("Setting isEnabled to true registers the app")
+    @MainActor
+    func enableRegistersApp() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .notRegistered)
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        manager.isEnabled = true
+
+        #expect(mockService.registerCallCount == 1)
+        #expect(mockService.unregisterCallCount == 0)
+        #expect(manager.status == .enabled)
+        #expect(manager.isEnabled == true)
+        #expect(manager.lastError == nil)
+    }
+
+    @Test("Setting isEnabled to false unregisters the app")
+    @MainActor
+    func disableUnregistersApp() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .enabled)
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        manager.isEnabled = false
+
+        #expect(mockService.unregisterCallCount == 1)
+        #expect(mockService.registerCallCount == 0)
+        #expect(manager.status == .notRegistered)
+        #expect(manager.isEnabled == false)
+        #expect(manager.lastError == nil)
+    }
+
+    @Test("Setting isEnabled to same value does not call service")
+    @MainActor
+    func sameValueNoServiceCall() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .enabled)
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        // Already enabled, set to true again
+        manager.isEnabled = true
+
+        #expect(mockService.registerCallCount == 0)
+        #expect(mockService.unregisterCallCount == 0)
+    }
+
+    @Test("Does not register if already enabled")
+    @MainActor
+    func doesNotRegisterIfAlreadyEnabled() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .enabled)
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        // Force a re-registration attempt by toggling off then on
+        manager.isEnabled = false
+        mockService.setStatus(.enabled) // Simulate external re-enable
+        manager.isEnabled = true
+
+        // Should only have called unregister once, register should be skipped since status is already enabled
+        #expect(mockService.unregisterCallCount == 1)
+        #expect(mockService.registerCallCount == 0)
+    }
+
+    @Test("Does not unregister if already not registered")
+    @MainActor
+    func doesNotUnregisterIfAlreadyNotRegistered() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .notRegistered)
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        manager.isEnabled = false
+
+        // Should not call unregister since already not registered
+        #expect(mockService.unregisterCallCount == 0)
+    }
+
+    // MARK: - Error Handling Tests
+
+    @Test("Reverts isEnabled on register failure")
+    @MainActor
+    func revertsOnRegisterFailure() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .notRegistered)
+        mockService.shouldThrowOnRegister = true
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        manager.isEnabled = true
+
+        #expect(mockService.registerCallCount == 1)
+        #expect(manager.isEnabled == false) // Reverted
+        #expect(manager.status == .notRegistered)
+        #expect(manager.lastError != nil)
+        #expect(manager.lastError?.contains("Failed to register") == true)
+    }
+
+    @Test("Reverts isEnabled on unregister failure")
+    @MainActor
+    func revertsOnUnregisterFailure() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .enabled)
+        mockService.shouldThrowOnUnregister = true
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        manager.isEnabled = false
+
+        #expect(mockService.unregisterCallCount == 1)
+        #expect(manager.isEnabled == true) // Reverted
+        #expect(manager.status == .enabled)
+        #expect(manager.lastError != nil)
+        #expect(manager.lastError?.contains("Failed to unregister") == true)
+    }
+
+    // MARK: - Refresh Status Tests
+
+    @Test("refreshStatus syncs with system state")
+    @MainActor
+    func refreshStatusSyncs() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .notRegistered)
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        // Simulate external change to enabled
+        mockService.setStatus(.enabled)
+
+        #expect(manager.isEnabled == false) // Still old value
+        #expect(manager.status == .notRegistered) // Still old value
+
+        manager.refreshStatus()
+
+        #expect(manager.isEnabled == true) // Updated
+        #expect(manager.status == .enabled) // Updated
+        #expect(manager.lastError == nil) // Cleared
+    }
+
+    @Test("refreshStatus clears lastError")
+    @MainActor
+    func refreshStatusClearsError() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .notRegistered)
+        mockService.shouldThrowOnRegister = true
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        // Cause an error
+        manager.isEnabled = true
+        #expect(manager.lastError != nil)
+
+        // Refresh should clear it
+        manager.refreshStatus()
+        #expect(manager.lastError == nil)
+    }
+
+    // MARK: - Status Description Tests
+
+    @Test("statusDescription returns correct text for notRegistered")
+    @MainActor
+    func statusDescriptionNotRegistered() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .notRegistered)
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        #expect(manager.statusDescription == "Not set to launch at login")
+    }
+
+    @Test("statusDescription returns correct text for enabled")
+    @MainActor
+    func statusDescriptionEnabled() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .enabled)
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        #expect(manager.statusDescription == "Will launch at login")
+    }
+
+    @Test("statusDescription returns correct text for requiresApproval")
+    @MainActor
+    func statusDescriptionRequiresApproval() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .requiresApproval)
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        #expect(manager.statusDescription == "Requires approval in System Settings")
+    }
+
+    @Test("statusDescription returns correct text for notFound")
+    @MainActor
+    func statusDescriptionNotFound() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .notFound)
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        #expect(manager.statusDescription == "App not found")
+    }
+
+    // MARK: - Requires User Approval Tests
+
+    @Test("requiresUserApproval is true only for requiresApproval status")
+    @MainActor
+    func requiresUserApprovalFlag() {
+        let mockService = MockLaunchAtLoginService(initialStatus: .notRegistered)
+        let manager = LaunchAtLoginManager(service: mockService)
+
+        #expect(manager.requiresUserApproval == false)
+
+        mockService.setStatus(.enabled)
+        manager.refreshStatus()
+        #expect(manager.requiresUserApproval == false)
+
+        mockService.setStatus(.requiresApproval)
+        manager.refreshStatus()
+        #expect(manager.requiresUserApproval == true)
+
+        mockService.setStatus(.notFound)
+        manager.refreshStatus()
+        #expect(manager.requiresUserApproval == false)
     }
 }
