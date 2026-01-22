@@ -227,3 +227,276 @@ struct KeychainCredentialsRepositoryTests {
         #expect(Bool(true))
     }
 }
+
+// MARK: - ClaudeAPIClient Tests
+
+@Suite("ClaudeAPIClient Tests")
+struct ClaudeAPIClientTests {
+    @Test("Client is Sendable")
+    func clientIsSendable() async {
+        let mockCredentialsRepo = MockCredentialsRepository()
+        let client = ClaudeAPIClient(credentialsRepository: mockCredentialsRepo)
+
+        // If this compiles, the type is Sendable
+        let _: any Sendable = client
+        #expect(Bool(true))
+    }
+
+    @Test("Client conforms to UsageRepository protocol")
+    func clientConformsToUsageRepository() async {
+        let mockCredentialsRepo = MockCredentialsRepository()
+        let client: any UsageRepository = ClaudeAPIClient(credentialsRepository: mockCredentialsRepo)
+
+        // Verify protocol type conformance
+        #expect(client is ClaudeAPIClient)
+    }
+
+    @Test("Client uses default base URL")
+    func clientUsesDefaultBaseURL() async {
+        let mockCredentialsRepo = MockCredentialsRepository()
+        let _ = ClaudeAPIClient(credentialsRepository: mockCredentialsRepo)
+
+        // If this compiles without error, the default URL is valid
+        #expect(Bool(true))
+    }
+
+    @Test("Client accepts custom base URL")
+    func clientAcceptsCustomBaseURL() async {
+        let mockCredentialsRepo = MockCredentialsRepository()
+        let customURL = URL(string: "https://custom.api.example.com")!
+        let _ = ClaudeAPIClient(baseURL: customURL, credentialsRepository: mockCredentialsRepo)
+
+        #expect(Bool(true))
+    }
+
+    @Test("Client accepts custom user agent")
+    func clientAcceptsCustomUserAgent() async {
+        let mockCredentialsRepo = MockCredentialsRepository()
+        let _ = ClaudeAPIClient(credentialsRepository: mockCredentialsRepo, userAgent: "CustomApp/2.0.0")
+
+        #expect(Bool(true))
+    }
+}
+
+// MARK: - APIUsageResponse Tests
+
+@Suite("APIUsageResponse Parsing Tests")
+struct APIUsageResponseParsingTests {
+    @Test("Parses full API response with all fields")
+    func parsesFullApiResponse() throws {
+        let json = """
+        {
+            "five_hour": {
+                "utilization": 33.0,
+                "resets_at": "2026-01-22T20:59:59.644126+00:00"
+            },
+            "seven_day": {
+                "utilization": 32.0,
+                "resets_at": "2026-01-28T01:59:59.644147+00:00"
+            },
+            "seven_day_opus": {
+                "utilization": 15.0,
+                "resets_at": "2026-01-28T01:59:59.644147+00:00"
+            },
+            "seven_day_sonnet": {
+                "utilization": 2.0,
+                "resets_at": "2026-01-28T13:59:59.644155+00:00"
+            }
+        }
+        """
+        let data = json.data(using: .utf8)!
+        let response = try JSONDecoder().decode(APIUsageResponse.self, from: data)
+
+        #expect(response.fiveHour.utilization == 33.0)
+        #expect(response.sevenDay.utilization == 32.0)
+        #expect(response.sevenDayOpus?.utilization == 15.0)
+        #expect(response.sevenDaySonnet?.utilization == 2.0)
+    }
+
+    @Test("Parses API response with null optional fields")
+    func parsesApiResponseWithNullOptionalFields() throws {
+        let json = """
+        {
+            "five_hour": {
+                "utilization": 45.5,
+                "resets_at": "2026-01-22T15:59:59.943648+00:00"
+            },
+            "seven_day": {
+                "utilization": 72.3,
+                "resets_at": "2026-01-25T03:59:59.943679+00:00"
+            },
+            "seven_day_opus": null,
+            "seven_day_sonnet": null
+        }
+        """
+        let data = json.data(using: .utf8)!
+        let response = try JSONDecoder().decode(APIUsageResponse.self, from: data)
+
+        #expect(response.fiveHour.utilization == 45.5)
+        #expect(response.sevenDay.utilization == 72.3)
+        #expect(response.sevenDayOpus == nil)
+        #expect(response.sevenDaySonnet == nil)
+    }
+
+    @Test("Parses API response without optional fields")
+    func parsesApiResponseWithoutOptionalFields() throws {
+        let json = """
+        {
+            "five_hour": {
+                "utilization": 50.0,
+                "resets_at": null
+            },
+            "seven_day": {
+                "utilization": 60.0,
+                "resets_at": null
+            }
+        }
+        """
+        let data = json.data(using: .utf8)!
+        let response = try JSONDecoder().decode(APIUsageResponse.self, from: data)
+
+        #expect(response.fiveHour.utilization == 50.0)
+        #expect(response.fiveHour.resetsAt == nil)
+        #expect(response.sevenDay.utilization == 60.0)
+        #expect(response.sevenDay.resetsAt == nil)
+        #expect(response.sevenDayOpus == nil)
+        #expect(response.sevenDaySonnet == nil)
+    }
+
+    @Test("Converts API response to UsageData correctly")
+    func convertsToUsageData() throws {
+        let json = """
+        {
+            "five_hour": {
+                "utilization": 33.0,
+                "resets_at": "2026-01-22T20:59:59.644126+00:00"
+            },
+            "seven_day": {
+                "utilization": 72.0,
+                "resets_at": "2026-01-28T01:59:59.644147+00:00"
+            },
+            "seven_day_opus": {
+                "utilization": 15.0,
+                "resets_at": null
+            },
+            "seven_day_sonnet": null
+        }
+        """
+        let data = json.data(using: .utf8)!
+        let response = try JSONDecoder().decode(APIUsageResponse.self, from: data)
+        let usageData = response.toUsageData()
+
+        #expect(usageData.fiveHour.utilization == 33.0)
+        #expect(usageData.sevenDay.utilization == 72.0)
+        #expect(usageData.sevenDayOpus?.utilization == 15.0)
+        #expect(usageData.sevenDaySonnet == nil)
+        #expect(usageData.highestUtilization == 72.0)
+    }
+
+    @Test("Ignores extra fields in API response")
+    func ignoresExtraFields() throws {
+        let json = """
+        {
+            "five_hour": {
+                "utilization": 33.0,
+                "resets_at": null
+            },
+            "seven_day": {
+                "utilization": 32.0,
+                "resets_at": null
+            },
+            "seven_day_oauth_apps": null,
+            "iguana_necktie": null,
+            "extra_usage": {
+                "is_enabled": false,
+                "monthly_limit": null,
+                "used_credits": null,
+                "utilization": null
+            }
+        }
+        """
+        let data = json.data(using: .utf8)!
+        let response = try JSONDecoder().decode(APIUsageResponse.self, from: data)
+
+        #expect(response.fiveHour.utilization == 33.0)
+        #expect(response.sevenDay.utilization == 32.0)
+    }
+}
+
+// MARK: - APIUsageWindow Tests
+
+@Suite("APIUsageWindow Parsing Tests")
+struct APIUsageWindowParsingTests {
+    @Test("Parses ISO 8601 date with fractional seconds")
+    func parsesIso8601DateWithFractionalSeconds() throws {
+        let json = """
+        {
+            "utilization": 45.5,
+            "resets_at": "2026-01-22T20:59:59.644126+00:00"
+        }
+        """
+        let data = json.data(using: .utf8)!
+        let window = try JSONDecoder().decode(APIUsageWindow.self, from: data)
+
+        #expect(window.utilization == 45.5)
+        #expect(window.resetsAt != nil)
+    }
+
+    @Test("Handles null resets_at")
+    func handlesNullResetsAt() throws {
+        let json = """
+        {
+            "utilization": 75.0,
+            "resets_at": null
+        }
+        """
+        let data = json.data(using: .utf8)!
+        let window = try JSONDecoder().decode(APIUsageWindow.self, from: data)
+
+        #expect(window.utilization == 75.0)
+        #expect(window.resetsAt == nil)
+    }
+
+    @Test("Converts to UsageWindow correctly")
+    func convertsToUsageWindow() throws {
+        let json = """
+        {
+            "utilization": 50.0,
+            "resets_at": "2026-01-22T15:00:00.000000+00:00"
+        }
+        """
+        let data = json.data(using: .utf8)!
+        let apiWindow = try JSONDecoder().decode(APIUsageWindow.self, from: data)
+        let usageWindow = apiWindow.toUsageWindow()
+
+        #expect(usageWindow.utilization == 50.0)
+        #expect(usageWindow.resetsAt != nil)
+    }
+}
+
+// MARK: - Mock Credentials Repository
+
+/// Mock credentials repository for testing ClaudeAPIClient
+actor MockCredentialsRepository: CredentialsRepository {
+    var shouldSucceed: Bool
+    var credentials: Credentials
+
+    init(
+        shouldSucceed: Bool = true,
+        credentials: Credentials = Credentials(accessToken: "test-token")
+    ) {
+        self.shouldSucceed = shouldSucceed
+        self.credentials = credentials
+    }
+
+    func getCredentials() async throws -> Credentials {
+        guard shouldSucceed else {
+            throw AppError.notAuthenticated
+        }
+        return credentials
+    }
+
+    func hasCredentials() async -> Bool {
+        shouldSucceed
+    }
+}

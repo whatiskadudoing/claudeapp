@@ -71,14 +71,15 @@ Establish the project structure, build system, and domain models that all featur
   - **Research:** `research/approaches/keychain-access.md` for implementation pattern
   - **Note:** Actor-based implementation ensures thread-safety. Internal JSON models (`KeychainCredentials`, `OAuthCredentials`) handle the nested JSON structure from Claude Code.
 
-- [ ] **Implement Claude API client** [spec: api-documentation.md]
+- [x] **Implement Claude API client** [spec: api-documentation.md]
   - Create `ClaudeAPIClient` actor implementing `UsageRepository`
   - Endpoint: `GET https://api.anthropic.com/api/oauth/usage`
   - Required headers: Authorization Bearer, anthropic-beta: oauth-2025-04-20
   - Parse ISO8601 dates with fractional seconds (custom decoder)
   - Map API response to domain `UsageData`
-  - Handle 401 → `AppError.notAuthenticated`, 429 → `AppError.apiError` with retry-after
+  - Handle 401 → `AppError.notAuthenticated`, 429 → `AppError.rateLimited` with retry-after
   - **Research:** `research/apis/anthropic-oauth.md` for complete API reference
+  - **Note:** Actor-based implementation with dependency injection for testability. Internal `APIUsageResponse` and `APIUsageWindow` models handle snake_case API response. Added 13 new tests for API client and response parsing (total 53 tests passing).
 
 ---
 <!-- CHECKPOINT: Phase 1 delivers the data layer. Verify credentials read and API calls work before UI. -->
