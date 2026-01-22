@@ -150,12 +150,13 @@ Add auto-refresh, manual refresh interactions, and loading/error states.
   - **Research:** `specs/features/refresh-usage.md` for interaction patterns
   - **Note:** Added RefreshState enum in Core package with idle/loading/success/error states. RefreshButton component shows state-based icons with color feedback (green for success, red for error). Added isStale computed property (>60s threshold). Auto-refresh triggers on dropdown open when stale. Cmd+R keyboard shortcut added to both dropdown and button. 6 new tests for isStale and refreshState (total 81 tests passing).
 
-- [ ] **Implement error and loading states** [spec: features/view-usage.md]
+- [x] **Implement error and loading states** [spec: features/view-usage.md]
   - Loading: show skeleton/spinner in dropdown while fetching
   - Not authenticated: message with "Run `claude login` in terminal" guidance
   - Network error: show cached data with "stale" indicator, retry button
   - Display `lastUpdated` timestamp in footer
   - **Research:** `specs/features/view-usage.md` for state designs
+  - **Note:** Added StaleDataBanner component that displays above cached usage data when refresh fails. Shows error reason (network, rate limit, server error, etc.) with a retry button. Footer shows "Data may be stale" warning with orange indicator when in error state with cached data. LoadingView, ErrorView, and EmptyStateView were already implemented in previous tasks.
 
 ---
 <!-- CHECKPOINT: Phase 3 completes the SLC. The app now monitors usage continuously, handles errors gracefully, and provides a polished experience. -->

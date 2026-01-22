@@ -55,6 +55,16 @@ struct MenuBarLabel: View {
 struct DropdownView: View {
     @Environment(UsageManager.self) private var usageManager
 
+    /// Whether we have an error but also have cached data to show
+    private var hasErrorWithCachedData: Bool {
+        usageManager.lastError != nil && usageManager.usageData != nil
+    }
+
+    /// Whether data should be considered stale (error occurred or data is old)
+    private var isDataStale: Bool {
+        usageManager.lastError != nil || usageManager.isStale
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
@@ -69,6 +79,12 @@ struct DropdownView: View {
 
             // Content
             if let data = usageManager.usageData {
+                // Show error banner if we have cached data but encountered an error
+                if hasErrorWithCachedData, let error = usageManager.lastError {
+                    StaleDataBanner(error: error) {
+                        Task { await usageManager.refresh() }
+                    }
+                }
                 UsageContent(data: data)
             } else if usageManager.isLoading {
                 LoadingView()
@@ -86,7 +102,17 @@ struct DropdownView: View {
 
             // Footer
             HStack {
-                if let lastUpdated = usageManager.lastUpdated {
+                if hasErrorWithCachedData {
+                    // Show stale warning when we have error with cached data
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                        Text("Data may be stale")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                } else if let lastUpdated = usageManager.lastUpdated {
                     Text("Updated \(lastUpdated, style: .relative) ago")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
@@ -198,6 +224,59 @@ struct UsageContent: View {
                     resetsAt: sonnet.resetsAt
                 )
             }
+        }
+    }
+}
+
+// MARK: - Stale Data Banner
+
+/// Banner displayed when we have cached data but encountered an error on refresh.
+/// Shows a warning with the error reason and a retry button.
+struct StaleDataBanner: View {
+    let error: AppError
+    let retryAction: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundStyle(.orange)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Unable to refresh")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                Text(errorReason)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Button("Retry", action: retryAction)
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+        }
+        .padding(8)
+        .background(Color.orange.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .padding(.bottom, 4)
+    }
+
+    private var errorReason: String {
+        switch error {
+        case .networkError:
+            "Connection issue"
+        case .rateLimited(let retryAfter):
+            "Rate limited (\(retryAfter)s)"
+        case .apiError(let statusCode, _):
+            "Server error (\(statusCode))"
+        case .notAuthenticated:
+            "Authentication required"
+        case .keychainError:
+            "Keychain error"
+        case .decodingError:
+            "Data format error"
         }
     }
 }
