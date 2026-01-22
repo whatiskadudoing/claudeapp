@@ -2181,3 +2181,464 @@ struct UsageNotificationCheckerTests {
         #expect(count == 1)
     }
 }
+
+// MARK: - BurnRateCalculator Tests
+
+@Suite("BurnRateCalculator Tests")
+struct BurnRateCalculatorTests {
+    // MARK: - Initialization Tests
+
+    @Test("BurnRateCalculator initializes with default minimum samples")
+    func initWithDefaults() {
+        let calculator = BurnRateCalculator()
+        // Default minimumSamples is 2, verify by testing behavior
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (50.0, Date()),
+            (40.0, Date().addingTimeInterval(-3600)),
+        ]
+        // With 2 samples, should work if there's positive change
+        // This tests that default is at least 2
+        let result = calculator.calculate(from: [(60.0, Date()), (40.0, Date().addingTimeInterval(-3600))])
+        #expect(result != nil)
+    }
+
+    @Test("BurnRateCalculator initializes with custom minimum samples")
+    func initWithCustomMinimum() {
+        let calculator = BurnRateCalculator(minimumSamples: 3)
+        let twoSamples: [(utilization: Double, timestamp: Date)] = [
+            (60.0, Date()),
+            (40.0, Date().addingTimeInterval(-3600)),
+        ]
+        // With only 2 samples and minimum of 3, should return nil
+        let result = calculator.calculate(from: twoSamples)
+        #expect(result == nil)
+    }
+
+    @Test("BurnRateCalculator enforces minimum of 2 samples even if set lower")
+    func enforcesMinimumOfTwo() {
+        let calculator = BurnRateCalculator(minimumSamples: 1)
+        let oneSnapshot: [(utilization: Double, timestamp: Date)] = [
+            (60.0, Date()),
+        ]
+        // Even with minimumSamples=1, should require at least 2
+        let result = calculator.calculate(from: oneSnapshot)
+        #expect(result == nil)
+    }
+
+    // MARK: - Calculate Tests
+
+    @Test("calculate returns nil with 0 samples")
+    func calculateReturnsNilWithZeroSamples() {
+        let calculator = BurnRateCalculator()
+        let result = calculator.calculate(from: [])
+        #expect(result == nil)
+    }
+
+    @Test("calculate returns nil with 1 sample")
+    func calculateReturnsNilWithOneSample() {
+        let calculator = BurnRateCalculator()
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (50.0, Date()),
+        ]
+        let result = calculator.calculate(from: snapshots)
+        #expect(result == nil)
+    }
+
+    @Test("calculate returns correct burn rate with 2 samples")
+    func calculateWithTwoSamples() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+        let oneHourAgo = now.addingTimeInterval(-3600)
+
+        // Utilization increased from 40% to 60% over 1 hour = 20%/hr
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (60.0, now),
+            (40.0, oneHourAgo),
+        ]
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result != nil)
+        #expect(result?.percentPerHour == 20.0)
+    }
+
+    @Test("calculate returns correct burn rate with 12 samples (full history)")
+    func calculateWithFullHistory() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+
+        // 12 samples over 55 minutes (5 min intervals), from 20% to 75% = 55% over ~0.917 hours
+        var snapshots: [(utilization: Double, timestamp: Date)] = []
+        for i in 0..<12 {
+            let util = 75.0 - (Double(i) * 5.0) // 75, 70, 65, ..., 20
+            let time = now.addingTimeInterval(-Double(i) * 300) // 0, -5min, -10min, ...
+            snapshots.append((util, time))
+        }
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result != nil)
+        // 55% over 55 minutes = 60%/hr
+        #expect(result!.percentPerHour > 59.0 && result!.percentPerHour < 61.0)
+    }
+
+    @Test("calculate returns nil during reset (negative utilization change)")
+    func calculateReturnsNilDuringReset() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+        let oneHourAgo = now.addingTimeInterval(-3600)
+
+        // Utilization decreased from 80% to 20% (reset happened)
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (20.0, now), // newest
+            (80.0, oneHourAgo), // oldest
+        ]
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result == nil)
+    }
+
+    @Test("calculate returns nil when no change in utilization")
+    func calculateReturnsNilWithNoChange() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+        let oneHourAgo = now.addingTimeInterval(-3600)
+
+        // Same utilization
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (50.0, now),
+            (50.0, oneHourAgo),
+        ]
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result == nil)
+    }
+
+    @Test("calculate returns nil when timestamps are identical")
+    func calculateReturnsNilWithIdenticalTimestamps() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (60.0, now),
+            (40.0, now), // Same timestamp
+        ]
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result == nil)
+    }
+
+    @Test("calculate returns nil when oldest timestamp is after newest")
+    func calculateReturnsNilWithReversedTimestamps() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+        let oneHourAgo = now.addingTimeInterval(-3600)
+
+        // Timestamps in wrong order (oldest should be last, newest first)
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (40.0, oneHourAgo), // This is supposed to be newest but has older timestamp
+            (60.0, now), // This is supposed to be oldest but has newer timestamp
+        ]
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result == nil) // Time diff would be negative
+    }
+
+    @Test("calculate handles small time intervals correctly")
+    func calculateWithSmallTimeInterval() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+        let fiveMinutesAgo = now.addingTimeInterval(-300) // 5 minutes
+
+        // 5% increase over 5 minutes = 60%/hr
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (45.0, now),
+            (40.0, fiveMinutesAgo),
+        ]
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result != nil)
+        #expect(result!.percentPerHour == 60.0)
+    }
+
+    @Test("calculate handles large time intervals correctly")
+    func calculateWithLargeTimeInterval() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+        let sixHoursAgo = now.addingTimeInterval(-21600) // 6 hours
+
+        // 30% increase over 6 hours = 5%/hr
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (60.0, now),
+            (30.0, sixHoursAgo),
+        ]
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result != nil)
+        #expect(result!.percentPerHour == 5.0)
+    }
+
+    @Test("calculate returns correct BurnRateLevel for Low rate")
+    func calculateReturnsLowLevel() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+        let oneHourAgo = now.addingTimeInterval(-3600)
+
+        // 5%/hr = Low
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (45.0, now),
+            (40.0, oneHourAgo),
+        ]
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result != nil)
+        #expect(result!.level == .low)
+    }
+
+    @Test("calculate returns correct BurnRateLevel for Medium rate")
+    func calculateReturnsMediumLevel() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+        let oneHourAgo = now.addingTimeInterval(-3600)
+
+        // 15%/hr = Medium
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (55.0, now),
+            (40.0, oneHourAgo),
+        ]
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result != nil)
+        #expect(result!.level == .medium)
+    }
+
+    @Test("calculate returns correct BurnRateLevel for High rate")
+    func calculateReturnsHighLevel() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+        let oneHourAgo = now.addingTimeInterval(-3600)
+
+        // 35%/hr = High
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (75.0, now),
+            (40.0, oneHourAgo),
+        ]
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result != nil)
+        #expect(result!.level == .high)
+    }
+
+    @Test("calculate returns correct BurnRateLevel for Very High rate")
+    func calculateReturnsVeryHighLevel() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+        let oneHourAgo = now.addingTimeInterval(-3600)
+
+        // 60%/hr = Very High
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (100.0, now),
+            (40.0, oneHourAgo),
+        ]
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result != nil)
+        #expect(result!.level == .veryHigh)
+    }
+
+    // MARK: - Threshold Boundary Tests
+
+    @Test("calculate correctly classifies rate at exactly 10%/hr (boundary)")
+    func calculateAtTenPercentBoundary() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+        let oneHourAgo = now.addingTimeInterval(-3600)
+
+        // Exactly 10%/hr is Medium (10..<25 range)
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (50.0, now),
+            (40.0, oneHourAgo),
+        ]
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result != nil)
+        #expect(result!.percentPerHour == 10.0)
+        #expect(result!.level == .medium)
+    }
+
+    @Test("calculate correctly classifies rate at exactly 25%/hr (boundary)")
+    func calculateAtTwentyFivePercentBoundary() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+        let oneHourAgo = now.addingTimeInterval(-3600)
+
+        // Exactly 25%/hr is High (25..<50 range)
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (65.0, now),
+            (40.0, oneHourAgo),
+        ]
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result != nil)
+        #expect(result!.percentPerHour == 25.0)
+        #expect(result!.level == .high)
+    }
+
+    @Test("calculate correctly classifies rate at exactly 50%/hr (boundary)")
+    func calculateAtFiftyPercentBoundary() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+        let oneHourAgo = now.addingTimeInterval(-3600)
+
+        // Exactly 50%/hr is Very High (>=50 range)
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (90.0, now),
+            (40.0, oneHourAgo),
+        ]
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result != nil)
+        #expect(result!.percentPerHour == 50.0)
+        #expect(result!.level == .veryHigh)
+    }
+
+    @Test("calculate correctly classifies rate just below 10%/hr")
+    func calculateJustBelowTenPercent() {
+        let calculator = BurnRateCalculator()
+        let now = Date()
+        let oneHourAgo = now.addingTimeInterval(-3600)
+
+        // 9%/hr = Low
+        let snapshots: [(utilization: Double, timestamp: Date)] = [
+            (49.0, now),
+            (40.0, oneHourAgo),
+        ]
+
+        let result = calculator.calculate(from: snapshots)
+        #expect(result != nil)
+        #expect(result!.percentPerHour == 9.0)
+        #expect(result!.level == .low)
+    }
+
+    // MARK: - Time to Exhaustion Tests
+
+    @Test("timeToExhaustion returns nil with nil burn rate")
+    func timeToExhaustionNilBurnRate() {
+        let calculator = BurnRateCalculator()
+        let result = calculator.timeToExhaustion(currentUtilization: 50.0, burnRate: nil)
+        #expect(result == nil)
+    }
+
+    @Test("timeToExhaustion returns nil with zero burn rate")
+    func timeToExhaustionZeroBurnRate() {
+        let calculator = BurnRateCalculator()
+        let burnRate = BurnRate(percentPerHour: 0.0)
+        let result = calculator.timeToExhaustion(currentUtilization: 50.0, burnRate: burnRate)
+        #expect(result == nil)
+    }
+
+    @Test("timeToExhaustion returns nil with negative burn rate")
+    func timeToExhaustionNegativeBurnRate() {
+        let calculator = BurnRateCalculator()
+        let burnRate = BurnRate(percentPerHour: -5.0)
+        let result = calculator.timeToExhaustion(currentUtilization: 50.0, burnRate: burnRate)
+        #expect(result == nil)
+    }
+
+    @Test("timeToExhaustion returns 0 at 100% utilization")
+    func timeToExhaustionAtHundredPercent() {
+        let calculator = BurnRateCalculator()
+        let burnRate = BurnRate(percentPerHour: 20.0)
+        let result = calculator.timeToExhaustion(currentUtilization: 100.0, burnRate: burnRate)
+        #expect(result == 0)
+    }
+
+    @Test("timeToExhaustion returns 0 above 100% utilization")
+    func timeToExhaustionAboveHundredPercent() {
+        let calculator = BurnRateCalculator()
+        let burnRate = BurnRate(percentPerHour: 20.0)
+        let result = calculator.timeToExhaustion(currentUtilization: 105.0, burnRate: burnRate)
+        #expect(result == 0)
+    }
+
+    @Test("timeToExhaustion calculates correct time at 50% with 10%/hr")
+    func timeToExhaustionBasicCalculation() {
+        let calculator = BurnRateCalculator()
+        let burnRate = BurnRate(percentPerHour: 10.0)
+
+        // 50% remaining capacity, 10%/hr = 5 hours = 18000 seconds
+        let result = calculator.timeToExhaustion(currentUtilization: 50.0, burnRate: burnRate)
+        #expect(result == 18000)
+    }
+
+    @Test("timeToExhaustion calculates correct time at 80% with 20%/hr")
+    func timeToExhaustionHighUtilization() {
+        let calculator = BurnRateCalculator()
+        let burnRate = BurnRate(percentPerHour: 20.0)
+
+        // 20% remaining capacity, 20%/hr = 1 hour = 3600 seconds
+        let result = calculator.timeToExhaustion(currentUtilization: 80.0, burnRate: burnRate)
+        #expect(result == 3600)
+    }
+
+    @Test("timeToExhaustion calculates correct time at 0% with 5%/hr")
+    func timeToExhaustionFromZeroUtilization() {
+        let calculator = BurnRateCalculator()
+        let burnRate = BurnRate(percentPerHour: 5.0)
+
+        // 100% remaining capacity, 5%/hr = 20 hours = 72000 seconds
+        let result = calculator.timeToExhaustion(currentUtilization: 0.0, burnRate: burnRate)
+        #expect(result == 72000)
+    }
+
+    @Test("timeToExhaustion calculates correct time at 99% with 100%/hr")
+    func timeToExhaustionNearLimit() {
+        let calculator = BurnRateCalculator()
+        let burnRate = BurnRate(percentPerHour: 100.0)
+
+        // 1% remaining capacity, 100%/hr = 0.01 hours = 36 seconds
+        let result = calculator.timeToExhaustion(currentUtilization: 99.0, burnRate: burnRate)
+        #expect(result == 36)
+    }
+
+    @Test("timeToExhaustion with fractional values")
+    func timeToExhaustionFractionalValues() {
+        let calculator = BurnRateCalculator()
+        let burnRate = BurnRate(percentPerHour: 15.0)
+
+        // 37.5% remaining capacity, 15%/hr = 2.5 hours = 9000 seconds
+        let result = calculator.timeToExhaustion(currentUtilization: 62.5, burnRate: burnRate)
+        #expect(result == 9000)
+    }
+
+    // MARK: - Sendable Conformance Tests
+
+    @Test("BurnRateCalculator is Sendable and can cross actor boundaries")
+    func sendableConformance() async {
+        let calculator = BurnRateCalculator()
+
+        let result = await Task.detached {
+            let now = Date()
+            let oneHourAgo = now.addingTimeInterval(-3600)
+            let snapshots: [(utilization: Double, timestamp: Date)] = [
+                (60.0, now),
+                (40.0, oneHourAgo),
+            ]
+            return calculator.calculate(from: snapshots)
+        }.value
+
+        #expect(result != nil)
+        #expect(result!.percentPerHour == 20.0)
+    }
+
+    @Test("timeToExhaustion can be called from different contexts")
+    func timeToExhaustionSendable() async {
+        let calculator = BurnRateCalculator()
+        let burnRate = BurnRate(percentPerHour: 25.0)
+
+        let result = await Task.detached {
+            calculator.timeToExhaustion(currentUtilization: 75.0, burnRate: burnRate)
+        }.value
+
+        // 25% remaining / 25%/hr = 1 hour = 3600 seconds
+        #expect(result == 3600)
+    }
+}

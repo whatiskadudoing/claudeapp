@@ -88,7 +88,7 @@ Implement the calculation logic for burn rates and time-to-exhaustion.
   - ✅ Completed: UsageSnapshot.swift created with all required fields
   - ✅ 6 tests added: initialization, defaults, equatable, sendable conformance (190 total tests passing)
 
-- [ ] **Implement BurnRateCalculator** [spec: architecture.md] [file: Packages/Core/Sources/Core/BurnRateCalculator.swift]
+- [x] **Implement BurnRateCalculator** [spec: architecture.md] [file: Packages/Core/Sources/Core/BurnRateCalculator.swift]
   - Create `BurnRateCalculator` struct (Sendable for thread safety)
   - Method: `calculate(from snapshots: [(utilization: Double, timestamp: Date)]) -> BurnRate?`
   - Requires minimum 2 samples to calculate
@@ -99,6 +99,8 @@ Implement the calculation logic for burn rates and time-to-exhaustion.
   - Formula: `(100 - currentUtilization) / burnRate.percentPerHour * 3600`
   - Return 0 if already at 100%, nil if no burn rate
   - **Research:** `specs/architecture.md` lines 564-602 for full implementation pattern
+  - ✅ Completed: BurnRateCalculator with configurable minimumSamples, calculate(), and timeToExhaustion() methods
+  - ✅ 33 comprehensive tests added covering all edge cases, thresholds, and Sendable conformance (223 total tests passing)
 
 - [ ] **Integrate burn rate calculation into UsageManager** [spec: architecture.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
   - Add `usageHistory: [UsageSnapshot]` private property
