@@ -14,6 +14,116 @@ struct CoreTests {
     }
 }
 
+// MARK: - UsageSnapshot Tests
+
+@Suite("UsageSnapshot Tests")
+struct UsageSnapshotTests {
+    @Test("UsageSnapshot initializes with required fields")
+    func initWithRequiredFields() {
+        let timestamp = Date()
+        let snapshot = UsageSnapshot(
+            fiveHourUtilization: 45.0,
+            sevenDayUtilization: 72.0,
+            timestamp: timestamp
+        )
+
+        #expect(snapshot.fiveHourUtilization == 45.0)
+        #expect(snapshot.sevenDayUtilization == 72.0)
+        #expect(snapshot.opusUtilization == nil)
+        #expect(snapshot.sonnetUtilization == nil)
+        #expect(snapshot.timestamp == timestamp)
+    }
+
+    @Test("UsageSnapshot initializes with all fields")
+    func initWithAllFields() {
+        let timestamp = Date()
+        let snapshot = UsageSnapshot(
+            fiveHourUtilization: 30.0,
+            sevenDayUtilization: 50.0,
+            opusUtilization: 20.0,
+            sonnetUtilization: 80.0,
+            timestamp: timestamp
+        )
+
+        #expect(snapshot.fiveHourUtilization == 30.0)
+        #expect(snapshot.sevenDayUtilization == 50.0)
+        #expect(snapshot.opusUtilization == 20.0)
+        #expect(snapshot.sonnetUtilization == 80.0)
+        #expect(snapshot.timestamp == timestamp)
+    }
+
+    @Test("UsageSnapshot defaults timestamp to now")
+    func defaultTimestamp() {
+        let before = Date()
+        let snapshot = UsageSnapshot(fiveHourUtilization: 50.0, sevenDayUtilization: 50.0)
+        let after = Date()
+
+        #expect(snapshot.timestamp >= before)
+        #expect(snapshot.timestamp <= after)
+    }
+
+    @Test("UsageSnapshot is Equatable")
+    func equatable() {
+        let timestamp = Date()
+        let snapshot1 = UsageSnapshot(
+            fiveHourUtilization: 45.0,
+            sevenDayUtilization: 72.0,
+            opusUtilization: 20.0,
+            sonnetUtilization: 30.0,
+            timestamp: timestamp
+        )
+        let snapshot2 = UsageSnapshot(
+            fiveHourUtilization: 45.0,
+            sevenDayUtilization: 72.0,
+            opusUtilization: 20.0,
+            sonnetUtilization: 30.0,
+            timestamp: timestamp
+        )
+        let snapshot3 = UsageSnapshot(
+            fiveHourUtilization: 50.0,
+            sevenDayUtilization: 72.0,
+            timestamp: timestamp
+        )
+
+        #expect(snapshot1 == snapshot2)
+        #expect(snapshot1 != snapshot3)
+    }
+
+    @Test("UsageSnapshot equality considers optional fields")
+    func equalityWithOptionals() {
+        let timestamp = Date()
+        let snapshot1 = UsageSnapshot(
+            fiveHourUtilization: 45.0,
+            sevenDayUtilization: 72.0,
+            opusUtilization: 20.0,
+            timestamp: timestamp
+        )
+        let snapshot2 = UsageSnapshot(
+            fiveHourUtilization: 45.0,
+            sevenDayUtilization: 72.0,
+            opusUtilization: nil,
+            timestamp: timestamp
+        )
+
+        #expect(snapshot1 != snapshot2)
+    }
+
+    @Test("UsageSnapshot is Sendable")
+    func sendable() async {
+        let snapshot = UsageSnapshot(
+            fiveHourUtilization: 45.0,
+            sevenDayUtilization: 72.0
+        )
+
+        // Verify it can be passed across actor boundaries
+        let result = await Task.detached {
+            snapshot.fiveHourUtilization
+        }.value
+
+        #expect(result == 45.0)
+    }
+}
+
 // MARK: - Mock Usage Repository
 
 /// Mock repository for testing UsageManager

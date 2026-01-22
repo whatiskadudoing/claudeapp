@@ -65,11 +65,13 @@ Build the foundational data structures for burn rate tracking.
   - **Note:** These start nil and get enriched by BurnRateCalculator
   - ✅ Completed: 6 new tests added for burn rate properties (177 total tests passing)
 
-- [ ] **Extend UsageData with highestBurnRate computed property** [spec: features/view-usage.md] [file: Packages/Domain/Sources/Domain/UsageData.swift]
+- [x] **Extend UsageData with highestBurnRate computed property** [spec: features/view-usage.md] [file: Packages/Domain/Sources/Domain/UsageData.swift]
   - Add `highestBurnRate: BurnRate?` computed property
   - Returns the highest burn rate across all windows (fiveHour, sevenDay, opus, sonnet)
   - Used for the header badge in dropdown
   - **Research:** `specs/architecture.md` lines 143-147 for implementation pattern
+  - ✅ Already implemented: Property exists at lines 48-55 in UsageData.swift
+  - ✅ Already tested: 7 test cases in DomainTests.swift (lines 411-499) covering all scenarios
 
 ---
 <!-- CHECKPOINT: Phase 1 adds domain models. Verify: BurnRate struct compiles, UsageWindow accepts optional burn rate, UsageData.highestBurnRate returns correct value. Run existing tests - they should still pass. -->
@@ -78,11 +80,13 @@ Build the foundational data structures for burn rate tracking.
 
 Implement the calculation logic for burn rates and time-to-exhaustion.
 
-- [ ] **Create UsageSnapshot model for history tracking** [spec: architecture.md] [file: Packages/Core/Sources/Core/]
+- [x] **Create UsageSnapshot model for history tracking** [spec: architecture.md] [file: Packages/Core/Sources/Core/]
   - Create `UsageSnapshot` struct with: fiveHourUtilization, sevenDayUtilization, opusUtilization?, sonnetUtilization?, timestamp
   - Make it `Sendable` for actor use
   - This is internal to Core package (not exported to Domain)
   - **Note:** Will be stored in an array in UsageManager
+  - ✅ Completed: UsageSnapshot.swift created with all required fields
+  - ✅ 6 tests added: initialization, defaults, equatable, sendable conformance (190 total tests passing)
 
 - [ ] **Implement BurnRateCalculator** [spec: architecture.md] [file: Packages/Core/Sources/Core/BurnRateCalculator.swift]
   - Create `BurnRateCalculator` struct (Sendable for thread safety)
