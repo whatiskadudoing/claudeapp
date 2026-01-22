@@ -107,7 +107,7 @@ Implement proactive notifications for usage warnings, capacity full, and reset c
   - **Note:** Request permission when user first enables notifications in settings
   - **Completed:** Created `NotificationService` protocol for testability (allows mocking UNUserNotificationCenter); Created `actor NotificationManager` with permission handling (tracks `hasRequestedPermission`), duplicate notification prevention per identifier, and hysteresis support via `resetState(for:)` and `resetAllStates()`; Added `hasNotified(for:)` helper method; Added `removeDelivered(identifiers:)` method; 14 new tests added (132 total passing)
 
-- [ ] **Implement notification trigger logic with hysteresis** [spec: features/notifications.md] [file: Packages/Core/Sources/Core/]
+- [x] **Implement notification trigger logic with hysteresis** [spec: features/notifications.md] [file: Packages/Core/Sources/Core/]
   - Create `UsageNotificationChecker` class that evaluates usage changes
   - Inject: NotificationManager, SettingsManager
   - Method: `check(current: UsageData, previous: UsageData?) async`
@@ -119,6 +119,7 @@ Implement proactive notifications for usage warnings, capacity full, and reset c
   - Include reset time in notification body when available
   - **Research:** `specs/features/notifications.md` for trigger logic pseudocode
   - **Design:** Notification identifiers: "usage-warning-{window}", "capacity-full-{window}", "reset-complete"
+  - **Completed:** Created `UsageNotificationChecker` class with full trigger logic; implements warning (crosses threshold from below), capacity full (hits 100%), and reset complete (7-day drops from >50% to <10%); 5% hysteresis prevents notification spam; respects global and individual notification toggles; includes reset times in notification bodies; 24 new tests added (156 total passing)
 
 - [ ] **Integrate notifications into UsageManager refresh cycle** [spec: features/notifications.md] [file: Packages/Core/Sources/Core/UsageManager.swift, App/]
   - Add `previousUsageData: UsageData?` property to UsageManager

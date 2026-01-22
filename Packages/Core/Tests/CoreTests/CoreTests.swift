@@ -1540,3 +1540,494 @@ struct NotificationManagerTests {
         #expect(count == 2)
     }
 }
+
+// MARK: - UsageNotificationChecker Tests
+
+@Suite("UsageNotificationChecker Tests")
+struct UsageNotificationCheckerTests {
+    // MARK: - Helper Methods
+
+    /// Creates test dependencies with configurable settings
+    @MainActor
+    private static func createTestDependencies(
+        notificationsEnabled: Bool = true,
+        warningEnabled: Bool = true,
+        capacityFullEnabled: Bool = true,
+        resetCompleteEnabled: Bool = true,
+        warningThreshold: Int = 90
+    ) -> (checker: UsageNotificationChecker, service: MockNotificationService, settings: SettingsManager) {
+        let mockService = MockNotificationService()
+        let notificationManager = NotificationManager(notificationCenter: mockService)
+        let mockSettingsRepo = MockSettingsRepository()
+
+        // Configure settings
+        mockSettingsRepo.set(.notificationsEnabled, value: notificationsEnabled)
+        mockSettingsRepo.set(.warningEnabled, value: warningEnabled)
+        mockSettingsRepo.set(.capacityFullEnabled, value: capacityFullEnabled)
+        mockSettingsRepo.set(.resetCompleteEnabled, value: resetCompleteEnabled)
+        mockSettingsRepo.set(.warningThreshold, value: warningThreshold)
+
+        let settingsManager = SettingsManager(repository: mockSettingsRepo)
+
+        let checker = UsageNotificationChecker(
+            notificationManager: notificationManager,
+            settingsManager: settingsManager
+        )
+
+        return (checker, mockService, settingsManager)
+    }
+
+    /// Creates test usage data
+    private static func createUsageData(
+        fiveHour: Double,
+        sevenDay: Double,
+        opus: Double? = nil,
+        sonnet: Double? = nil
+    ) -> UsageData {
+        UsageData(
+            fiveHour: UsageWindow(utilization: fiveHour, resetsAt: Date().addingTimeInterval(3600)),
+            sevenDay: UsageWindow(utilization: sevenDay, resetsAt: Date().addingTimeInterval(86400)),
+            sevenDayOpus: opus.map { UsageWindow(utilization: $0) },
+            sevenDaySonnet: sonnet.map { UsageWindow(utilization: $0) },
+            fetchedAt: Date()
+        )
+    }
+
+    // MARK: - Global Enable/Disable Tests
+
+    @Test("No notifications when globally disabled")
+    @MainActor
+    func noNotificationsWhenGloballyDisabled() async {
+        let deps = Self.createTestDependencies(notificationsEnabled: false)
+
+        // Cross threshold from below
+        let previous = Self.createUsageData(fiveHour: 80, sevenDay: 80)
+        let current = Self.createUsageData(fiveHour: 95, sevenDay: 95)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 0)
+    }
+
+    @Test("Notifications work when globally enabled")
+    @MainActor
+    func notificationsWorkWhenEnabled() async {
+        let deps = Self.createTestDependencies(notificationsEnabled: true)
+
+        let previous = Self.createUsageData(fiveHour: 80, sevenDay: 80)
+        let current = Self.createUsageData(fiveHour: 95, sevenDay: 80)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 1) // Warning for session crossing 90%
+    }
+
+    // MARK: - Warning Threshold Tests
+
+    @Test("Warning fires when crossing threshold from below")
+    @MainActor
+    func warningFiresOnThresholdCrossing() async {
+        let deps = Self.createTestDependencies(warningThreshold: 90)
+
+        let previous = Self.createUsageData(fiveHour: 85, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 92, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 1)
+
+        let request = deps.service.getLastRequest()
+        #expect(request?.identifier == "usage-warning-session")
+        #expect(request?.content.title == "Claude Usage Warning")
+        #expect(request?.content.body.contains("Current session at 92%") == true)
+    }
+
+    @Test("Warning does not fire when already above threshold")
+    @MainActor
+    func warningDoesNotFireWhenAlreadyAbove() async {
+        let deps = Self.createTestDependencies(warningThreshold: 90)
+
+        let previous = Self.createUsageData(fiveHour: 92, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 95, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 0)
+    }
+
+    @Test("Warning does not fire when still below threshold")
+    @MainActor
+    func warningDoesNotFireWhenBelowThreshold() async {
+        let deps = Self.createTestDependencies(warningThreshold: 90)
+
+        let previous = Self.createUsageData(fiveHour: 70, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 85, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 0)
+    }
+
+    @Test("Warning respects custom threshold")
+    @MainActor
+    func warningRespectsCustomThreshold() async {
+        let deps = Self.createTestDependencies(warningThreshold: 75)
+
+        let previous = Self.createUsageData(fiveHour: 70, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 78, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 1) // Crossed 75% threshold
+    }
+
+    @Test("Warning does not fire when warning toggle disabled")
+    @MainActor
+    func warningDoesNotFireWhenDisabled() async {
+        let deps = Self.createTestDependencies(warningEnabled: false)
+
+        let previous = Self.createUsageData(fiveHour: 85, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 95, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        // Should have no warning notifications
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 0)
+    }
+
+    @Test("Warning fires for multiple windows crossing threshold")
+    @MainActor
+    func warningFiresForMultipleWindows() async {
+        let deps = Self.createTestDependencies(warningThreshold: 90)
+
+        let previous = Self.createUsageData(fiveHour: 85, sevenDay: 85, opus: 85, sonnet: 85)
+        let current = Self.createUsageData(fiveHour: 92, sevenDay: 92, opus: 92, sonnet: 92)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 4) // All four windows crossed threshold
+    }
+
+    // MARK: - Hysteresis Tests
+
+    @Test("Hysteresis prevents duplicate warning after state reset")
+    @MainActor
+    func hysteresisPreventsSpam() async {
+        let deps = Self.createTestDependencies(warningThreshold: 90)
+
+        // First: cross threshold
+        let previous1 = Self.createUsageData(fiveHour: 85, sevenDay: 50)
+        let current1 = Self.createUsageData(fiveHour: 92, sevenDay: 50)
+        await deps.checker.check(current: current1, previous: previous1)
+
+        var count = deps.service.getAddedRequestCount()
+        #expect(count == 1)
+
+        // Second: still above threshold - should not fire again
+        let previous2 = Self.createUsageData(fiveHour: 92, sevenDay: 50)
+        let current2 = Self.createUsageData(fiveHour: 95, sevenDay: 50)
+        await deps.checker.check(current: current2, previous: previous2)
+
+        count = deps.service.getAddedRequestCount()
+        #expect(count == 1) // Still 1
+
+        // Third: drop below hysteresis threshold (90 - 5 = 85)
+        let previous3 = Self.createUsageData(fiveHour: 95, sevenDay: 50)
+        let current3 = Self.createUsageData(fiveHour: 83, sevenDay: 50) // Below 85%
+        await deps.checker.check(current: current3, previous: previous3)
+
+        count = deps.service.getAddedRequestCount()
+        #expect(count == 1) // Still 1, no new notification
+
+        // Fourth: cross threshold again - should fire
+        let previous4 = Self.createUsageData(fiveHour: 83, sevenDay: 50)
+        let current4 = Self.createUsageData(fiveHour: 92, sevenDay: 50)
+        await deps.checker.check(current: current4, previous: previous4)
+
+        count = deps.service.getAddedRequestCount()
+        #expect(count == 2) // Now 2
+    }
+
+    @Test("Hysteresis does not reset when still above buffer")
+    @MainActor
+    func hysteresisDoesNotResetAboveBuffer() async {
+        let deps = Self.createTestDependencies(warningThreshold: 90)
+
+        // First: cross threshold
+        let previous1 = Self.createUsageData(fiveHour: 85, sevenDay: 50)
+        let current1 = Self.createUsageData(fiveHour: 92, sevenDay: 50)
+        await deps.checker.check(current: current1, previous: previous1)
+
+        var count = deps.service.getAddedRequestCount()
+        #expect(count == 1)
+
+        // Second: drop but still above hysteresis threshold (87 > 85)
+        let previous2 = Self.createUsageData(fiveHour: 92, sevenDay: 50)
+        let current2 = Self.createUsageData(fiveHour: 87, sevenDay: 50)
+        await deps.checker.check(current: current2, previous: previous2)
+
+        // Third: rise again - should NOT fire because state wasn't reset
+        let previous3 = Self.createUsageData(fiveHour: 87, sevenDay: 50)
+        let current3 = Self.createUsageData(fiveHour: 92, sevenDay: 50)
+        await deps.checker.check(current: current3, previous: previous3)
+
+        count = deps.service.getAddedRequestCount()
+        #expect(count == 1) // Still 1, blocked by duplicate prevention
+    }
+
+    // MARK: - Capacity Full Tests
+
+    @Test("Capacity full fires at 100%")
+    @MainActor
+    func capacityFullFiresAt100() async {
+        let deps = Self.createTestDependencies()
+
+        let previous = Self.createUsageData(fiveHour: 98, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 100, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        // Should have warning (crossing 90%) AND capacity full
+        let count = deps.service.getAddedRequestCount()
+        #expect(count >= 1) // At least capacity full
+
+        // Find the capacity full notification
+        let request = deps.service.getLastRequest()
+        #expect(request?.content.title == "Claude Capacity Full")
+    }
+
+    @Test("Capacity full does not fire when already at 100%")
+    @MainActor
+    func capacityFullDoesNotFireWhenAlready100() async {
+        let deps = Self.createTestDependencies(warningEnabled: false) // Disable warning to isolate test
+
+        let previous = Self.createUsageData(fiveHour: 100, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 100, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 0) // No notification
+    }
+
+    @Test("Capacity full does not fire when toggle disabled")
+    @MainActor
+    func capacityFullDoesNotFireWhenDisabled() async {
+        let deps = Self.createTestDependencies(
+            warningEnabled: false,
+            capacityFullEnabled: false
+        )
+
+        let previous = Self.createUsageData(fiveHour: 98, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 100, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 0)
+    }
+
+    @Test("Capacity full hysteresis resets below 95%")
+    @MainActor
+    func capacityFullHysteresisResets() async {
+        let deps = Self.createTestDependencies(warningEnabled: false)
+
+        // First: hit 100%
+        let previous1 = Self.createUsageData(fiveHour: 98, sevenDay: 50)
+        let current1 = Self.createUsageData(fiveHour: 100, sevenDay: 50)
+        await deps.checker.check(current: current1, previous: previous1)
+
+        var count = deps.service.getAddedRequestCount()
+        #expect(count == 1)
+
+        // Second: drop below 95%
+        let previous2 = Self.createUsageData(fiveHour: 100, sevenDay: 50)
+        let current2 = Self.createUsageData(fiveHour: 93, sevenDay: 50)
+        await deps.checker.check(current: current2, previous: previous2)
+
+        // Third: hit 100% again - should fire
+        let previous3 = Self.createUsageData(fiveHour: 93, sevenDay: 50)
+        let current3 = Self.createUsageData(fiveHour: 100, sevenDay: 50)
+        await deps.checker.check(current: current3, previous: previous3)
+
+        count = deps.service.getAddedRequestCount()
+        #expect(count == 2)
+    }
+
+    // MARK: - Reset Complete Tests
+
+    @Test("Reset complete fires when 7-day drops from >50% to <10%")
+    @MainActor
+    func resetCompleteFiresOnDrop() async {
+        let deps = Self.createTestDependencies(
+            warningEnabled: false,
+            capacityFullEnabled: false
+        )
+
+        let previous = Self.createUsageData(fiveHour: 50, sevenDay: 75)
+        let current = Self.createUsageData(fiveHour: 50, sevenDay: 5)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 1)
+
+        let request = deps.service.getLastRequest()
+        #expect(request?.identifier == "reset-complete")
+        #expect(request?.content.title == "Usage Reset Complete")
+        #expect(request?.content.body.contains("weekly limit has reset") == true)
+    }
+
+    @Test("Reset complete does not fire when previous was below 50%")
+    @MainActor
+    func resetCompleteDoesNotFireWhenPreviousLow() async {
+        let deps = Self.createTestDependencies(
+            warningEnabled: false,
+            capacityFullEnabled: false
+        )
+
+        let previous = Self.createUsageData(fiveHour: 50, sevenDay: 40) // Below 50%
+        let current = Self.createUsageData(fiveHour: 50, sevenDay: 5)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 0)
+    }
+
+    @Test("Reset complete does not fire when current is above 10%")
+    @MainActor
+    func resetCompleteDoesNotFireWhenCurrentHigh() async {
+        let deps = Self.createTestDependencies(
+            warningEnabled: false,
+            capacityFullEnabled: false
+        )
+
+        let previous = Self.createUsageData(fiveHour: 50, sevenDay: 75)
+        let current = Self.createUsageData(fiveHour: 50, sevenDay: 15) // Above 10%
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 0)
+    }
+
+    @Test("Reset complete does not fire when toggle disabled")
+    @MainActor
+    func resetCompleteDoesNotFireWhenDisabled() async {
+        let deps = Self.createTestDependencies(
+            warningEnabled: false,
+            capacityFullEnabled: false,
+            resetCompleteEnabled: false
+        )
+
+        let previous = Self.createUsageData(fiveHour: 50, sevenDay: 75)
+        let current = Self.createUsageData(fiveHour: 50, sevenDay: 5)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 0)
+    }
+
+    @Test("Reset complete does not fire without previous data")
+    @MainActor
+    func resetCompleteNeedsPreviousData() async {
+        let deps = Self.createTestDependencies(
+            warningEnabled: false,
+            capacityFullEnabled: false
+        )
+
+        let current = Self.createUsageData(fiveHour: 50, sevenDay: 5)
+
+        await deps.checker.check(current: current, previous: nil)
+
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 0)
+    }
+
+    // MARK: - Notification Body Tests
+
+    @Test("Warning notification includes reset time")
+    @MainActor
+    func warningIncludesResetTime() async {
+        let deps = Self.createTestDependencies(warningThreshold: 90)
+
+        let previous = Self.createUsageData(fiveHour: 85, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 92, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let request = deps.service.getLastRequest()
+        #expect(request?.content.body.contains("Resets") == true)
+    }
+
+    @Test("Capacity full notification includes reset time")
+    @MainActor
+    func capacityFullIncludesResetTime() async {
+        let deps = Self.createTestDependencies(warningEnabled: false)
+
+        let previous = Self.createUsageData(fiveHour: 98, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 100, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let request = deps.service.getLastRequest()
+        #expect(request?.content.body.contains("Resets") == true)
+    }
+
+    // MARK: - Edge Cases
+
+    @Test("First fetch with nil previous data")
+    @MainActor
+    func firstFetchWithNilPrevious() async {
+        let deps = Self.createTestDependencies(warningThreshold: 90)
+
+        // First fetch with high usage but no previous
+        let current = Self.createUsageData(fiveHour: 95, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: nil)
+
+        // Should fire because previous is treated as 0
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 1)
+    }
+
+    @Test("Nil optional windows are skipped")
+    @MainActor
+    func nilWindowsAreSkipped() async {
+        let deps = Self.createTestDependencies(warningThreshold: 90)
+
+        // Previous had opus/sonnet, current doesn't
+        let previous = Self.createUsageData(fiveHour: 50, sevenDay: 50, opus: 85, sonnet: 85)
+        let current = Self.createUsageData(fiveHour: 50, sevenDay: 50, opus: nil, sonnet: nil)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        // No notifications because nil windows are skipped
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 0)
+    }
+
+    @Test("Exactly at threshold triggers warning")
+    @MainActor
+    func exactlyAtThresholdTriggers() async {
+        let deps = Self.createTestDependencies(warningThreshold: 90)
+
+        let previous = Self.createUsageData(fiveHour: 85, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 90, sevenDay: 50) // Exactly 90%
+
+        await deps.checker.check(current: current, previous: previous)
+
+        let count = deps.service.getAddedRequestCount()
+        #expect(count == 1)
+    }
+}
