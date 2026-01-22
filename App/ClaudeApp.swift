@@ -39,8 +39,10 @@ struct ClaudeApp: App {
 
 /// The label displayed in the macOS menu bar.
 /// Shows Claude icon + percentage or loading/error state.
+/// Respects display settings: showPercentage, percentageSource, showPlanBadge.
 struct MenuBarLabel: View {
     @Environment(UsageManager.self) private var usageManager
+    @Environment(SettingsManager.self) private var settings
 
     var body: some View {
         HStack(spacing: 4) {
@@ -51,13 +53,38 @@ struct MenuBarLabel: View {
                 ProgressView()
                     .controlSize(.small)
             } else if let data = usageManager.usageData {
-                Text("\(Int(data.highestUtilization))%")
-                    .font(.system(size: 12, weight: .medium).monospacedDigit())
+                if settings.showPercentage {
+                    Text("\(Int(data.utilization(for: settings.percentageSource)))%")
+                        .font(.system(size: 12, weight: .medium).monospacedDigit())
+                }
+
+                if settings.showPlanBadge {
+                    PlanBadgeLabel()
+                }
             } else {
-                Text("--")
-                    .font(.system(size: 12, weight: .medium))
+                if settings.showPercentage {
+                    Text("--")
+                        .font(.system(size: 12, weight: .medium))
+                }
             }
         }
+    }
+}
+
+// MARK: - Plan Badge Label
+
+/// A small label showing the user's plan type in the menu bar.
+/// Note: Plan type detection is not yet implemented (would require API support).
+/// For now, this displays a placeholder badge.
+struct PlanBadgeLabel: View {
+    var body: some View {
+        Text("Pro")
+            .font(.system(size: 9, weight: .medium))
+            .padding(.horizontal, 4)
+            .padding(.vertical, 1)
+            .background(Color(red: 0.757, green: 0.373, blue: 0.235).opacity(0.2))
+            .foregroundStyle(Color(red: 0.757, green: 0.373, blue: 0.235))
+            .clipShape(RoundedRectangle(cornerRadius: 3))
     }
 }
 

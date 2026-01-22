@@ -44,4 +44,21 @@ public struct UsageData: Sendable, Equatable {
             sevenDaySonnet?.utilization ?? 0
         ].max() ?? 0
     }
+
+    /// Returns the utilization for the specified percentage source.
+    /// Falls back to highest utilization if the requested source is unavailable.
+    public func utilization(for source: PercentageSource) -> Double {
+        switch source {
+        case .highest:
+            return highestUtilization
+        case .session:
+            return fiveHour.utilization
+        case .weekly:
+            return sevenDay.utilization
+        case .opus:
+            return sevenDayOpus?.utilization ?? highestUtilization
+        case .sonnet:
+            return sevenDaySonnet?.utilization ?? highestUtilization
+        }
+    }
 }

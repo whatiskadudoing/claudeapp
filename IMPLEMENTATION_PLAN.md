@@ -79,13 +79,14 @@ Build the settings persistence layer and UI foundation that notifications will d
   - **Design:** Use SectionHeader component, SettingsToggle component for consistency
   - **Completed:** Created full SettingsView with all sections in App/ClaudeApp.swift; Added SettingsButton to dropdown header; Settings window opens via SwiftUI Window scene with Cmd+, shortcut; Added SettingsManager and LaunchAtLoginManager to AppContainer with proper environment injection; Added restartAutoRefresh method to UsageManager; All 115 tests passing
 
-- [ ] **Connect settings to existing UI (menu bar display + refresh interval)** [spec: features/settings.md] [file: App/ClaudeApp.swift]
+- [x] **Connect settings to existing UI (menu bar display + refresh interval)** [spec: features/settings.md] [file: App/ClaudeApp.swift]
   - Update MenuBarLabel to respect showPercentage, percentageSource settings
   - Add plan badge display when showPlanBadge is true
   - Update UsageManager to read refreshInterval from SettingsManager
   - Restart auto-refresh when refreshInterval changes
   - Inject SettingsManager via SwiftUI Environment alongside UsageManager
   - **Note:** Menu bar should update live when settings change
+  - **Completed:** MenuBarLabel now respects showPercentage, percentageSource, and showPlanBadge settings; Added utilization(for:) method to UsageData for source selection; Plan badge shows placeholder "Pro" (actual plan detection requires API support); Refresh interval already connected via onRefreshIntervalChanged callback in previous task; 3 new tests added (118 total passing)
 
 ---
 <!-- CHECKPOINT: Phase 1 delivers configurable settings. Verify settings persist across restarts, menu bar updates with settings, refresh interval changes take effect. -->

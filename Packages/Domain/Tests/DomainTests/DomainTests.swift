@@ -154,6 +154,48 @@ struct UsageDataTests {
         #expect(data1 == data2)
         #expect(data1 != data3)
     }
+
+    @Test("utilization(for:) returns correct values for each source")
+    func utilizationForSource() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0),
+            sevenDay: UsageWindow(utilization: 50.0),
+            sevenDayOpus: UsageWindow(utilization: 20.0),
+            sevenDaySonnet: UsageWindow(utilization: 80.0)
+        )
+
+        #expect(data.utilization(for: .highest) == 80.0)
+        #expect(data.utilization(for: .session) == 30.0)
+        #expect(data.utilization(for: .weekly) == 50.0)
+        #expect(data.utilization(for: .opus) == 20.0)
+        #expect(data.utilization(for: .sonnet) == 80.0)
+    }
+
+    @Test("utilization(for:) falls back to highest when opus is nil")
+    func utilizationForSourceOpusFallback() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0),
+            sevenDay: UsageWindow(utilization: 50.0),
+            sevenDayOpus: nil,
+            sevenDaySonnet: UsageWindow(utilization: 40.0)
+        )
+
+        // When opus is nil, should fall back to highest (which is 50.0)
+        #expect(data.utilization(for: .opus) == 50.0)
+    }
+
+    @Test("utilization(for:) falls back to highest when sonnet is nil")
+    func utilizationForSourceSonnetFallback() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0),
+            sevenDay: UsageWindow(utilization: 60.0),
+            sevenDayOpus: UsageWindow(utilization: 20.0),
+            sevenDaySonnet: nil
+        )
+
+        // When sonnet is nil, should fall back to highest (which is 60.0)
+        #expect(data.utilization(for: .sonnet) == 60.0)
+    }
 }
 
 // MARK: - Credentials Tests
