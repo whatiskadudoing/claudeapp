@@ -57,12 +57,13 @@ Build the foundational data structures for burn rate tracking.
   - **Thresholds:** <10%/hr = Low, 10-25%/hr = Medium, 25-50%/hr = High, >50%/hr = Very High
   - ✅ Completed: 17 tests added covering all threshold boundaries and conformances
 
-- [ ] **Extend UsageWindow with burn rate properties** [spec: features/view-usage.md] [file: Packages/Domain/Sources/Domain/UsageWindow.swift]
+- [x] **Extend UsageWindow with burn rate properties** [spec: features/view-usage.md] [file: Packages/Domain/Sources/Domain/UsageWindow.swift]
   - Add optional `burnRate: BurnRate?` property
   - Add optional `timeToExhaustion: TimeInterval?` property
   - Update initializer with new optional parameters (default nil)
   - Maintain backward compatibility with existing code
   - **Note:** These start nil and get enriched by BurnRateCalculator
+  - ✅ Completed: 6 new tests added for burn rate properties (177 total tests passing)
 
 - [ ] **Extend UsageData with highestBurnRate computed property** [spec: features/view-usage.md] [file: Packages/Domain/Sources/Domain/UsageData.swift]
   - Add `highestBurnRate: BurnRate?` computed property

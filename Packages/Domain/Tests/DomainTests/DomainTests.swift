@@ -193,6 +193,65 @@ struct UsageWindowTests {
         #expect(window1 == window2)
         #expect(window1 != window3)
     }
+
+    @Test("UsageWindow initializes with burn rate")
+    func initWithBurnRate() {
+        let burnRate = BurnRate(percentPerHour: 15.0)
+        let window = UsageWindow(utilization: 45.5, burnRate: burnRate)
+
+        #expect(window.utilization == 45.5)
+        #expect(window.resetsAt == nil)
+        #expect(window.burnRate?.percentPerHour == 15.0)
+        #expect(window.timeToExhaustion == nil)
+    }
+
+    @Test("UsageWindow initializes with time to exhaustion")
+    func initWithTimeToExhaustion() {
+        let window = UsageWindow(utilization: 50.0, timeToExhaustion: 7200.0)
+
+        #expect(window.utilization == 50.0)
+        #expect(window.burnRate == nil)
+        #expect(window.timeToExhaustion == 7200.0)
+    }
+
+    @Test("UsageWindow initializes with all burn rate properties")
+    func initWithAllBurnRateProperties() {
+        let resetDate = Date()
+        let burnRate = BurnRate(percentPerHour: 25.0)
+        let window = UsageWindow(
+            utilization: 60.0,
+            resetsAt: resetDate,
+            burnRate: burnRate,
+            timeToExhaustion: 5400.0
+        )
+
+        #expect(window.utilization == 60.0)
+        #expect(window.resetsAt == resetDate)
+        #expect(window.burnRate == burnRate)
+        #expect(window.burnRate?.level == .high)
+        #expect(window.timeToExhaustion == 5400.0)
+    }
+
+    @Test("UsageWindow burn rate defaults to nil")
+    func burnRateDefaultsToNil() {
+        let window = UsageWindow(utilization: 30.0)
+
+        #expect(window.burnRate == nil)
+        #expect(window.timeToExhaustion == nil)
+    }
+
+    @Test("UsageWindow equality considers burn rate properties")
+    func equalityWithBurnRate() {
+        let burnRate = BurnRate(percentPerHour: 20.0)
+        let window1 = UsageWindow(utilization: 50.0, burnRate: burnRate, timeToExhaustion: 3600.0)
+        let window2 = UsageWindow(utilization: 50.0, burnRate: burnRate, timeToExhaustion: 3600.0)
+        let window3 = UsageWindow(utilization: 50.0, burnRate: burnRate, timeToExhaustion: 7200.0)
+        let window4 = UsageWindow(utilization: 50.0, burnRate: nil, timeToExhaustion: 3600.0)
+
+        #expect(window1 == window2)
+        #expect(window1 != window3)
+        #expect(window1 != window4)
+    }
 }
 
 // MARK: - UsageData Tests
