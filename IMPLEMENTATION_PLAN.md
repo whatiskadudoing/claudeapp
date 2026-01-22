@@ -132,7 +132,7 @@ Build the visible product: menu bar icon with percentage and dropdown with detai
 
 Add auto-refresh, manual refresh interactions, and loading/error states.
 
-- [ ] **Implement auto-refresh lifecycle** [spec: features/refresh-usage.md]
+- [x] **Implement auto-refresh lifecycle** [spec: features/refresh-usage.md]
   - Start auto-refresh on app launch (5-minute interval)
   - Pause during system sleep (NSWorkspace notifications)
   - Resume 5 seconds after wake
@@ -140,6 +140,7 @@ Add auto-refresh, manual refresh interactions, and loading/error states.
   - Exponential backoff on errors: 1m → 2m → 4m → max 15m
   - Reset backoff on successful refresh
   - **Research:** `specs/features/refresh-usage.md` for lifecycle and backoff strategy
+  - **Note:** Implemented in UsageManager with exponential backoff (consecutiveFailures counter, retryInterval computed property). AppContainer now starts auto-refresh on production init and registers NSWorkspace sleep/wake observers. Auth errors (notAuthenticated) don't trigger retry, rate-limited errors use server-provided retry-after. Added 11 new tests for backoff and sleep/wake handling (total 75 tests passing).
 
 - [ ] **Implement manual refresh with button states** [spec: features/refresh-usage.md]
   - Refresh button in dropdown header (Cmd+R keyboard shortcut)

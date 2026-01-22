@@ -1,3 +1,4 @@
+import AppKit
 import Domain
 import Services
 
@@ -5,6 +6,7 @@ import Services
 
 /// Dependency injection container that wires up all app dependencies.
 /// Creates and holds references to all managers and repositories.
+/// Handles app lifecycle including auto-refresh and sleep/wake events.
 @MainActor
 public final class AppContainer {
     // MARK: - Repositories
@@ -20,9 +22,20 @@ public final class AppContainer {
     /// Manager for usage data state
     public let usageManager: UsageManager
 
+    // MARK: - Configuration
+
+    /// Default auto-refresh interval (5 minutes)
+    private static let defaultRefreshInterval: TimeInterval = 300
+
+    // MARK: - Notification Observers
+
+    private var sleepObserver: NSObjectProtocol?
+    private var wakeObserver: NSObjectProtocol?
+
     // MARK: - Initialization
 
     /// Creates a new AppContainer with default production dependencies.
+    /// Starts auto-refresh and registers system event observers.
     public init() {
         // Create repositories
         let keychainRepo = KeychainCredentialsRepository()
@@ -33,18 +46,69 @@ public final class AppContainer {
 
         // Create managers
         self.usageManager = UsageManager(usageRepository: apiClient)
+
+        // Start auto-refresh on launch
+        usageManager.startAutoRefresh(interval: Self.defaultRefreshInterval)
+
+        // Register sleep/wake observers
+        registerSleepWakeObservers()
     }
 
     /// Creates a new AppContainer with custom dependencies (for testing).
+    /// Does NOT start auto-refresh or register observers - caller controls lifecycle.
     /// - Parameters:
     ///   - credentialsRepository: Custom credentials repository
     ///   - usageRepository: Custom usage repository
+    ///   - startAutoRefresh: Whether to start auto-refresh (default false for tests)
     public init(
         credentialsRepository: CredentialsRepository,
-        usageRepository: UsageRepository
+        usageRepository: UsageRepository,
+        startAutoRefresh: Bool = false
     ) {
         self.credentialsRepository = credentialsRepository
         self.usageRepository = usageRepository
         self.usageManager = UsageManager(usageRepository: usageRepository)
+
+        if startAutoRefresh {
+            usageManager.startAutoRefresh(interval: Self.defaultRefreshInterval)
+            registerSleepWakeObservers()
+        }
+    }
+
+    deinit {
+        // Clean up notification observers
+        if let sleepObserver = sleepObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(sleepObserver)
+        }
+        if let wakeObserver = wakeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver)
+        }
+    }
+
+    // MARK: - System Event Handling
+
+    /// Registers observers for system sleep/wake notifications.
+    private func registerSleepWakeObservers() {
+        // Pause auto-refresh during sleep
+        sleepObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.usageManager.handleSleep()
+            }
+        }
+
+        // Resume auto-refresh after wake
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.usageManager.handleWake()
+            }
+        }
     }
 }
