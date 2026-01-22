@@ -1,0 +1,48 @@
+# SwiftFormat Configuration
+# Version: 0.53+
+
+# Swift version
+--swiftversion 5.9
+
+# Formatting rules
+--indent 4
+--indentcase false
+--trimwhitespace always
+--voidtype void
+--nospaceoperators ..<, ...
+--ranges nospace
+--stripunusedargs closure-only
+--maxwidth 120
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--closingparen balanced
+--funcattributes prev-line
+--typeattributes prev-line
+--varattributes same-line
+--storedvarattrs same-line
+--computedvarattrs same-line
+--redundanttype inferred
+--emptybraces no-space
+--elseposition same-line
+--guardelse next-line
+--extensionacl on-declarations
+--modifierorder public,private,fileprivate,internal,open,static,final,class,required,override,convenience,lazy,dynamic,weak,unowned
+
+# Enabled rules
+--enable blankLineAfterImports
+--enable blockComments
+--enable docComments
+--enable isEmpty
+--enable markTypes
+--enable organizeDeclarations
+--enable sortImports
+--enable wrapEnumCases
+--enable wrapSwitchCases
+
+# Disabled rules
+--disable acronyms
+--disable trailingCommas
+
+# Exclusions
+--exclude .build,DerivedData,Packages/*/.build
