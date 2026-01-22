@@ -62,13 +62,14 @@ Establish the project structure, build system, and domain models that all featur
   - **Research:** `research/apis/anthropic-oauth.md` for response schema and Swift types
   - **Note:** Added `rateLimited(retryAfter: Int)` case to AppError for 429 handling. All Domain types require `import Foundation` for `Date` type.
 
-- [ ] **Implement Keychain credentials repository** [spec: api-documentation.md]
+- [x] **Implement Keychain credentials repository** [spec: api-documentation.md]
   - Create `KeychainCredentialsRepository` actor implementing `CredentialsRepository`
   - Use `/usr/bin/security find-generic-password -s "Claude Code-credentials" -w`
   - Parse JSON response with `claudeAiOauth.accessToken` extraction
   - Handle missing keychain entry → throw `AppError.notAuthenticated`
   - Handle invalid JSON → throw `AppError.keychainError`
   - **Research:** `research/approaches/keychain-access.md` for implementation pattern
+  - **Note:** Actor-based implementation ensures thread-safety. Internal JSON models (`KeychainCredentials`, `OAuthCredentials`) handle the nested JSON structure from Claude Code.
 
 - [ ] **Implement Claude API client** [spec: api-documentation.md]
   - Create `ClaudeAPIClient` actor implementing `UsageRepository`
