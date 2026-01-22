@@ -88,14 +88,15 @@ Establish the project structure, build system, and domain models that all featur
 
 Build the visible product: menu bar icon with percentage and dropdown with detailed usage.
 
-- [ ] **Create menu bar app entry point with MenuBarExtra** [spec: features/view-usage.md]
+- [x] **Create menu bar app entry point with MenuBarExtra** [spec: features/view-usage.md]
   - Set up `@main` App struct with MenuBarExtra scene
   - Use `.menuBarExtraStyle(.window)` for custom SwiftUI content
   - Create `AppContainer` for dependency injection (credentials repo → API client → usage manager)
   - Pass `UsageManager` via SwiftUI Environment
   - **Research:** `research/approaches/menubar-extra.md` for MenuBarExtra setup
+  - **Note:** Implemented in App/ClaudeApp.swift with AppContainer in Core package. Uses SwiftUI Environment to pass UsageManager to views.
 
-- [ ] **Implement UsageManager with @Observable state** [spec: architecture.md]
+- [x] **Implement UsageManager with @Observable state** [spec: architecture.md]
   - Create `@MainActor @Observable class UsageManager`
   - State: `usageData: UsageData?`, `isLoading: Bool`, `lastError: AppError?`, `lastUpdated: Date?`
   - Computed: `highestUtilization` (max across all windows)
@@ -103,15 +104,17 @@ Build the visible product: menu bar icon with percentage and dropdown with detai
   - Method: `startAutoRefresh(interval: TimeInterval)` - background Task loop
   - Method: `stopAutoRefresh()` - cancels refresh Task
   - **Research:** `specs/architecture.md` for state management patterns
+  - **Note:** Implemented in Packages/Core/Sources/Core/UsageManager.swift with 11 new tests covering state management, concurrent refresh prevention, error handling, and auto-refresh lifecycle.
 
-- [ ] **Build menu bar label view** [spec: features/view-usage.md, design-system.md]
+- [x] **Build menu bar label view** [spec: features/view-usage.md, design-system.md]
   - Display Claude icon (16x16 template image) + percentage text
   - Percentage: SF Mono 12pt medium, monospacedDigit()
   - States: normal (icon + %), loading (icon + spinner), error (icon + "--")
   - 4px spacing between icon and text
   - **Research:** `specs/design-system.md` for typography and spacing
+  - **Note:** Implemented MenuBarLabel view in App/ClaudeApp.swift. Uses SF symbol "sparkle" as placeholder icon until brand icon is added. Shows loading spinner when no data, percentage when available, "--" on error.
 
-- [ ] **Build dropdown view with usage bars** [spec: features/view-usage.md, design-system.md]
+- [x] **Build dropdown view with usage bars** [spec: features/view-usage.md, design-system.md]
   - Fixed 280px width, 12px corner radius, 16px padding
   - Solid opaque background: `Color(nsColor: .windowBackgroundColor)`
   - Header: title "Claude Usage", refresh button (circular arrow)
@@ -120,6 +123,7 @@ Build the visible product: menu bar icon with percentage and dropdown with detai
   - Footer: "Last updated" timestamp, quit button
   - Color thresholds: green (0-49%), yellow (50-89%), red (90-100%)
   - **Research:** `specs/design-system.md` for colors and component patterns
+  - **Note:** Implemented DropdownView, UsageContent, UsageProgressBar, LoadingView, ErrorView, EmptyStateView components. Progress bars use green/yellow/red colors based on utilization thresholds. Error states show specific messages for notAuthenticated, networkError, rateLimited, etc.
 
 ---
 <!-- CHECKPOINT: Phase 2 delivers the complete visible product. Test manually: menu bar shows %, click opens dropdown with all 4 usage windows. -->
