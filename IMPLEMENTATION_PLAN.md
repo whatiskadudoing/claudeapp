@@ -1,25 +1,26 @@
 # Implementation Plan
 
-## Recommended SLC Release: Predictive Insights (SLC 3)
+## Recommended SLC Release: Distribution Ready (SLC 4)
 
-**Audience:** Professional developers using Claude Code (Pro, Max 5x, Max 20x plans) who want to anticipate when they'll hit limits and plan their work sessions accordingly.
+**Audience:** Professional developers using Claude Code (Pro, Max 5x, Max 20x plans) who want to install and use ClaudeApp without friction.
 
-**Value proposition:** Know not just where you are, but where you're going. See consumption velocity at a glance, get time-to-exhaustion predictions, and plan your Claude sessions with confidence. This transforms ClaudeApp from showing "what is" to predicting "what will be."
+**Value proposition:** Make ClaudeApp installable and accessible to all users. A feature-complete app that nobody can install delivers zero value. This slice focuses on distribution (Homebrew, signed DMG), accessibility (VoiceOver, keyboard navigation), and quality infrastructure (CI/CD) to transform ClaudeApp from a developer project into a polished, distributable product.
 
 **Activities included:**
 
 | Activity | Depth | Why Included |
 |----------|-------|--------------|
-| Burn Rate Tracking | Basic | Core value: understand consumption velocity (Job 4b) |
-| Time-to-Exhaustion | Basic | Core value: predict when limit will be reached (Job 4a) |
-| Update Checking | Basic | Quality of life: stay current with new versions (Job 9) |
+| Accessibility | Standard | Required for quality - serves users with disabilities (Job 6) |
+| Distribution Tooling | Basic | Required for installation - DMG creation, Homebrew formula |
+| CI/CD Pipeline | Basic | Required for sustainable releases - automated builds and tests |
+| Code Quality | Basic | Pre-commit hooks, SwiftFormat/SwiftLint enforcement |
 
 **What's NOT in this slice:**
 - Historical usage graphs/trends → Future
-- Accessibility polish (VoiceOver, keyboard nav) → SLC 4
-- Distribution tooling (signed DMG, Homebrew) → SLC 4
-- Internationalization → Future
-- Widget support → Future
+- Internationalization (i18n) → SLC 5
+- Widget support for Notification Center → Future
+- Apple Developer ID signing/notarization → Future (requires paid account)
+- Advanced accessibility (dynamic type, color-blind patterns) → SLC 5
 
 ---
 
@@ -29,359 +30,311 @@ Key research documents for this implementation:
 
 | Topic | Document | Why Relevant |
 |-------|----------|--------------|
-| Burn Rate Spec | `specs/features/view-usage.md` | NEW requirements section with thresholds and UI design |
-| Architecture | `specs/architecture.md` | BurnRateCalculator patterns, UsageSnapshot model |
-| GitHub Releases API | `research/apis/github-releases.md` | Complete API reference with Swift models |
-| Inspiration | `research/inspiration.md` | ccusage-monitor shows 195-line minimal approach |
-| Design System | `specs/design-system.md` | Color tokens for burn rate badges |
+| Accessibility | `specs/accessibility.md` | VoiceOver labels, keyboard nav, focus states |
+| Toolchain | `specs/toolchain.md` | Makefile commands, release scripts, CI/CD |
+| Distribution | `specs/toolchain.md#homebrew` | Homebrew Cask formula template |
+| Inspiration | `research/inspiration.md` | Stats app, iStat Menus distribution patterns |
 
 ---
 <!-- HUMAN VERIFICATION: Does this slice form a coherent, valuable product? -->
-<!-- Answer: YES - Users get predictive insights that enable proactive session planning.
-     The burn rate indicator answers "am I burning through quota quickly?"
-     Time-to-exhaustion answers "when will I hit my limit?"
-     Combined with existing notifications, this creates a complete picture. -->
+<!-- Answer: YES - Users can now install ClaudeApp via Homebrew or DMG download.
+     Accessibility ensures all users can use the app effectively.
+     CI/CD ensures sustainable release process for ongoing updates. -->
 
-## Phase 1: Burn Rate Domain Models - CRITICAL
+## Phase 1: Accessibility Foundation - CRITICAL
 
-Build the foundational data structures for burn rate tracking.
+Implement VoiceOver support and keyboard navigation for core UI elements.
 
-- [x] **Implement BurnRate and BurnRateLevel domain models** [spec: features/view-usage.md] [file: Packages/Domain/Sources/Domain/]
-  - Create `BurnRate` struct with `percentPerHour: Double` property
-  - Create `level: BurnRateLevel` computed property based on thresholds
-  - Create `displayString` computed property ("15%/hr" format)
-  - Create `BurnRateLevel` enum with cases: low, medium, high, veryHigh
-  - Add `color` property returning semantic color name (green/yellow/orange/red)
-  - Ensure `Sendable`, `Equatable`, `Codable` conformance
-  - **Research:** `specs/features/view-usage.md` lines 63-69 for thresholds
-  - **Thresholds:** <10%/hr = Low, 10-25%/hr = Medium, 25-50%/hr = High, >50%/hr = Very High
-  - ✅ Completed: 17 tests added covering all threshold boundaries and conformances
+- [x] **Implement VoiceOver labels for menu bar and dropdown** [spec: accessibility.md] [file: App/ClaudeApp.swift, Packages/UI/Sources/UI/]
+  - Add `.accessibilityLabel()` to menu bar icon: "ClaudeApp, usage at X percent"
+  - Add `.accessibilityHint()` to menu bar: "Click to view usage details"
+  - Add `.accessibilityLabel()` to refresh button: "Refresh usage data"
+  - Add `.accessibilityLabel()` to settings button: "Open settings"
+  - Add `.accessibilityLabel()` to quit button: "Quit ClaudeApp"
+  - Add `.accessibilityElement(children: .combine)` to group related elements
+  - Add dynamic label for warning state: "Warning: usage limit reached"
+  - **Research:** `specs/accessibility.md` lines 19-107 for VoiceOver implementation patterns
+  - **Test:** Enable VoiceOver (Cmd+F5), verify all elements are announced correctly
+  - **DONE:** Added accessibility labels to MenuBarLabel (combined element with dynamic label including warning states), SettingsButton, RefreshButton (with state-specific labels), BurnRateBadge (with descriptive level labels), Quit button, Settings close button, StaleDataBanner, LoadingView, ErrorView, EmptyStateView. All decorative icons hidden from VoiceOver.
 
-- [x] **Extend UsageWindow with burn rate properties** [spec: features/view-usage.md] [file: Packages/Domain/Sources/Domain/UsageWindow.swift]
-  - Add optional `burnRate: BurnRate?` property
-  - Add optional `timeToExhaustion: TimeInterval?` property
-  - Update initializer with new optional parameters (default nil)
-  - Maintain backward compatibility with existing code
-  - **Note:** These start nil and get enriched by BurnRateCalculator
-  - ✅ Completed: 6 new tests added for burn rate properties (177 total tests passing)
+- [ ] **Add VoiceOver support to UsageProgressBar** [spec: accessibility.md] [file: Packages/UI/Sources/UI/UsageProgressBar.swift]
+  - Use `.accessibilityElement(children: .ignore)` to create single accessible element
+  - Add `.accessibilityLabel()`: "[Label] at X percent, resets [time]"
+  - Add `.accessibilityValue()`: "X percent"
+  - Add `.accessibilityAddTraits(.updatesFrequently)` for dynamic content
+  - Include time-to-exhaustion in label when available: "~2 hours until limit"
+  - Include burn rate level when available: "consumption rate: medium"
+  - **Research:** `specs/accessibility.md` lines 65-92 for progress bar accessibility
 
-- [x] **Extend UsageData with highestBurnRate computed property** [spec: features/view-usage.md] [file: Packages/Domain/Sources/Domain/UsageData.swift]
-  - Add `highestBurnRate: BurnRate?` computed property
-  - Returns the highest burn rate across all windows (fiveHour, sevenDay, opus, sonnet)
-  - Used for the header badge in dropdown
-  - **Research:** `specs/architecture.md` lines 143-147 for implementation pattern
-  - ✅ Already implemented: Property exists at lines 48-55 in UsageData.swift
-  - ✅ Already tested: 7 test cases in DomainTests.swift (lines 411-499) covering all scenarios
+- [ ] **Implement keyboard navigation** [spec: accessibility.md] [file: App/ClaudeApp.swift]
+  - Add `@FocusState` for managing focus in dropdown
+  - Define `FocusableElement` enum: refresh, settings, progressBars(0-3), quit
+  - Apply `.focused()` modifier to all focusable elements
+  - Set initial focus to refresh button when dropdown opens
+  - Add keyboard shortcuts: Cmd+R (refresh), Cmd+, (settings), Cmd+Q (quit), Escape (close)
+  - Implement Tab key navigation through focusable elements
+  - **Research:** `specs/accessibility.md` lines 111-173 for focus management
+  - **Test:** Open dropdown, press Tab repeatedly, verify focus moves logically
 
----
-<!-- CHECKPOINT: Phase 1 adds domain models. Verify: BurnRate struct compiles, UsageWindow accepts optional burn rate, UsageData.highestBurnRate returns correct value. Run existing tests - they should still pass. -->
-
-## Phase 2: Burn Rate Calculator - CRITICAL
-
-Implement the calculation logic for burn rates and time-to-exhaustion.
-
-- [x] **Create UsageSnapshot model for history tracking** [spec: architecture.md] [file: Packages/Core/Sources/Core/]
-  - Create `UsageSnapshot` struct with: fiveHourUtilization, sevenDayUtilization, opusUtilization?, sonnetUtilization?, timestamp
-  - Make it `Sendable` for actor use
-  - This is internal to Core package (not exported to Domain)
-  - **Note:** Will be stored in an array in UsageManager
-  - ✅ Completed: UsageSnapshot.swift created with all required fields
-  - ✅ 6 tests added: initialization, defaults, equatable, sendable conformance (190 total tests passing)
-
-- [x] **Implement BurnRateCalculator** [spec: architecture.md] [file: Packages/Core/Sources/Core/BurnRateCalculator.swift]
-  - Create `BurnRateCalculator` struct (Sendable for thread safety)
-  - Method: `calculate(from snapshots: [(utilization: Double, timestamp: Date)]) -> BurnRate?`
-  - Requires minimum 2 samples to calculate
-  - Use oldest and newest snapshots: `(newest.util - oldest.util) / timeDiffHours`
-  - Only return positive burn rates (consumption, not reset)
-  - Return nil if insufficient data or during reset period
-  - Method: `timeToExhaustion(currentUtilization: Double, burnRate: BurnRate?) -> TimeInterval?`
-  - Formula: `(100 - currentUtilization) / burnRate.percentPerHour * 3600`
-  - Return 0 if already at 100%, nil if no burn rate
-  - **Research:** `specs/architecture.md` lines 564-602 for full implementation pattern
-  - ✅ Completed: BurnRateCalculator with configurable minimumSamples, calculate(), and timeToExhaustion() methods
-  - ✅ 33 comprehensive tests added covering all edge cases, thresholds, and Sendable conformance (223 total tests passing)
-
-- [x] **Integrate burn rate calculation into UsageManager** [spec: architecture.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
-  - Add `usageHistory: [UsageSnapshot]` private property
-  - Add `maxHistoryCount = 12` constant (1 hour at 5-min intervals)
-  - Add `burnRateCalculator = BurnRateCalculator()` property
-  - In `refresh()`: after fetching data, call `recordSnapshot()` then `enrichWithBurnRates()`
-  - `recordSnapshot()`: Insert new snapshot, trim if > maxHistoryCount
-  - `enrichWithBurnRates()`: Calculate burn rates for each window, create enriched UsageData
-  - Add `overallBurnRateLevel: BurnRateLevel?` computed property for header badge
-  - **Note:** History resets on app restart (acceptable for v1)
-  - ✅ Completed: Full integration with 9 new tests (232 total tests passing)
-
-- [x] **Add comprehensive tests for BurnRateCalculator** [file: Packages/Core/Tests/CoreTests/]
-  - Test calculate() with 2 samples (minimum)
-  - Test calculate() with 12 samples (full history)
-  - Test calculate() returns nil with 1 sample
-  - Test calculate() returns nil during reset (negative rate)
-  - Test timeToExhaustion() at various utilizations
-  - Test timeToExhaustion() returns 0 at 100%
-  - Test timeToExhaustion() returns nil without burn rate
-  - Test BurnRateLevel thresholds (edge cases at 10, 25, 50)
-  - Target: 100% coverage for calculator logic
-  - ✅ Already completed in previous task: 33 tests for BurnRateCalculator exist
+- [ ] **Add VoiceOver announcements for state changes** [spec: accessibility.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
+  - Post announcement after refresh completes: "Usage data updated"
+  - Post announcement on error: "Unable to refresh usage data"
+  - Post announcement when threshold crossed: "Warning: usage at X percent"
+  - Use `NSAccessibility.post(notification: .announcement, argument: message)`
+  - Ensure announcements only fire when VoiceOver is active
+  - **Research:** `specs/accessibility.md` lines 96-107 for announcement patterns
 
 ---
-<!-- CHECKPOINT: Phase 2 delivers calculation logic. Verify: BurnRateCalculator returns correct rates, UsageManager enriches data, history accumulates across refreshes. -->
+<!-- CHECKPOINT: Phase 1 delivers accessibility. Test with VoiceOver enabled, verify all elements are announced and keyboard navigation works. -->
 
-## Phase 3: Burn Rate UI
+## Phase 2: Distribution Tooling
 
-Add visual indicators for burn rate and time-to-exhaustion.
+Create release scripts and distribution artifacts.
 
-- [x] **Create BurnRateBadge component** [spec: features/view-usage.md] [file: App/ClaudeApp.swift]
-  - Create `BurnRateBadge` view showing burn rate level as colored pill
-  - Input: `burnRateLevel: BurnRateLevel?`
-  - Show nothing if nil (insufficient data)
-  - Colors: Low=green, Medium=yellow, High=orange, Very High=red
-  - Font: caption, padding: horizontal 6pt
-  - Position: In dropdown header between title and buttons
-  - **Research:** `specs/design-system.md` for color tokens, `specs/features/view-usage.md` lines 188-198
-  - ✅ Completed: BurnRateBadge component created with color-coded pill, integrated into DropdownView header (232 tests passing)
+- [ ] **Create release scripts** [spec: toolchain.md] [file: scripts/]
+  - Create `scripts/create-dmg.sh` for DMG generation with Applications symlink
+  - Create `scripts/install-hooks.sh` for git pre-commit hooks setup
+  - Update Makefile with `make dmg`, `make archive`, `make install`, `make uninstall` targets
+  - Add `make setup` command for initial project setup (deps + hooks)
+  - Ensure scripts are executable (`chmod +x`)
+  - **Research:** `specs/toolchain.md` lines 559-607 for release process
+  - **Test:** Run `make dmg`, verify DMG is created and mounts correctly
 
-- [x] **Add time-to-exhaustion display to UsageProgressBar** [spec: features/view-usage.md] [file: App/ClaudeApp.swift]
-  - Extend UsageProgressBar to accept optional `timeToExhaustion: TimeInterval?`
-  - Display format: "~2h until limit" or "~45min until limit"
-  - Only show when: utilization > 20% AND timeToExhaustion is not nil
-  - Position: Below reset time, same tertiary styling
-  - Show "—" when insufficient data but utilization > 50%
-  - **Research:** `specs/features/view-usage.md` lines 129-146 for layout
-  - ✅ Completed: UsageProgressBar extended with timeToExhaustion parameter, conditional display, and time formatting (232 tests passing)
+- [ ] **Create Homebrew Cask formula** [spec: toolchain.md] [file: (external repo)]
+  - Create `yourname/homebrew-tap` repository on GitHub
+  - Create `Casks/claudeapp.rb` formula with:
+    - Version, SHA256 hash of DMG
+    - URL pointing to GitHub release asset
+    - `depends_on macos: ">= :sonoma"`
+    - `zap trash:` for cleanup paths
+  - Document installation: `brew tap yourname/tap && brew install --cask claudeapp`
+  - **Research:** `specs/toolchain.md` lines 704-728 for Homebrew formula template
+  - **Note:** Formula will need SHA256 update after each release
 
-- [x] **Integrate burn rate into dropdown header** [spec: features/view-usage.md] [file: App/ClaudeApp.swift]
-  - Add BurnRateBadge to DropdownView header
-  - Get level from `usageManager.overallBurnRateLevel`
-  - Position between "Claude Usage" title and settings button
-  - Only show when burn rate data is available
-  - **Layout:** `HStack { Title, Spacer, BurnRateBadge, SettingsButton, RefreshButton }`
-  - ✅ Completed: BurnRateBadge already integrated in DropdownView header (done with BurnRateBadge component task)
-
-- [x] **Update UsageProgressBar instances with time-to-exhaustion** [file: App/ClaudeApp.swift]
-  - Pass `timeToExhaustion` from each UsageWindow to UsageProgressBar
-  - Update for: fiveHour, sevenDay, sevenDayOpus, sevenDaySonnet
-  - Only show if window has calculable time-to-exhaustion
-  - **Note:** First few refreshes won't have data - graceful degradation
-  - ✅ Completed: UsageContent now passes timeToExhaustion to all four progress bars (232 tests passing)
+- [ ] **Add SwiftFormat and SwiftLint configuration** [spec: toolchain.md] [file: .swiftformat, .swiftlint.yml]
+  - Create `.swiftformat` with Swift 5.9 rules (120 char line width, balanced closing parens)
+  - Create `.swiftlint.yml` with opt-in rules and configured thresholds
+  - Add `make format` and `make lint` targets to Makefile
+  - Add `make check` target that runs format + lint + test (CI gate)
+  - Run initial format pass on codebase
+  - **Research:** `specs/toolchain.md` lines 279-477 for configuration files
+  - **Test:** Run `make check`, ensure all checks pass
 
 ---
-<!-- CHECKPOINT: Phase 3 delivers burn rate UI. Test: run app, wait for 2-3 refresh cycles, verify badge appears, verify time-to-exhaustion shows for active windows. -->
+<!-- CHECKPOINT: Phase 2 delivers distribution tooling. Verify DMG creation works, Homebrew formula is valid, code quality tools are configured. -->
 
-## Phase 4: Update Checking
+## Phase 3: CI/CD Pipeline
 
-Implement version checking via GitHub Releases API.
+Implement automated builds, tests, and releases via GitHub Actions.
 
-- [x] **Create UpdateChecker actor** [spec: features/updates.md] [file: Packages/Core/Sources/Core/UpdateChecker.swift]
-  - Create `actor UpdateChecker` for thread-safe version checking
-  - Properties: `repoOwner`, `repoName`, `lastCheckDate`, `lastNotifiedVersion`
-  - Method: `check() async -> CheckResult` (upToDate, updateAvailable(info), error)
-  - Method: `checkInBackground() async` - only if >24 hours since last check
-  - Internal: `isVersion(_:newerThan:) -> Bool` for semantic version comparison
-  - **Research:** `research/apis/github-releases.md` lines 74-176 for full implementation
-  - ✅ Completed: Full UpdateChecker actor with all methods, 24-hour rate limiting, shouldNotify() for deduplication, and reset() for testing (270 tests passing, 38 new tests added)
+- [ ] **Create GitHub Actions CI workflow** [spec: toolchain.md] [file: .github/workflows/ci.yml]
+  - Trigger on push to main and pull requests
+  - Use `macos-14` runner with Xcode 15.2
+  - Install SwiftFormat and SwiftLint via Homebrew
+  - Run format check (lint mode), lint, build, and test
+  - Cache Swift packages for faster builds
+  - Report test results as GitHub Check annotations
+  - **Research:** `specs/toolchain.md` lines 629-697 for CI workflow template
+  - **Test:** Push a test commit, verify workflow runs and passes
 
-- [x] **Create GitHub API models** [spec: features/updates.md] [file: Packages/Core/Sources/Core/UpdateChecker.swift]
-  - Create `GitHubRelease` struct: tagName, name, htmlUrl, publishedAt, body, assets
-  - Create `GitHubAsset` struct: name, browserDownloadUrl
-  - Use CodingKeys for snake_case to camelCase mapping
-  - Create `UpdateInfo` struct: version, downloadURL, releaseURL, releaseNotes
-  - Create `CheckResult` enum: upToDate, updateAvailable(UpdateInfo), error(Error)
-  - **Research:** `research/apis/github-releases.md` lines 179-206 for models
-  - ✅ Completed: All models in UpdateChecker.swift with Sendable, Equatable, Decodable conformance. Added draft/prerelease fields to GitHubRelease. Bundle extension for appVersion/buildNumber.
+- [ ] **Create GitHub Actions release workflow** [spec: toolchain.md] [file: .github/workflows/ci.yml]
+  - Trigger on tag push matching `v*`
+  - Build release version
+  - Create DMG and ZIP archive
+  - Upload artifacts to GitHub Release using `softprops/action-gh-release`
+  - Auto-generate release notes from commits since last tag
+  - **Research:** `specs/toolchain.md` lines 672-697 for release job template
+  - **Note:** First release will need manual triggering after workflow is set up
 
-- [x] **Integrate update checking into app lifecycle** [file: App/ClaudeApp.swift, Packages/Core/Sources/Core/AppContainer.swift]
-  - Add `updateChecker: UpdateChecker` to AppContainer
-  - Check for updates 5 seconds after app launch (non-blocking)
-  - Only check if `settings.checkForUpdates` is true
-  - Show notification if update found (use NotificationManager)
-  - Track lastNotifiedVersion to avoid spam
-  - **Note:** Respect 24-hour rate limit for auto-checks
-  - ✅ Completed: UpdateChecker added to AppContainer, background check on launch with 5s delay, notification sent when update found (271 tests passing)
-
-- [x] **Implement update UI in Settings About section** [file: App/ClaudeApp.swift]
-  - Enable the currently-disabled "Check for Updates" button
-  - Add state: `checkResult: UpdateChecker.CheckResult?`, `isChecking: Bool`
-  - Show loading spinner while checking
-  - Show "Up to date" with checkmark (green) - auto-dismiss after 3 seconds
-  - Show "Version X.Y.Z available" with "Download" button
-  - Download button opens browser to release/download URL
-  - Show error state briefly if check fails
-  - **Research:** `specs/features/updates.md` lines 229-304 for UI implementation
-  - ✅ Completed: Full update UI implemented with all states (checking, upToDate, updateAvailable, rateLimited, error), auto-dismiss for transient states, retry button for errors (271 tests passing)
+- [ ] **Document release process in README** [file: README.md]
+  - Add "Installation" section with Homebrew command
+  - Add "Manual Installation" section with DMG download link
+  - Add "Development" section with build instructions
+  - Add "Contributing" section with code quality expectations
+  - Add badges: CI status, latest release, Swift version
+  - **Note:** Keep README concise, link to detailed docs where appropriate
 
 ---
-<!-- CHECKPOINT: Phase 4 delivers update checking. Test: click "Check for Updates", verify correct state display, verify download button opens correct URL. -->
+<!-- CHECKPOINT: Phase 3 delivers CI/CD. Verify CI runs on push, releases are automated on tag. -->
 
-## Phase 5: Polish & Code Organization
+## Phase 4: Polish & Testing
 
-Clean up and prepare for release.
+Final quality checks and test coverage.
 
-- [x] **Refactor UI components into UI package** [file: Packages/UI/Sources/UI/]
-  - Move from App/ClaudeApp.swift to UI package:
-    - `UsageProgressBar` component
-    - `BurnRateBadge` component
-    - `SettingsToggle` component
-    - `SectionHeader` component
-    - Theme/color constants
-  - Update imports in App/ClaudeApp.swift
-  - Reduces monolithic file from ~1185 lines to ~1004 lines (~180 lines removed)
-  - **Note:** Keep views that depend on specific Environment objects in App
-  - ✅ Completed: Theme.swift, UsageProgressBar.swift, BurnRateBadge.swift, SettingsComponents.swift created. 10 new tests added (281 total tests passing)
+- [ ] **Add accessibility tests** [file: Tests/AccessibilityTests/]
+  - Create XCUITest target for accessibility verification
+  - Test that all interactive elements have accessibility labels
+  - Test that focus order is logical (Tab through dropdown)
+  - Test that keyboard shortcuts work (Cmd+R, Escape)
+  - Test that VoiceOver announces state changes
+  - **Research:** `specs/accessibility.md` lines 515-529 for test patterns
+  - **Target:** 100% coverage of accessibility requirements
 
-- [x] **Add UI tests for burn rate display** [file: Packages/UI/Tests/UITests/UITests.swift]
-  - Tests for BurnRateBadge: text display and color mapping for all levels (Low/Medium/High/Very High)
-  - Tests for UsageProgressBar: initialization, time-to-exhaustion formatting, visibility logic, color thresholds
-  - Verified colors match design system via BurnRateLevel.color property tests
-  - **Note:** No snapshot testing library available; implemented comprehensive Swift Testing behavioral tests
-  - ✅ Completed: 39 new tests added covering all burn rate display scenarios (320 total tests passing)
-
-- [x] **Update documentation and version** [file: various]
-  - Update README with burn rate feature description
-  - Update version to 1.2.0 (or appropriate SLC 3 version)
-  - Update IMPLEMENTATION_PLAN.md to mark SLC 3 complete
-  - Add changelog entry for new features
-  - ✅ Completed: Created root README.md, CHANGELOG.md, updated version to 1.2.0 across all 4 packages and tests (320 tests passing)
+- [ ] **Verify color contrast and update documentation** [spec: accessibility.md] [file: various]
+  - Verify all color combinations meet WCAG AA (4.5:1 for text, 3:1 for UI)
+  - Document any contrast issues found (yellow progress bar noted in spec)
+  - Update specs/features/README.md to mark features as implemented/tested
+  - Update IMPLEMENTATION_PLAN.md to mark SLC 4 complete
+  - **Research:** `specs/accessibility.md` lines 209-295 for contrast requirements
+  - **Tool:** Use WebAIM Contrast Checker or similar
 
 ---
-<!-- CHECKPOINT: Phase 5 completes SLC 3. The app now predicts usage exhaustion, shows consumption velocity, and checks for updates. Code is better organized. -->
-
-## SLC 3: Predictive Insights ✅ COMPLETE
-
-All tasks completed with 320 passing tests.
-
-**Phase 1: Burn Rate Domain Models** ✅
-- [x] Implement BurnRate and BurnRateLevel domain models
-- [x] Extend UsageWindow with burn rate properties
-- [x] Extend UsageData with highestBurnRate computed property
-
-**Phase 2: Burn Rate Calculator** ✅
-- [x] Create UsageSnapshot model for history tracking
-- [x] Implement BurnRateCalculator
-- [x] Integrate burn rate calculation into UsageManager
-- [x] Add comprehensive tests for BurnRateCalculator
-
-**Phase 3: Burn Rate UI** ✅
-- [x] Create BurnRateBadge component
-- [x] Add time-to-exhaustion display to UsageProgressBar
-- [x] Integrate burn rate into dropdown header
-- [x] Update UsageProgressBar instances with time-to-exhaustion
-
-**Phase 4: Update Checking** ✅
-- [x] Create UpdateChecker actor
-- [x] Create GitHub API models
-- [x] Integrate update checking into app lifecycle
-- [x] Implement update UI in Settings About section
-
-**Phase 5: Polish & Code Organization** ✅
-- [x] Refactor UI components into UI package
-- [x] Add UI tests for burn rate display
-- [x] Update documentation and version
-
----
+<!-- CHECKPOINT: Phase 4 completes SLC 4. The app is now distributable with accessibility support and automated releases. -->
 
 ## Future Work (Outside Current Scope)
 
 The following items were identified during analysis but are deferred to maintain SLC focus:
 
-### SLC 4: Distribution & Accessibility
-- Full accessibility audit (VoiceOver labels, keyboard navigation, focus states)
-- Homebrew Cask formula for easy installation
-- Signed DMG creation with Apple Developer ID
-- CI/CD pipeline with GitHub Actions for automated releases
-- **Research:** `specs/accessibility.md`, `specs/toolchain.md`
+### SLC 5: Internationalization
+- Localization for English, Portuguese (pt-BR), Spanish (es)
+- String Catalog (.xcstrings) implementation
+- Number and date formatters using system locale
+- RTL preparation for future languages
+- **Research:** `specs/internationalization.md`
+
+### SLC 6: Advanced Accessibility
+- Dynamic Type support with adaptive layouts
+- Reduced motion support for animations
+- Color-blind safe patterns (diagonal stripes at >90%)
+- Dark mode with equivalent contrast ratios
+- **Research:** `specs/accessibility.md` lines 299-410
 
 ### Future Releases
 - Historical usage graphs/trends visualization
-- Burn rate trends over time (is my velocity increasing?)
-- Plan type auto-detection from API (remove hardcoded "Pro")
-- Quiet hours setting (pause notifications during focus time)
-- Different sounds per notification type
-- Internationalization (multiple languages)
 - Widget support for Notification Center
 - Local JSONL fallback when API unavailable
+- Apple Developer ID signing and notarization (requires paid account)
+- Plan type auto-detection from API
+- Quiet hours setting for notifications
 - Export/import settings
-- **Research:** `specs/internationalization.md`, `specs/features/refresh-usage.md`
+- Custom Claude brand icon (replace SF "sparkle" symbol)
 
 ### Technical Debt Identified
-- Custom Claude brand icon (replace SF symbol "sparkle" placeholder)
 - Integration tests with mock network layer
-- API retry with exponential backoff for rate limits
+- API retry with exponential backoff refinement
 - Keychain error recovery mechanism
+- Performance profiling and optimization
+- Memory leak detection in long-running sessions
 
 ---
 
 ## Implementation Notes
 
-### Burn Rate Thresholds (from specs/features/view-usage.md)
-| Level | Rate (%/hr) | Color | User Meaning |
-|-------|-------------|-------|--------------|
-| Low | < 10 | Green (#22C55E) | Sustainable pace |
-| Medium | 10-25 | Yellow (#EAB308) | Moderate consumption |
-| High | 25-50 | Orange (#F97316) | Heavy usage |
-| Very High | > 50 | Red (#C15F3C) | Will exhaust quickly |
+### Accessibility Priority Order
 
-### Time-to-Exhaustion Display Rules
-- Only show when utilization > 20% (avoid noise at low usage)
-- Only show when burn rate is calculable (need 2+ samples)
-- Format: "~Xh until limit" or "~Xmin until limit"
-- Use ~ prefix to indicate estimate nature
-- Show "—" when data insufficient but utilization warrants display
+1. **VoiceOver labels** - Most critical for screen reader users
+2. **Keyboard navigation** - Essential for motor-impaired users
+3. **Focus indicators** - Visual feedback for keyboard users
+4. **Announcements** - Dynamic content updates for screen readers
 
-### Usage History Strategy
-- Keep last 12 samples (1 hour at 5-min intervals)
-- In-memory only (resets on app restart) - acceptable for v1
-- Future: persist to UserDefaults for cross-session history
+### Distribution Strategy
 
-### GitHub API Rate Limits
-- Unauthenticated: 60 requests/hour (plenty for once-per-24h checks)
-- No auth token needed for public repo releases
-- Cache lastCheckDate to enforce 24-hour minimum
+1. **Primary:** Homebrew Cask (easiest for developers)
+2. **Secondary:** DMG download from GitHub Releases
+3. **Future:** Mac App Store (requires signing, paid developer account)
+
+### CI/CD Considerations
+
+- GitHub Actions free tier: 2000 minutes/month (sufficient for this project)
+- macOS runners are slower than Linux - keep workflows efficient
+- Cache Swift packages to reduce build time
+- Use matrix builds only if supporting multiple Swift/macOS versions
+
+### Testing Strategy for Accessibility
+
+- Manual testing with VoiceOver is required (automated tests have limitations)
+- Use Accessibility Inspector.app to verify element attributes
+- Test with actual keyboard-only navigation
+- Verify announcements are timely and not repetitive
 
 ---
 
 ## Previous SLC Releases
 
-### SLC 1: Usage Monitor ✅ COMPLETE
+### SLC 1: Usage Monitor - COMPLETE
 
 All tasks completed with 81 passing tests.
 
-**Phase 1: Project Foundation** ✅
+**Phase 1: Project Foundation**
 - [x] Initialize Swift Package project with modular architecture
 - [x] Implement Domain models and protocols
 - [x] Implement Keychain credentials repository
 - [x] Implement Claude API client
 
-**Phase 2: Menu Bar UI** ✅
+**Phase 2: Menu Bar UI**
 - [x] Create menu bar app entry point with MenuBarExtra
 - [x] Implement UsageManager with @Observable state
 - [x] Build menu bar label view
 - [x] Build dropdown view with usage bars
 
-**Phase 3: Refresh & Polish** ✅
+**Phase 3: Refresh & Polish**
 - [x] Implement auto-refresh lifecycle with exponential backoff
 - [x] Implement manual refresh with button states
 - [x] Implement error and loading states with stale data display
 
 ---
 
-### SLC 2: Notifications & Settings ✅ COMPLETE
+### SLC 2: Notifications & Settings - COMPLETE
 
 All tasks completed with 155 passing tests.
 
-**Phase 1: Settings Infrastructure** ✅
+**Phase 1: Settings Infrastructure**
 - [x] Implement SettingsManager with @Observable state and UserDefaults persistence
 - [x] Implement LaunchAtLoginManager using SMAppService
 - [x] Build Settings window with all sections
 - [x] Connect settings to existing UI (menu bar display + refresh interval)
 
-**Phase 2: Notification System** ✅
+**Phase 2: Notification System**
 - [x] Implement NotificationManager actor with permission handling
 - [x] Implement notification trigger logic with hysteresis
 - [x] Integrate notifications into UsageManager refresh cycle
 - [x] Add notification permission UI and denied state handling
 
-**Phase 3: Polish & Testing** ✅
+**Phase 3: Polish & Testing**
 - [x] Add comprehensive tests for Settings and Notifications (155 tests)
 - [x] Implement settings button and window lifecycle
+
+---
+
+### SLC 3: Predictive Insights - COMPLETE
+
+All tasks completed with 320 passing tests.
+
+**Phase 1: Burn Rate Domain Models**
+- [x] Implement BurnRate and BurnRateLevel domain models
+- [x] Extend UsageWindow with burn rate properties
+- [x] Extend UsageData with highestBurnRate computed property
+
+**Phase 2: Burn Rate Calculator**
+- [x] Create UsageSnapshot model for history tracking
+- [x] Implement BurnRateCalculator
+- [x] Integrate burn rate calculation into UsageManager
+- [x] Add comprehensive tests for BurnRateCalculator
+
+**Phase 3: Burn Rate UI**
+- [x] Create BurnRateBadge component
+- [x] Add time-to-exhaustion display to UsageProgressBar
+- [x] Integrate burn rate into dropdown header
+- [x] Update UsageProgressBar instances with time-to-exhaustion
+
+**Phase 4: Update Checking**
+- [x] Create UpdateChecker actor
+- [x] Create GitHub API models
+- [x] Integrate update checking into app lifecycle
+- [x] Implement update UI in Settings About section
+
+**Phase 5: Polish & Code Organization**
+- [x] Refactor UI components into UI package
+- [x] Add UI tests for burn rate display
+- [x] Update documentation and version
+
+---
+
+## Version History
+
+| SLC | Name | Version | Tests | Status |
+|-----|------|---------|-------|--------|
+| 1 | Usage Monitor | 1.0.0 | 81 | COMPLETE |
+| 2 | Notifications & Settings | 1.1.0 | 155 | COMPLETE |
+| 3 | Predictive Insights | 1.2.0 | 320 | COMPLETE |
+| 4 | Distribution Ready | 1.3.0 | TBD | PLANNED |

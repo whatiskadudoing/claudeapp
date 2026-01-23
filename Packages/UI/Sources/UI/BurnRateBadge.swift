@@ -21,6 +21,7 @@ public struct BurnRateBadge: View {
             .background(badgeColor.opacity(0.15))
             .foregroundStyle(badgeColor)
             .clipShape(Capsule())
+            .accessibilityLabel(accessibilityLabel)
     }
 
     private var badgeColor: Color {
@@ -33,6 +34,20 @@ public struct BurnRateBadge: View {
             Theme.Colors.orange
         case .veryHigh:
             Theme.Colors.primary
+        }
+    }
+
+    /// Accessibility label describing the burn rate level for VoiceOver
+    private var accessibilityLabel: String {
+        switch level {
+        case .low:
+            "Consumption rate: low, sustainable pace"
+        case .medium:
+            "Consumption rate: medium, moderate usage"
+        case .high:
+            "Consumption rate: high, heavy usage"
+        case .veryHigh:
+            "Consumption rate: very high, will exhaust quickly"
         }
     }
 }

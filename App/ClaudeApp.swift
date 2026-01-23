@@ -104,6 +104,32 @@ struct MenuBarLabel: View {
                 }
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint("Click to view usage details")
+    }
+
+    /// Accessibility label combining all menu bar element information for VoiceOver
+    private var accessibilityLabel: String {
+        var label = "ClaudeApp"
+
+        if usageManager.isLoading && usageManager.usageData == nil {
+            label += ", loading"
+        } else if let data = usageManager.usageData {
+            let percentage = Int(data.utilization(for: settings.percentageSource))
+            label += ", usage at \(percentage) percent"
+
+            // Add warning state for high usage
+            if percentage >= 100 {
+                label += ", warning: usage limit reached"
+            } else if percentage >= 90 {
+                label += ", warning: approaching limit"
+            }
+        } else {
+            label += ", no data available"
+        }
+
+        return label
     }
 }
 
@@ -196,6 +222,8 @@ struct DropdownView: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Warning: data may be stale")
                 } else if let lastUpdated = usageManager.lastUpdated {
                     Text("Updated \(lastUpdated, style: .relative) ago")
                         .font(.caption2)
@@ -207,6 +235,7 @@ struct DropdownView: View {
                 }
                 .buttonStyle(.plain)
                 .font(.caption)
+                .accessibilityLabel("Quit ClaudeApp")
             }
         }
         .padding(16)
@@ -235,6 +264,7 @@ struct SettingsButton: View {
         }
         .buttonStyle(.plain)
         .keyboardShortcut(",", modifiers: .command)
+        .accessibilityLabel("Open settings")
     }
 }
 
@@ -262,6 +292,7 @@ struct RefreshButton: View {
         .buttonStyle(.plain)
         .disabled(usageManager.isLoading)
         .keyboardShortcut("r", modifiers: .command)
+        .accessibilityLabel(refreshAccessibilityLabel)
     }
 
     private var iconName: String {
@@ -285,6 +316,20 @@ struct RefreshButton: View {
             .green
         case .error:
             .red
+        }
+    }
+
+    /// Accessibility label that describes current refresh state
+    private var refreshAccessibilityLabel: String {
+        switch usageManager.refreshState {
+        case .idle:
+            "Refresh usage data"
+        case .loading:
+            "Refreshing, please wait"
+        case .success:
+            "Refresh complete"
+        case .error:
+            "Refresh failed, try again"
         }
     }
 }
@@ -346,6 +391,7 @@ struct StaleDataBanner: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.caption)
                 .foregroundStyle(.orange)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Unable to refresh")
@@ -361,11 +407,14 @@ struct StaleDataBanner: View {
             Button("Retry", action: retryAction)
                 .buttonStyle(.bordered)
                 .controlSize(.mini)
+                .accessibilityLabel("Retry refresh")
         }
         .padding(8)
         .background(Color.orange.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .padding(.bottom, 4)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Warning: Unable to refresh, \(errorReason)")
     }
 
     private var errorReason: String {
@@ -402,6 +451,8 @@ struct LoadingView: View {
             Spacer()
         }
         .padding(.vertical, 20)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Loading usage data, please wait")
     }
 }
 
@@ -417,6 +468,7 @@ struct ErrorView: View {
             Image(systemName: errorIcon)
                 .font(.title2)
                 .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
 
             Text(errorTitle)
                 .font(.caption)
@@ -431,9 +483,12 @@ struct ErrorView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .padding(.top, 4)
+                .accessibilityLabel("Try again to load usage data")
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Error: \(errorTitle), \(errorMessage)")
     }
 
     private var errorIcon: String {
@@ -487,6 +542,7 @@ struct EmptyStateView: View {
             Image(systemName: "chart.bar")
                 .font(.title2)
                 .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
 
             Text("No usage data")
                 .font(.caption)
@@ -496,9 +552,12 @@ struct EmptyStateView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .padding(.top, 4)
+                .accessibilityLabel("Refresh usage data")
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("No usage data available")
     }
 }
 
@@ -528,6 +587,7 @@ struct SettingsView: View {
                         .font(.title3)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Close settings")
             }
             .padding(16)
 
