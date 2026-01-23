@@ -173,21 +173,23 @@ Add visual indicators for burn rate and time-to-exhaustion.
 
 Implement version checking via GitHub Releases API.
 
-- [ ] **Create UpdateChecker actor** [spec: features/updates.md] [file: Packages/Core/Sources/Core/UpdateChecker.swift]
+- [x] **Create UpdateChecker actor** [spec: features/updates.md] [file: Packages/Core/Sources/Core/UpdateChecker.swift]
   - Create `actor UpdateChecker` for thread-safe version checking
   - Properties: `repoOwner`, `repoName`, `lastCheckDate`, `lastNotifiedVersion`
   - Method: `check() async -> CheckResult` (upToDate, updateAvailable(info), error)
   - Method: `checkInBackground() async` - only if >24 hours since last check
   - Internal: `isVersion(_:newerThan:) -> Bool` for semantic version comparison
   - **Research:** `research/apis/github-releases.md` lines 74-176 for full implementation
+  - ✅ Completed: Full UpdateChecker actor with all methods, 24-hour rate limiting, shouldNotify() for deduplication, and reset() for testing (270 tests passing, 38 new tests added)
 
-- [ ] **Create GitHub API models** [spec: features/updates.md] [file: Packages/Core/Sources/Core/]
+- [x] **Create GitHub API models** [spec: features/updates.md] [file: Packages/Core/Sources/Core/UpdateChecker.swift]
   - Create `GitHubRelease` struct: tagName, name, htmlUrl, publishedAt, body, assets
   - Create `GitHubAsset` struct: name, browserDownloadUrl
   - Use CodingKeys for snake_case to camelCase mapping
   - Create `UpdateInfo` struct: version, downloadURL, releaseURL, releaseNotes
   - Create `CheckResult` enum: upToDate, updateAvailable(UpdateInfo), error(Error)
   - **Research:** `research/apis/github-releases.md` lines 179-206 for models
+  - ✅ Completed: All models in UpdateChecker.swift with Sendable, Equatable, Decodable conformance. Added draft/prerelease fields to GitHubRelease. Bundle extension for appVersion/buildNumber.
 
 - [ ] **Integrate update checking into app lifecycle** [file: App/ClaudeApp.swift, Packages/Core/Sources/Core/AppContainer.swift]
   - Add `updateChecker: UpdateChecker` to AppContainer

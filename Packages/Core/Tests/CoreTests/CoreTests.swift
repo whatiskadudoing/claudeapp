@@ -2802,3 +2802,548 @@ struct BurnRateCalculatorTests {
         #expect(result == 3600)
     }
 }
+
+// MARK: - UpdateChecker Tests
+
+@Suite("UpdateChecker Tests")
+struct UpdateCheckerTests {
+    // MARK: - Version Comparison Tests
+
+    @Test("isVersion detects newer major version")
+    func newerMajorVersion() {
+        #expect(UpdateChecker.isVersion("2.0.0", newerThan: "1.0.0") == true)
+        #expect(UpdateChecker.isVersion("10.0.0", newerThan: "9.0.0") == true)
+    }
+
+    @Test("isVersion detects newer minor version")
+    func newerMinorVersion() {
+        #expect(UpdateChecker.isVersion("1.2.0", newerThan: "1.1.0") == true)
+        #expect(UpdateChecker.isVersion("1.10.0", newerThan: "1.9.0") == true)
+    }
+
+    @Test("isVersion detects newer patch version")
+    func newerPatchVersion() {
+        #expect(UpdateChecker.isVersion("1.0.2", newerThan: "1.0.1") == true)
+        #expect(UpdateChecker.isVersion("1.0.10", newerThan: "1.0.9") == true)
+    }
+
+    @Test("isVersion returns false for same version")
+    func sameVersion() {
+        #expect(UpdateChecker.isVersion("1.0.0", newerThan: "1.0.0") == false)
+        #expect(UpdateChecker.isVersion("2.5.3", newerThan: "2.5.3") == false)
+    }
+
+    @Test("isVersion returns false for older version")
+    func olderVersion() {
+        #expect(UpdateChecker.isVersion("1.0.0", newerThan: "2.0.0") == false)
+        #expect(UpdateChecker.isVersion("1.0.0", newerThan: "1.1.0") == false)
+        #expect(UpdateChecker.isVersion("1.0.0", newerThan: "1.0.1") == false)
+    }
+
+    @Test("isVersion handles v prefix")
+    func vPrefixHandling() {
+        #expect(UpdateChecker.isVersion("v2.0.0", newerThan: "1.0.0") == true)
+        #expect(UpdateChecker.isVersion("2.0.0", newerThan: "v1.0.0") == true)
+        #expect(UpdateChecker.isVersion("v2.0.0", newerThan: "v1.0.0") == true)
+        #expect(UpdateChecker.isVersion("V2.0.0", newerThan: "v1.0.0") == true)
+    }
+
+    @Test("isVersion handles different segment counts")
+    func differentSegmentCounts() {
+        #expect(UpdateChecker.isVersion("1.0.1", newerThan: "1.0") == true)
+        #expect(UpdateChecker.isVersion("1.1", newerThan: "1.0.0") == true)
+        #expect(UpdateChecker.isVersion("2", newerThan: "1.9.9") == true)
+    }
+
+    @Test("isVersion handles zero padding")
+    func zeroPadding() {
+        #expect(UpdateChecker.isVersion("1.0.0", newerThan: "1") == false)
+        #expect(UpdateChecker.isVersion("1.0.1", newerThan: "1") == true)
+    }
+
+    // MARK: - GitHub API Models Tests
+
+    @Test("GitHubRelease decodes from JSON")
+    func gitHubReleaseDecoding() throws {
+        let json = """
+            {
+                "tag_name": "v1.2.0",
+                "name": "Release v1.2.0",
+                "html_url": "https://github.com/owner/repo/releases/tag/v1.2.0",
+                "published_at": "2026-01-22T10:00:00Z",
+                "body": "## What's New\\n- Feature 1",
+                "assets": [],
+                "draft": false,
+                "prerelease": false
+            }
+            """
+        let data = json.data(using: .utf8)!
+        let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
+
+        #expect(release.tagName == "v1.2.0")
+        #expect(release.name == "Release v1.2.0")
+        #expect(release.htmlUrl == "https://github.com/owner/repo/releases/tag/v1.2.0")
+        #expect(release.publishedAt == "2026-01-22T10:00:00Z")
+        #expect(release.body == "## What's New\n- Feature 1")
+        #expect(release.assets.isEmpty)
+        #expect(release.draft == false)
+        #expect(release.prerelease == false)
+    }
+
+    @Test("GitHubRelease decodes with null body")
+    func gitHubReleaseWithNullBody() throws {
+        let json = """
+            {
+                "tag_name": "v1.0.0",
+                "name": "v1.0.0",
+                "html_url": "https://github.com/owner/repo/releases/tag/v1.0.0",
+                "published_at": "2026-01-22T10:00:00Z",
+                "body": null,
+                "assets": [],
+                "draft": false,
+                "prerelease": false
+            }
+            """
+        let data = json.data(using: .utf8)!
+        let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
+
+        #expect(release.body == nil)
+    }
+
+    @Test("GitHubAsset decodes from JSON")
+    func gitHubAssetDecoding() throws {
+        let json = """
+            {
+                "name": "ClaudeApp.dmg",
+                "browser_download_url": "https://github.com/owner/repo/releases/download/v1.0.0/ClaudeApp.dmg",
+                "size": 15728640,
+                "download_count": 1234
+            }
+            """
+        let data = json.data(using: .utf8)!
+        let asset = try JSONDecoder().decode(GitHubAsset.self, from: data)
+
+        #expect(asset.name == "ClaudeApp.dmg")
+        #expect(asset.browserDownloadUrl.absoluteString == "https://github.com/owner/repo/releases/download/v1.0.0/ClaudeApp.dmg")
+        #expect(asset.size == 15728640)
+        #expect(asset.downloadCount == 1234)
+    }
+
+    @Test("GitHubRelease decodes with assets")
+    func gitHubReleaseWithAssets() throws {
+        let json = """
+            {
+                "tag_name": "v1.2.0",
+                "name": "Release v1.2.0",
+                "html_url": "https://github.com/owner/repo/releases/tag/v1.2.0",
+                "published_at": "2026-01-22T10:00:00Z",
+                "body": "Release notes",
+                "assets": [
+                    {
+                        "name": "ClaudeApp.dmg",
+                        "browser_download_url": "https://github.com/owner/repo/releases/download/v1.2.0/ClaudeApp.dmg",
+                        "size": 15000000,
+                        "download_count": 100
+                    },
+                    {
+                        "name": "ClaudeApp.zip",
+                        "browser_download_url": "https://github.com/owner/repo/releases/download/v1.2.0/ClaudeApp.zip",
+                        "size": 12000000,
+                        "download_count": 50
+                    }
+                ],
+                "draft": false,
+                "prerelease": false
+            }
+            """
+        let data = json.data(using: .utf8)!
+        let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
+
+        #expect(release.assets.count == 2)
+        #expect(release.assets[0].name == "ClaudeApp.dmg")
+        #expect(release.assets[1].name == "ClaudeApp.zip")
+    }
+
+    // MARK: - UpdateInfo Tests
+
+    @Test("UpdateInfo initializes correctly")
+    func updateInfoInit() {
+        let info = UpdateInfo(
+            version: "1.2.0",
+            downloadURL: URL(string: "https://example.com/download.dmg")!,
+            releaseURL: URL(string: "https://github.com/owner/repo/releases/tag/v1.2.0")!,
+            releaseNotes: "New features"
+        )
+
+        #expect(info.version == "1.2.0")
+        #expect(info.downloadURL.absoluteString == "https://example.com/download.dmg")
+        #expect(info.releaseURL.absoluteString == "https://github.com/owner/repo/releases/tag/v1.2.0")
+        #expect(info.releaseNotes == "New features")
+    }
+
+    @Test("UpdateInfo is Equatable")
+    func updateInfoEquatable() {
+        let info1 = UpdateInfo(
+            version: "1.2.0",
+            downloadURL: URL(string: "https://example.com/download.dmg")!,
+            releaseURL: URL(string: "https://github.com/owner/repo/releases/tag/v1.2.0")!,
+            releaseNotes: "Notes"
+        )
+        let info2 = UpdateInfo(
+            version: "1.2.0",
+            downloadURL: URL(string: "https://example.com/download.dmg")!,
+            releaseURL: URL(string: "https://github.com/owner/repo/releases/tag/v1.2.0")!,
+            releaseNotes: "Notes"
+        )
+        let info3 = UpdateInfo(
+            version: "1.3.0",
+            downloadURL: URL(string: "https://example.com/download.dmg")!,
+            releaseURL: URL(string: "https://github.com/owner/repo/releases/tag/v1.3.0")!,
+            releaseNotes: nil
+        )
+
+        #expect(info1 == info2)
+        #expect(info1 != info3)
+    }
+
+    // MARK: - CheckResult Tests
+
+    @Test("CheckResult upToDate equality")
+    func checkResultUpToDateEquality() {
+        #expect(CheckResult.upToDate == CheckResult.upToDate)
+    }
+
+    @Test("CheckResult rateLimited equality")
+    func checkResultRateLimitedEquality() {
+        #expect(CheckResult.rateLimited == CheckResult.rateLimited)
+    }
+
+    @Test("CheckResult error equality")
+    func checkResultErrorEquality() {
+        #expect(CheckResult.error("Network error") == CheckResult.error("Network error"))
+        #expect(CheckResult.error("Error A") != CheckResult.error("Error B"))
+    }
+
+    @Test("CheckResult updateAvailable equality")
+    func checkResultUpdateAvailableEquality() {
+        let info1 = UpdateInfo(
+            version: "1.2.0",
+            downloadURL: URL(string: "https://example.com/download.dmg")!,
+            releaseURL: URL(string: "https://github.com/owner/repo/releases/tag/v1.2.0")!,
+            releaseNotes: nil
+        )
+        let info2 = UpdateInfo(
+            version: "1.2.0",
+            downloadURL: URL(string: "https://example.com/download.dmg")!,
+            releaseURL: URL(string: "https://github.com/owner/repo/releases/tag/v1.2.0")!,
+            releaseNotes: nil
+        )
+
+        #expect(CheckResult.updateAvailable(info1) == CheckResult.updateAvailable(info2))
+    }
+
+    @Test("CheckResult different types not equal")
+    func checkResultDifferentTypesNotEqual() {
+        let info = UpdateInfo(
+            version: "1.2.0",
+            downloadURL: URL(string: "https://example.com/download.dmg")!,
+            releaseURL: URL(string: "https://github.com/owner/repo/releases/tag/v1.2.0")!,
+            releaseNotes: nil
+        )
+
+        #expect(CheckResult.upToDate != CheckResult.rateLimited)
+        #expect(CheckResult.upToDate != CheckResult.error("Error"))
+        #expect(CheckResult.upToDate != CheckResult.updateAvailable(info))
+        #expect(CheckResult.rateLimited != CheckResult.error("Error"))
+    }
+
+    // MARK: - UpdateChecker Actor Tests
+
+    @Test("UpdateChecker initializes with default values")
+    func updateCheckerInit() async {
+        let checker = UpdateChecker()
+        let lastCheck = await checker.getLastCheckDate()
+        #expect(lastCheck == nil)
+    }
+
+    @Test("UpdateChecker initializes with custom values")
+    func updateCheckerCustomInit() async {
+        let checker = UpdateChecker(
+            repoOwner: "anthropics",
+            repoName: "claude-code",
+            currentVersionProvider: { "1.0.0" }
+        )
+        let lastCheck = await checker.getLastCheckDate()
+        #expect(lastCheck == nil)
+    }
+
+    @Test("UpdateChecker reset clears state")
+    func updateCheckerReset() async {
+        let checker = UpdateChecker(currentVersionProvider: { "1.0.0" })
+
+        // Simulate a check happening
+        _ = await checker.checkInBackground()
+
+        // Reset
+        await checker.reset()
+
+        let lastCheck = await checker.getLastCheckDate()
+        #expect(lastCheck == nil)
+    }
+
+    @Test("shouldNotify returns nil for upToDate")
+    func shouldNotifyUpToDate() async {
+        let checker = UpdateChecker(currentVersionProvider: { "1.0.0" })
+        let result = await checker.shouldNotify(for: .upToDate)
+        #expect(result == nil)
+    }
+
+    @Test("shouldNotify returns nil for error")
+    func shouldNotifyError() async {
+        let checker = UpdateChecker(currentVersionProvider: { "1.0.0" })
+        let result = await checker.shouldNotify(for: .error("Network error"))
+        #expect(result == nil)
+    }
+
+    @Test("shouldNotify returns nil for rateLimited")
+    func shouldNotifyRateLimited() async {
+        let checker = UpdateChecker(currentVersionProvider: { "1.0.0" })
+        let result = await checker.shouldNotify(for: .rateLimited)
+        #expect(result == nil)
+    }
+
+    @Test("shouldNotify returns info for new update")
+    func shouldNotifyNewUpdate() async {
+        let checker = UpdateChecker(currentVersionProvider: { "1.0.0" })
+        let info = UpdateInfo(
+            version: "1.2.0",
+            downloadURL: URL(string: "https://example.com/download.dmg")!,
+            releaseURL: URL(string: "https://github.com/owner/repo/releases/tag/v1.2.0")!,
+            releaseNotes: nil
+        )
+
+        let result = await checker.shouldNotify(for: .updateAvailable(info))
+        #expect(result != nil)
+        #expect(result?.version == "1.2.0")
+    }
+
+    @Test("shouldNotify returns nil for already notified version")
+    func shouldNotifyAlreadyNotified() async {
+        let checker = UpdateChecker(currentVersionProvider: { "1.0.0" })
+        let info = UpdateInfo(
+            version: "1.2.0",
+            downloadURL: URL(string: "https://example.com/download.dmg")!,
+            releaseURL: URL(string: "https://github.com/owner/repo/releases/tag/v1.2.0")!,
+            releaseNotes: nil
+        )
+
+        // First notification
+        let result1 = await checker.shouldNotify(for: .updateAvailable(info))
+        #expect(result1 != nil)
+
+        // Second notification for same version
+        let result2 = await checker.shouldNotify(for: .updateAvailable(info))
+        #expect(result2 == nil)
+    }
+
+    @Test("shouldNotify returns info for different version after previous")
+    func shouldNotifyDifferentVersion() async {
+        let checker = UpdateChecker(currentVersionProvider: { "1.0.0" })
+        let info1 = UpdateInfo(
+            version: "1.2.0",
+            downloadURL: URL(string: "https://example.com/download.dmg")!,
+            releaseURL: URL(string: "https://github.com/owner/repo/releases/tag/v1.2.0")!,
+            releaseNotes: nil
+        )
+        let info2 = UpdateInfo(
+            version: "1.3.0",
+            downloadURL: URL(string: "https://example.com/download.dmg")!,
+            releaseURL: URL(string: "https://github.com/owner/repo/releases/tag/v1.3.0")!,
+            releaseNotes: nil
+        )
+
+        // First notification
+        let result1 = await checker.shouldNotify(for: .updateAvailable(info1))
+        #expect(result1 != nil)
+
+        // Second notification for different version
+        let result2 = await checker.shouldNotify(for: .updateAvailable(info2))
+        #expect(result2 != nil)
+        #expect(result2?.version == "1.3.0")
+    }
+
+    // MARK: - Bundle Extension Tests
+
+    @Test("Bundle appVersion returns version string")
+    func bundleAppVersion() {
+        // Bundle.main in tests may not have version info, so we test the extension exists
+        let version = Bundle.main.appVersion
+        #expect(version.isEmpty == false)
+    }
+
+    @Test("Bundle buildNumber returns build string")
+    func bundleBuildNumber() {
+        let build = Bundle.main.buildNumber
+        #expect(build.isEmpty == false)
+    }
+
+    // MARK: - GitHubRelease Initialization Tests
+
+    @Test("GitHubRelease initializes with all parameters")
+    func gitHubReleaseInit() {
+        let asset = GitHubAsset(
+            name: "ClaudeApp.dmg",
+            browserDownloadUrl: URL(string: "https://example.com/app.dmg")!,
+            size: 15000000,
+            downloadCount: 100
+        )
+        let release = GitHubRelease(
+            tagName: "v1.2.0",
+            name: "Release 1.2.0",
+            htmlUrl: "https://github.com/owner/repo/releases/tag/v1.2.0",
+            publishedAt: "2026-01-22T10:00:00Z",
+            body: "Release notes",
+            assets: [asset],
+            draft: false,
+            prerelease: false
+        )
+
+        #expect(release.tagName == "v1.2.0")
+        #expect(release.name == "Release 1.2.0")
+        #expect(release.assets.count == 1)
+        #expect(release.draft == false)
+        #expect(release.prerelease == false)
+    }
+
+    @Test("GitHubRelease is Equatable")
+    func gitHubReleaseEquatable() {
+        let release1 = GitHubRelease(
+            tagName: "v1.0.0",
+            name: "v1.0.0",
+            htmlUrl: "https://github.com/owner/repo",
+            publishedAt: "2026-01-22",
+            body: nil,
+            assets: []
+        )
+        let release2 = GitHubRelease(
+            tagName: "v1.0.0",
+            name: "v1.0.0",
+            htmlUrl: "https://github.com/owner/repo",
+            publishedAt: "2026-01-22",
+            body: nil,
+            assets: []
+        )
+        let release3 = GitHubRelease(
+            tagName: "v2.0.0",
+            name: "v2.0.0",
+            htmlUrl: "https://github.com/owner/repo",
+            publishedAt: "2026-01-22",
+            body: nil,
+            assets: []
+        )
+
+        #expect(release1 == release2)
+        #expect(release1 != release3)
+    }
+
+    @Test("GitHubAsset is Equatable")
+    func gitHubAssetEquatable() {
+        let asset1 = GitHubAsset(
+            name: "app.dmg",
+            browserDownloadUrl: URL(string: "https://example.com/app.dmg")!,
+            size: 1000,
+            downloadCount: 10
+        )
+        let asset2 = GitHubAsset(
+            name: "app.dmg",
+            browserDownloadUrl: URL(string: "https://example.com/app.dmg")!,
+            size: 1000,
+            downloadCount: 10
+        )
+        let asset3 = GitHubAsset(
+            name: "other.dmg",
+            browserDownloadUrl: URL(string: "https://example.com/other.dmg")!
+        )
+
+        #expect(asset1 == asset2)
+        #expect(asset1 != asset3)
+    }
+
+    // MARK: - Sendable Conformance Tests
+
+    @Test("UpdateChecker is actor-isolated and Sendable types work across boundaries")
+    func updateCheckerSendable() async {
+        let checker = UpdateChecker(currentVersionProvider: { "1.0.0" })
+
+        let result = await Task.detached {
+            await checker.getLastCheckDate()
+        }.value
+
+        #expect(result == nil)
+    }
+
+    @Test("CheckResult is Sendable")
+    func checkResultSendable() async {
+        let info = UpdateInfo(
+            version: "1.2.0",
+            downloadURL: URL(string: "https://example.com/app.dmg")!,
+            releaseURL: URL(string: "https://github.com/owner/repo")!,
+            releaseNotes: nil
+        )
+        let result: CheckResult = .updateAvailable(info)
+
+        let crossedResult = await Task.detached {
+            result
+        }.value
+
+        #expect(crossedResult == result)
+    }
+
+    @Test("UpdateInfo is Sendable")
+    func updateInfoSendable() async {
+        let info = UpdateInfo(
+            version: "1.2.0",
+            downloadURL: URL(string: "https://example.com/app.dmg")!,
+            releaseURL: URL(string: "https://github.com/owner/repo")!,
+            releaseNotes: "Notes"
+        )
+
+        let crossedInfo = await Task.detached {
+            info
+        }.value
+
+        #expect(crossedInfo.version == "1.2.0")
+    }
+
+    @Test("GitHubRelease is Sendable")
+    func gitHubReleaseSendable() async {
+        let release = GitHubRelease(
+            tagName: "v1.0.0",
+            name: "v1.0.0",
+            htmlUrl: "https://github.com/owner/repo",
+            publishedAt: "2026-01-22",
+            body: nil,
+            assets: []
+        )
+
+        let crossedRelease = await Task.detached {
+            release
+        }.value
+
+        #expect(crossedRelease.tagName == "v1.0.0")
+    }
+
+    @Test("GitHubAsset is Sendable")
+    func gitHubAssetSendable() async {
+        let asset = GitHubAsset(
+            name: "app.dmg",
+            browserDownloadUrl: URL(string: "https://example.com/app.dmg")!
+        )
+
+        let crossedAsset = await Task.detached {
+            asset
+        }.value
+
+        #expect(crossedAsset.name == "app.dmg")
+    }
+}
