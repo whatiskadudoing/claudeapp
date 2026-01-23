@@ -105,14 +105,13 @@ Key research documents for this implementation:
   - Colors remain for sighted users; patterns add redundant information for color-blind users
   - **COMPLETED:** Added DiagonalStripes shape and integrated into UsageProgressBar. 18 new tests added (UsageProgressBar Pattern Tests, DiagonalStripes Shape Tests, Color-Blind Accessibility Tests). All 420 tests pass.
 
-- [ ] **Add shape indicators to burn rate badge** [spec: accessibility.md#color-blind] [file: Packages/UI/Sources/UI/BurnRateBadge.swift]
-  - Low: Circle or no shape (green, safe)
-  - Medium: Triangle or caution shape (yellow)
-  - High: Diamond or warning shape (orange)
-  - Very High: Exclamation or alert shape (red)
-  - Shapes should be small, subtle, and complement the text label
-  - **Research:** `specs/design-system.md` for burn rate color definitions
-  - **Test:** Burn rate level distinguishable without color
+- [x] **Add shape indicators to burn rate badge** [spec: accessibility.md#color-blind] [file: Packages/UI/Sources/UI/BurnRateBadge.swift]
+  - Low: Circle shape (circle.fill SF Symbol) - represents safe/stable
+  - Medium: Triangle shape (triangle.fill SF Symbol) - represents caution
+  - High: Diamond shape (diamond.fill SF Symbol) - represents warning
+  - Very High: Exclamation shape (exclamationmark.circle.fill SF Symbol) - represents alert
+  - Shapes are small (8pt), subtle, and displayed before the text label in the badge
+  - **COMPLETED:** Added HStack with shape indicator + text label. Shape uses SF Symbols with 8pt bold font. Combined with `.accessibilityElement(children: .combine)` for proper VoiceOver grouping. 13 new tests added covering shape indicators and color-blind accessibility (deuteranopia, protanopia, tritanopia). All 433 tests pass.
 
 ---
 <!-- CHECKPOINT: Phase 2 delivers color-blind support. Status clear without color alone. -->
