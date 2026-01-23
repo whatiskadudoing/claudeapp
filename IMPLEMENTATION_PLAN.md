@@ -102,7 +102,7 @@ Implement the calculation logic for burn rates and time-to-exhaustion.
   - ✅ Completed: BurnRateCalculator with configurable minimumSamples, calculate(), and timeToExhaustion() methods
   - ✅ 33 comprehensive tests added covering all edge cases, thresholds, and Sendable conformance (223 total tests passing)
 
-- [ ] **Integrate burn rate calculation into UsageManager** [spec: architecture.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
+- [x] **Integrate burn rate calculation into UsageManager** [spec: architecture.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
   - Add `usageHistory: [UsageSnapshot]` private property
   - Add `maxHistoryCount = 12` constant (1 hour at 5-min intervals)
   - Add `burnRateCalculator = BurnRateCalculator()` property
@@ -111,8 +111,9 @@ Implement the calculation logic for burn rates and time-to-exhaustion.
   - `enrichWithBurnRates()`: Calculate burn rates for each window, create enriched UsageData
   - Add `overallBurnRateLevel: BurnRateLevel?` computed property for header badge
   - **Note:** History resets on app restart (acceptable for v1)
+  - ✅ Completed: Full integration with 9 new tests (232 total tests passing)
 
-- [ ] **Add comprehensive tests for BurnRateCalculator** [file: Packages/Core/Tests/CoreTests/]
+- [x] **Add comprehensive tests for BurnRateCalculator** [file: Packages/Core/Tests/CoreTests/]
   - Test calculate() with 2 samples (minimum)
   - Test calculate() with 12 samples (full history)
   - Test calculate() returns nil with 1 sample
@@ -122,6 +123,7 @@ Implement the calculation logic for burn rates and time-to-exhaustion.
   - Test timeToExhaustion() returns nil without burn rate
   - Test BurnRateLevel thresholds (edge cases at 10, 25, 50)
   - Target: 100% coverage for calculator logic
+  - ✅ Already completed in previous task: 33 tests for BurnRateCalculator exist
 
 ---
 <!-- CHECKPOINT: Phase 2 delivers calculation logic. Verify: BurnRateCalculator returns correct rates, UsageManager enriches data, history accumulates across refreshes. -->

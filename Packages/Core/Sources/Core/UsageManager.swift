@@ -15,6 +15,7 @@ public enum RefreshState: Sendable, Equatable {
 
 /// Main state manager for usage data.
 /// Handles fetching, caching, and exposing usage state to the UI layer.
+/// Calculates burn rates from usage history to predict time-to-exhaustion.
 @MainActor
 @Observable
 public final class UsageManager {
@@ -43,6 +44,19 @@ public final class UsageManager {
 
     private let usageRepository: UsageRepository
     private var notificationChecker: UsageNotificationChecker?
+
+    // MARK: - Burn Rate State
+
+    /// History of usage snapshots for burn rate calculation.
+    /// Newest snapshots are at the beginning (index 0).
+    private var usageHistory: [UsageSnapshot] = []
+
+    /// Calculator for burn rates and time-to-exhaustion predictions.
+    private let burnRateCalculator = BurnRateCalculator()
+
+    /// Maximum number of snapshots to retain for burn rate calculation.
+    /// 12 samples at 5-minute intervals = 1 hour of history.
+    private static let maxHistoryCount = 12
 
     // MARK: - Auto-Refresh State
 
@@ -88,6 +102,19 @@ public final class UsageManager {
         usageData?.highestUtilization ?? 0
     }
 
+    /// Returns the overall burn rate level for the header badge.
+    /// This is the highest burn rate level across all usage windows.
+    /// Returns nil if insufficient data for burn rate calculation.
+    public var overallBurnRateLevel: BurnRateLevel? {
+        usageData?.highestBurnRate?.level
+    }
+
+    /// Returns the current count of usage history snapshots.
+    /// Useful for testing and debugging burn rate calculation.
+    public var usageHistoryCount: Int {
+        usageHistory.count
+    }
+
     /// Calculates the retry interval using exponential backoff.
     /// Starts at 1 minute and doubles with each failure, capped at 15 minutes.
     private var retryInterval: TimeInterval {
@@ -113,6 +140,7 @@ public final class UsageManager {
     /// Fetches fresh usage data from the repository.
     /// Updates `usageData` on success, `lastError` on failure.
     /// Tracks consecutive failures for exponential backoff.
+    /// Records usage snapshots and calculates burn rates.
     /// Manages `refreshState` for visual feedback (success/error flash).
     public func refresh() async {
         guard !isLoading else { return }
@@ -131,9 +159,15 @@ public final class UsageManager {
                 await checker.check(current: newData, previous: usageData)
             }
 
+            // Record snapshot for burn rate calculation
+            recordSnapshot(newData)
+
+            // Enrich data with burn rates and time-to-exhaustion
+            let enrichedData = enrichWithBurnRates(newData)
+
             // Update previous data before current (for next comparison)
             previousUsageData = usageData
-            usageData = newData
+            usageData = enrichedData
             lastUpdated = Date()
             consecutiveFailures = 0 // Reset backoff on success
             succeeded = true
@@ -172,6 +206,120 @@ public final class UsageManager {
         case .networkError, .apiError, .keychainError, .decodingError:
             return true
         }
+    }
+
+    // MARK: - Burn Rate Calculation
+
+    /// Records a usage snapshot for burn rate calculation.
+    /// Newer snapshots are inserted at the beginning of the history array.
+    /// Trims history to maxHistoryCount to prevent unbounded growth.
+    /// - Parameter data: The usage data to record
+    private func recordSnapshot(_ data: UsageData) {
+        let snapshot = UsageSnapshot(
+            fiveHourUtilization: data.fiveHour.utilization,
+            sevenDayUtilization: data.sevenDay.utilization,
+            opusUtilization: data.sevenDayOpus?.utilization,
+            sonnetUtilization: data.sevenDaySonnet?.utilization,
+            timestamp: Date()
+        )
+
+        // Insert at beginning (newest first)
+        usageHistory.insert(snapshot, at: 0)
+
+        // Trim history if exceeds max
+        if usageHistory.count > Self.maxHistoryCount {
+            usageHistory.removeLast()
+        }
+    }
+
+    /// Enriches usage data with burn rates and time-to-exhaustion predictions.
+    /// Uses the accumulated usage history to calculate consumption velocity.
+    /// - Parameter data: The raw usage data from the API
+    /// - Returns: Usage data with burn rate and time-to-exhaustion populated
+    private func enrichWithBurnRates(_ data: UsageData) -> UsageData {
+        // Extract snapshots for each window type
+        let fiveHourSnapshots = usageHistory.map { ($0.fiveHourUtilization, $0.timestamp) }
+        let sevenDaySnapshots = usageHistory.map { ($0.sevenDayUtilization, $0.timestamp) }
+        let opusSnapshots = usageHistory.compactMap { snapshot -> (Double, Date)? in
+            guard let util = snapshot.opusUtilization else { return nil }
+            return (util, snapshot.timestamp)
+        }
+        let sonnetSnapshots = usageHistory.compactMap { snapshot -> (Double, Date)? in
+            guard let util = snapshot.sonnetUtilization else { return nil }
+            return (util, snapshot.timestamp)
+        }
+
+        // Calculate burn rates for each window
+        let fiveHourBurnRate = burnRateCalculator.calculate(from: fiveHourSnapshots)
+        let sevenDayBurnRate = burnRateCalculator.calculate(from: sevenDaySnapshots)
+        let opusBurnRate = burnRateCalculator.calculate(from: opusSnapshots)
+        let sonnetBurnRate = burnRateCalculator.calculate(from: sonnetSnapshots)
+
+        // Calculate time-to-exhaustion for each window
+        let fiveHourTTE = burnRateCalculator.timeToExhaustion(
+            currentUtilization: data.fiveHour.utilization,
+            burnRate: fiveHourBurnRate
+        )
+        let sevenDayTTE = burnRateCalculator.timeToExhaustion(
+            currentUtilization: data.sevenDay.utilization,
+            burnRate: sevenDayBurnRate
+        )
+
+        // Create enriched windows
+        let enrichedFiveHour = UsageWindow(
+            utilization: data.fiveHour.utilization,
+            resetsAt: data.fiveHour.resetsAt,
+            burnRate: fiveHourBurnRate,
+            timeToExhaustion: fiveHourTTE
+        )
+
+        let enrichedSevenDay = UsageWindow(
+            utilization: data.sevenDay.utilization,
+            resetsAt: data.sevenDay.resetsAt,
+            burnRate: sevenDayBurnRate,
+            timeToExhaustion: sevenDayTTE
+        )
+
+        // Enrich optional windows
+        let enrichedOpus: UsageWindow? = data.sevenDayOpus.map { opus in
+            let tte = burnRateCalculator.timeToExhaustion(
+                currentUtilization: opus.utilization,
+                burnRate: opusBurnRate
+            )
+            return UsageWindow(
+                utilization: opus.utilization,
+                resetsAt: opus.resetsAt,
+                burnRate: opusBurnRate,
+                timeToExhaustion: tte
+            )
+        }
+
+        let enrichedSonnet: UsageWindow? = data.sevenDaySonnet.map { sonnet in
+            let tte = burnRateCalculator.timeToExhaustion(
+                currentUtilization: sonnet.utilization,
+                burnRate: sonnetBurnRate
+            )
+            return UsageWindow(
+                utilization: sonnet.utilization,
+                resetsAt: sonnet.resetsAt,
+                burnRate: sonnetBurnRate,
+                timeToExhaustion: tte
+            )
+        }
+
+        return UsageData(
+            fiveHour: enrichedFiveHour,
+            sevenDay: enrichedSevenDay,
+            sevenDayOpus: enrichedOpus,
+            sevenDaySonnet: enrichedSonnet,
+            fetchedAt: data.fetchedAt
+        )
+    }
+
+    /// Clears the usage history.
+    /// Useful for testing or when resetting state.
+    public func clearHistory() {
+        usageHistory.removeAll()
     }
 
     /// Starts automatic refresh at the specified interval.

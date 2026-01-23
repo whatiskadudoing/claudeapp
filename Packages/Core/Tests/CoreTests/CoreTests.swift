@@ -591,6 +591,166 @@ struct UsageManagerTests {
 
         #expect(manager.refreshState == .idle)
     }
+
+    // MARK: - Burn Rate Integration Tests
+
+    @Test("refresh records usage snapshot in history")
+    @MainActor
+    func refreshRecordsSnapshot() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        #expect(manager.usageHistoryCount == 0)
+
+        await manager.refresh()
+
+        #expect(manager.usageHistoryCount == 1)
+    }
+
+    @Test("multiple refreshes accumulate history")
+    @MainActor
+    func multipleRefreshesAccumulateHistory() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        await manager.refresh()
+        await manager.refresh()
+        await manager.refresh()
+
+        #expect(manager.usageHistoryCount == 3)
+    }
+
+    @Test("history is trimmed at maxHistoryCount (12)")
+    @MainActor
+    func historyTrimmedAtMax() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        // Refresh 15 times (more than max of 12)
+        for _ in 0..<15 {
+            await manager.refresh()
+        }
+
+        // Should be capped at 12
+        #expect(manager.usageHistoryCount == 12)
+    }
+
+    @Test("clearHistory removes all snapshots")
+    @MainActor
+    func clearHistoryRemovesAll() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        await manager.refresh()
+        await manager.refresh()
+        #expect(manager.usageHistoryCount == 2)
+
+        manager.clearHistory()
+
+        #expect(manager.usageHistoryCount == 0)
+    }
+
+    @Test("single refresh does not produce burn rate (needs 2+ samples)")
+    @MainActor
+    func singleRefreshNoBurnRate() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        await manager.refresh()
+
+        // With only 1 sample, no burn rate should be calculated
+        #expect(manager.usageData?.fiveHour.burnRate == nil)
+        #expect(manager.usageData?.sevenDay.burnRate == nil)
+        #expect(manager.overallBurnRateLevel == nil)
+    }
+
+    @Test("overallBurnRateLevel returns nil when no data")
+    @MainActor
+    func overallBurnRateLevelNilWhenNoData() {
+        let mockRepo = MockUsageRepository()
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        #expect(manager.overallBurnRateLevel == nil)
+    }
+
+    @Test("failed refresh does not record snapshot")
+    @MainActor
+    func failedRefreshNoSnapshot() async {
+        let mockRepo = MockUsageRepository(error: .networkError(message: "Connection failed"))
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        await manager.refresh()
+
+        // Failed refresh should not add to history
+        #expect(manager.usageHistoryCount == 0)
+    }
+
+    @Test("refresh preserves original utilization values")
+    @MainActor
+    func refreshPreservesUtilization() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.5, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.3, resetsAt: nil),
+            sevenDayOpus: UsageWindow(utilization: 15.0, resetsAt: nil),
+            sevenDaySonnet: UsageWindow(utilization: 68.2, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        await manager.refresh()
+
+        // Verify original utilization values are preserved
+        #expect(manager.usageData?.fiveHour.utilization == 45.5)
+        #expect(manager.usageData?.sevenDay.utilization == 72.3)
+        #expect(manager.usageData?.sevenDayOpus?.utilization == 15.0)
+        #expect(manager.usageData?.sevenDaySonnet?.utilization == 68.2)
+    }
+
+    @Test("refresh preserves resetsAt dates")
+    @MainActor
+    func refreshPreservesResetDates() async {
+        let fiveHourReset = Date().addingTimeInterval(3600)
+        let sevenDayReset = Date().addingTimeInterval(86400 * 3)
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: fiveHourReset),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: sevenDayReset),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        await manager.refresh()
+
+        // Verify reset dates are preserved
+        #expect(manager.usageData?.fiveHour.resetsAt == fiveHourReset)
+        #expect(manager.usageData?.sevenDay.resetsAt == sevenDayReset)
+    }
 }
 
 // MARK: - AppContainer Tests
