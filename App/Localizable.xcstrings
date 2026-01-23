@@ -1873,6 +1873,22 @@
         }
       }
     },
+    "usage.resets %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resets %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reinicia %@"
+          }
+        }
+      }
+    },
     "usage.staleData" : {
       "localizations" : {
         "en" : {

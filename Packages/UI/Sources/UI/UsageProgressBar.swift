@@ -51,8 +51,8 @@ public struct UsageProgressBar: View {
             if resetsAt != nil || shouldShowTimeToExhaustion {
                 HStack(spacing: 0) {
                     if let resetsAt {
-                        // Use system-provided relative date formatting (automatically localized)
-                        Text("Resets \(resetsAt, style: .relative)")
+                        // Use localized format with system-provided relative date
+                        Text(resetsAtText(for: resetsAt))
                     }
                     if resetsAt != nil, shouldShowTimeToExhaustion {
                         Text(" \u{00B7} ")
@@ -90,17 +90,21 @@ public struct UsageProgressBar: View {
         // Primary: label and percentage
         components.append("\(label), \(Int(value)) percent")
 
-        // Reset time if available
+        // Reset time if available (localized)
         if let resetsAt {
             let formatter = RelativeDateTimeFormatter()
             formatter.unitsStyle = .full
             let resetString = formatter.localizedString(for: resetsAt, relativeTo: Date())
-            components.append("resets \(resetString)")
+            let key = "accessibility.progressBar.resets %@"
+            let format = Bundle.main.localizedString(forKey: key, value: "resets %@", table: nil)
+            components.append(String(format: format, resetString))
         }
 
-        // Time-to-exhaustion if calculable and relevant
+        // Time-to-exhaustion if calculable and relevant (localized)
         if shouldShowTimeToExhaustion {
-            components.append("approximately \(spokenTimeToExhaustion) until limit")
+            let key = "accessibility.progressBar.timeToExhaustion %@"
+            let format = Bundle.main.localizedString(forKey: key, value: "approximately %@ until limit", table: nil)
+            components.append(String(format: format, spokenTimeToExhaustion))
         }
 
         return components.joined(separator: ", ")
@@ -108,6 +112,7 @@ public struct UsageProgressBar: View {
 
     /// Spoken format of time-to-exhaustion for VoiceOver.
     /// Examples: "3 hours", "45 minutes", "less than 1 minute"
+    /// Uses localized strings from the app's String Catalog.
     private var spokenTimeToExhaustion: String {
         guard let seconds = timeToExhaustion, seconds > 0 else {
             return ""
@@ -117,11 +122,21 @@ public struct UsageProgressBar: View {
         let minutes = Int((seconds.truncatingRemainder(dividingBy: 3600)) / 60)
 
         if hours > 0 {
-            return hours == 1 ? "1 hour" : "\(hours) hours"
+            if hours == 1 {
+                return Bundle.main.localizedString(forKey: "time.hour", value: "1 hour", table: nil)
+            } else {
+                let format = Bundle.main.localizedString(forKey: "time.hours %lld", value: "%lld hours", table: nil)
+                return String(format: format, hours)
+            }
         } else if minutes > 0 {
-            return minutes == 1 ? "1 minute" : "\(minutes) minutes"
+            if minutes == 1 {
+                return Bundle.main.localizedString(forKey: "time.minute", value: "1 minute", table: nil)
+            } else {
+                let format = Bundle.main.localizedString(forKey: "time.minutes %lld", value: "%lld minutes", table: nil)
+                return String(format: format, minutes)
+            }
         } else {
-            return "less than 1 minute"
+            return Bundle.main.localizedString(forKey: "time.lessThanMinute", value: "less than 1 minute", table: nil)
         }
     }
 
@@ -162,5 +177,17 @@ public struct UsageProgressBar: View {
         let key = "usage.timeToExhaustion.untilLimit %@"
         let format = Bundle.main.localizedString(forKey: key, value: "~%@ until limit", table: nil)
         return String(format: format, formattedTimeToExhaustion)
+    }
+
+    /// Localized text for reset time display.
+    /// Combines localized "Resets" text with system-provided relative date.
+    private func resetsAtText(for date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        let relativeTime = formatter.localizedString(for: date, relativeTo: Date())
+
+        let key = "usage.resets %@"
+        let format = Bundle.main.localizedString(forKey: key, value: "Resets %@", table: nil)
+        return String(format: format, relativeTime)
     }
 }

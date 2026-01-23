@@ -272,7 +272,9 @@ public final class UsageNotificationChecker {
         utilization: Double,
         resetsAt: Date?
     ) -> String {
-        var body = "\(windowName) at \(Int(utilization))%"
+        // Use localized format string: "%@ at %lld%%"
+        let format = localizedString("notification.warning.body %@ %lld", fallback: "%@ at %lld%%")
+        var body = String(format: format, windowName, Int(utilization))
         if let resetsAt {
             body += ". \(formatResetTime(resetsAt))"
         }
@@ -284,7 +286,9 @@ public final class UsageNotificationChecker {
         windowName: String,
         resetsAt: Date?
     ) -> String {
-        var body = "\(windowName) limit reached"
+        // Use localized format string: "%@ limit reached"
+        let format = localizedString("notification.capacityFull.body %@", fallback: "%@ limit reached")
+        var body = String(format: format, windowName)
         if let resetsAt {
             body += ". \(formatResetTime(resetsAt))"
         }
@@ -295,6 +299,9 @@ public final class UsageNotificationChecker {
     private func formatResetTime(_ date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .full
-        return "Resets \(formatter.localizedString(for: date, relativeTo: Date()))"
+        let relativeTime = formatter.localizedString(for: date, relativeTo: Date())
+        // Use localized format string: "Resets %@"
+        let format = localizedString("usage.resets %@", fallback: "Resets %@")
+        return String(format: format, relativeTime)
     }
 }
