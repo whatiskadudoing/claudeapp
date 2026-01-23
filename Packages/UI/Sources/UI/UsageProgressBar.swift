@@ -42,6 +42,12 @@ public struct UsageProgressBar: View {
 
     @Environment(\.sizeCategory) private var sizeCategory
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+
+    /// Whether high contrast mode is enabled
+    private var isHighContrast: Bool {
+        colorSchemeContrast == .increased
+    }
 
     /// Whether we're using accessibility sizes (AX1 and above)
     private var isAccessibilitySize: Bool {
@@ -97,9 +103,16 @@ public struct UsageProgressBar: View {
 
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
-                    // Background track
+                    // Background track with high contrast border support
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color(nsColor: .separatorColor))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 3)
+                                .strokeBorder(
+                                    Color.primary.opacity(isHighContrast ? 0.4 : 0),
+                                    lineWidth: isHighContrast ? 1.5 : 0
+                                )
+                        )
 
                     // Progress fill with optional pattern overlay
                     ZStack {

@@ -157,7 +157,15 @@ struct MenuBarLabel: View {
 /// A small label showing the user's plan type in the menu bar.
 /// Note: Plan type detection is not yet implemented (would require API support).
 /// For now, this displays a placeholder badge.
+/// Supports high contrast mode with visible border when "Increase Contrast" is enabled.
 struct PlanBadgeLabel: View {
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+
+    /// Whether high contrast mode is enabled
+    private var isHighContrast: Bool {
+        colorSchemeContrast == .increased
+    }
+
     var body: some View {
         Text(L("usage.planBadge.pro"))
             .font(Theme.Typography.badge)
@@ -166,6 +174,13 @@ struct PlanBadgeLabel: View {
             .background(Theme.Colors.primary.opacity(0.2))
             .foregroundStyle(Theme.Colors.primary)
             .clipShape(RoundedRectangle(cornerRadius: 3))
+            .overlay(
+                RoundedRectangle(cornerRadius: 3)
+                    .strokeBorder(
+                        Theme.Colors.primary.opacity(isHighContrast ? 0.6 : 0),
+                        lineWidth: isHighContrast ? 1 : 0
+                    )
+            )
     }
 }
 
@@ -533,9 +548,17 @@ struct UsageContent: View {
 
 /// Banner displayed when we have cached data but encountered an error on refresh.
 /// Shows a warning with the error reason and a retry button.
+/// Supports high contrast mode with visible border when "Increase Contrast" is enabled.
 struct StaleDataBanner: View {
     let error: AppError
     let retryAction: () -> Void
+
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+
+    /// Whether high contrast mode is enabled
+    private var isHighContrast: Bool {
+        colorSchemeContrast == .increased
+    }
 
     var body: some View {
         HStack(spacing: 8) {
@@ -563,6 +586,10 @@ struct StaleDataBanner: View {
         .padding(8)
         .background(Color.orange.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(Color.orange.opacity(isHighContrast ? 0.5 : 0), lineWidth: isHighContrast ? 1.5 : 0)
+        )
         .padding(.bottom, 4)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(L("accessibility.unableToRefresh", errorReason))
@@ -973,7 +1000,15 @@ struct NotificationsSection: View {
 
 /// Banner shown when notification permission is denied.
 /// Provides a button to open System Settings.
+/// Supports high contrast mode with visible border when "Increase Contrast" is enabled.
 struct PermissionDeniedBanner: View {
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+
+    /// Whether high contrast mode is enabled
+    private var isHighContrast: Bool {
+        colorSchemeContrast == .increased
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
@@ -1002,6 +1037,10 @@ struct PermissionDeniedBanner: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.orange.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Color.orange.opacity(isHighContrast ? 0.5 : 0), lineWidth: isHighContrast ? 1.5 : 0)
+        )
     }
 
     private func openNotificationSettings() {

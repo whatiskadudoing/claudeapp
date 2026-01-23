@@ -91,4 +91,98 @@ public enum Theme {
         public static let iconMedium: Font = .body
         public static let iconLarge: Font = .title2
     }
+
+    // MARK: - High Contrast Support
+
+    /// Border widths that adjust based on high contrast mode.
+    /// Standard: 1pt borders; High Contrast: 2pt borders for increased visibility.
+    public enum Borders {
+        /// Standard border width (1pt)
+        public static let standard: CGFloat = 1
+
+        /// High contrast border width (2pt)
+        public static let highContrast: CGFloat = 2
+
+        /// Returns appropriate border width based on contrast setting
+        public static func width(isHighContrast: Bool) -> CGFloat {
+            isHighContrast ? highContrast : standard
+        }
+    }
+}
+
+// MARK: - High Contrast View Modifier
+
+/// A view modifier that provides high contrast mode detection and styling.
+/// When "Increase Contrast" is enabled in System Settings > Accessibility > Display,
+/// this modifier applies enhanced borders and visual clarity improvements.
+public struct HighContrastBorderModifier: ViewModifier {
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+
+    let cornerRadius: CGFloat
+    let standardWidth: CGFloat
+    let highContrastWidth: CGFloat
+
+    public init(
+        cornerRadius: CGFloat = Theme.CornerRadius.sm,
+        standardWidth: CGFloat = 0,
+        highContrastWidth: CGFloat = Theme.Borders.highContrast
+    ) {
+        self.cornerRadius = cornerRadius
+        self.standardWidth = standardWidth
+        self.highContrastWidth = highContrastWidth
+    }
+
+    public func body(content: Content) -> some View {
+        let isHighContrast = colorSchemeContrast == .increased
+        let borderWidth = isHighContrast ? highContrastWidth : standardWidth
+
+        content
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .strokeBorder(Color.primary.opacity(isHighContrast ? 0.5 : 0), lineWidth: borderWidth)
+            )
+    }
+}
+
+/// A view modifier specifically for progress bar tracks that adds borders in high contrast mode.
+public struct ProgressBarHighContrastModifier: ViewModifier {
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+
+    public init() {}
+
+    public func body(content: Content) -> some View {
+        let isHighContrast = colorSchemeContrast == .increased
+
+        content
+            .overlay(
+                RoundedRectangle(cornerRadius: 3)
+                    .strokeBorder(Color.primary.opacity(isHighContrast ? 0.4 : 0), lineWidth: isHighContrast ? 1.5 : 0)
+            )
+    }
+}
+
+// MARK: - View Extensions for High Contrast
+
+public extension View {
+    /// Adds a high contrast border when "Increase Contrast" is enabled.
+    /// - Parameters:
+    ///   - cornerRadius: Corner radius for the border
+    ///   - standardWidth: Border width in normal mode (default: 0, no border)
+    ///   - highContrastWidth: Border width in high contrast mode (default: 2pt)
+    func highContrastBorder(
+        cornerRadius: CGFloat = Theme.CornerRadius.sm,
+        standardWidth: CGFloat = 0,
+        highContrastWidth: CGFloat = Theme.Borders.highContrast
+    ) -> some View {
+        modifier(HighContrastBorderModifier(
+            cornerRadius: cornerRadius,
+            standardWidth: standardWidth,
+            highContrastWidth: highContrastWidth
+        ))
+    }
+
+    /// Adds high contrast styling specifically for progress bar tracks.
+    func progressBarHighContrast() -> some View {
+        modifier(ProgressBarHighContrastModifier())
+    }
 }

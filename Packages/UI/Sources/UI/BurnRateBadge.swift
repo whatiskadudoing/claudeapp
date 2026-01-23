@@ -18,6 +18,13 @@ import SwiftUI
 public struct BurnRateBadge: View {
     let level: BurnRateLevel
 
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+
+    /// Whether high contrast mode is enabled
+    private var isHighContrast: Bool {
+        colorSchemeContrast == .increased
+    }
+
     public init(level: BurnRateLevel) {
         self.level = level
     }
@@ -36,6 +43,10 @@ public struct BurnRateBadge: View {
         .background(badgeColor.opacity(0.15))
         .foregroundStyle(badgeColor)
         .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .strokeBorder(badgeColor.opacity(isHighContrast ? 0.6 : 0), lineWidth: isHighContrast ? 1.5 : 0)
+        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
     }
