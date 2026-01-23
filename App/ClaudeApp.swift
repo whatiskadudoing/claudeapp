@@ -323,6 +323,7 @@ struct RefreshButton: View {
 // MARK: - Usage Content
 
 /// Displays the usage progress bars when data is available.
+/// Passes time-to-exhaustion data from UsageWindow to each progress bar.
 struct UsageContent: View {
     let data: UsageData
 
@@ -331,20 +332,23 @@ struct UsageContent: View {
             UsageProgressBar(
                 value: data.fiveHour.utilization,
                 label: "Current Session (5h)",
-                resetsAt: data.fiveHour.resetsAt
+                resetsAt: data.fiveHour.resetsAt,
+                timeToExhaustion: data.fiveHour.timeToExhaustion
             )
 
             UsageProgressBar(
                 value: data.sevenDay.utilization,
                 label: "Weekly (All Models)",
-                resetsAt: data.sevenDay.resetsAt
+                resetsAt: data.sevenDay.resetsAt,
+                timeToExhaustion: data.sevenDay.timeToExhaustion
             )
 
             if let opus = data.sevenDayOpus {
                 UsageProgressBar(
                     value: opus.utilization,
                     label: "Weekly (Opus)",
-                    resetsAt: opus.resetsAt
+                    resetsAt: opus.resetsAt,
+                    timeToExhaustion: opus.timeToExhaustion
                 )
             }
 
@@ -352,7 +356,8 @@ struct UsageContent: View {
                 UsageProgressBar(
                     value: sonnet.utilization,
                     label: "Weekly (Sonnet)",
-                    resetsAt: sonnet.resetsAt
+                    resetsAt: sonnet.resetsAt,
+                    timeToExhaustion: sonnet.timeToExhaustion
                 )
             }
         }
@@ -415,10 +420,25 @@ struct StaleDataBanner: View {
 // MARK: - Usage Progress Bar
 
 /// A single progress bar showing utilization percentage.
+/// Displays reset time and optionally time-to-exhaustion when calculable.
 struct UsageProgressBar: View {
     let value: Double
     let label: String
     let resetsAt: Date?
+    let timeToExhaustion: TimeInterval?
+
+    /// Initialize with required parameters.
+    /// - Parameters:
+    ///   - value: Usage percentage (0-100)
+    ///   - label: Label text for the progress bar
+    ///   - resetsAt: When this window resets (optional)
+    ///   - timeToExhaustion: Seconds until limit reached (optional)
+    init(value: Double, label: String, resetsAt: Date? = nil, timeToExhaustion: TimeInterval? = nil) {
+        self.value = value
+        self.label = label
+        self.resetsAt = resetsAt
+        self.timeToExhaustion = timeToExhaustion
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -444,10 +464,21 @@ struct UsageProgressBar: View {
             }
             .frame(height: 6)
 
-            if let resetsAt {
-                Text("Resets \(resetsAt, style: .relative)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+            // Display reset time and/or time-to-exhaustion
+            if resetsAt != nil || shouldShowTimeToExhaustion {
+                HStack(spacing: 0) {
+                    if let resetsAt {
+                        Text("Resets \(resetsAt, style: .relative)")
+                    }
+                    if resetsAt != nil, shouldShowTimeToExhaustion {
+                        Text(" · ")
+                    }
+                    if shouldShowTimeToExhaustion {
+                        Text("~\(formattedTimeToExhaustion) until limit")
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
             }
         }
     }
@@ -460,6 +491,37 @@ struct UsageProgressBar: View {
             Color.yellow
         default:
             Color(red: 0.757, green: 0.373, blue: 0.235) // #C15F3C - Claude Crail
+        }
+    }
+
+    /// Only show time-to-exhaustion when:
+    /// - Utilization > 20% (avoid noise at low usage)
+    /// - timeToExhaustion is not nil
+    /// - value is less than 100% (not already at limit)
+    private var shouldShowTimeToExhaustion: Bool {
+        guard value > 20, value < 100, let tte = timeToExhaustion, tte > 0 else {
+            return false
+        }
+        return true
+    }
+
+    /// Format TimeInterval to human-readable string.
+    /// Examples: "3h", "45min", "<1min"
+    private var formattedTimeToExhaustion: String {
+        guard let seconds = timeToExhaustion, seconds > 0 else {
+            return "—"
+        }
+
+        let hours = Int(seconds / 3600)
+        let minutes = Int((seconds.truncatingRemainder(dividingBy: 3600)) / 60)
+
+        if hours > 0 {
+            // Show hours only for clarity (e.g., "3h" not "3h 45min")
+            return "\(hours)h"
+        } else if minutes > 0 {
+            return "\(minutes)min"
+        } else {
+            return "<1min"
         }
     }
 }

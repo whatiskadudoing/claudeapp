@@ -142,26 +142,29 @@ Add visual indicators for burn rate and time-to-exhaustion.
   - **Research:** `specs/design-system.md` for color tokens, `specs/features/view-usage.md` lines 188-198
   - ✅ Completed: BurnRateBadge component created with color-coded pill, integrated into DropdownView header (232 tests passing)
 
-- [ ] **Add time-to-exhaustion display to UsageProgressBar** [spec: features/view-usage.md] [file: App/ClaudeApp.swift]
+- [x] **Add time-to-exhaustion display to UsageProgressBar** [spec: features/view-usage.md] [file: App/ClaudeApp.swift]
   - Extend UsageProgressBar to accept optional `timeToExhaustion: TimeInterval?`
   - Display format: "~2h until limit" or "~45min until limit"
   - Only show when: utilization > 20% AND timeToExhaustion is not nil
   - Position: Below reset time, same tertiary styling
   - Show "—" when insufficient data but utilization > 50%
   - **Research:** `specs/features/view-usage.md` lines 129-146 for layout
+  - ✅ Completed: UsageProgressBar extended with timeToExhaustion parameter, conditional display, and time formatting (232 tests passing)
 
-- [ ] **Integrate burn rate into dropdown header** [spec: features/view-usage.md] [file: App/ClaudeApp.swift]
+- [x] **Integrate burn rate into dropdown header** [spec: features/view-usage.md] [file: App/ClaudeApp.swift]
   - Add BurnRateBadge to DropdownView header
   - Get level from `usageManager.overallBurnRateLevel`
   - Position between "Claude Usage" title and settings button
   - Only show when burn rate data is available
   - **Layout:** `HStack { Title, Spacer, BurnRateBadge, SettingsButton, RefreshButton }`
+  - ✅ Completed: BurnRateBadge already integrated in DropdownView header (done with BurnRateBadge component task)
 
-- [ ] **Update UsageProgressBar instances with time-to-exhaustion** [file: App/ClaudeApp.swift]
+- [x] **Update UsageProgressBar instances with time-to-exhaustion** [file: App/ClaudeApp.swift]
   - Pass `timeToExhaustion` from each UsageWindow to UsageProgressBar
   - Update for: fiveHour, sevenDay, sevenDayOpus, sevenDaySonnet
   - Only show if window has calculable time-to-exhaustion
   - **Note:** First few refreshes won't have data - graceful degradation
+  - ✅ Completed: UsageContent now passes timeToExhaustion to all four progress bars (232 tests passing)
 
 ---
 <!-- CHECKPOINT: Phase 3 delivers burn rate UI. Test: run app, wait for 2-3 refresh cycles, verify badge appears, verify time-to-exhaustion shows for active windows. -->
