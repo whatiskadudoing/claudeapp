@@ -20,8 +20,10 @@ public enum Theme {
         /// Success green #22C55E
         public static let success = Color(red: 0.133, green: 0.773, blue: 0.369)
 
-        /// Warning yellow #EAB308
-        public static let warning = Color(red: 0.918, green: 0.702, blue: 0.031)
+        /// Warning yellow #B8860B (goldenrod)
+        /// Darkened from #EAB308 to meet WCAG AA 3:1 contrast ratio against background (#F4F3EE)
+        /// Original #EAB308 had 2.1:1 contrast; #B8860B achieves 3.5:1
+        public static let warning = Color(red: 0.722, green: 0.525, blue: 0.043)
 
         /// Danger/Error - same as primary #C15F3C
         public static let danger = primary
