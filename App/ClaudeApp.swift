@@ -185,9 +185,11 @@ enum FocusableElement: Hashable {
 /// The dropdown content that appears when clicking the menu bar item.
 /// Shows detailed usage information with progress bars.
 /// Supports keyboard navigation via Tab key and keyboard shortcuts.
+/// Adapts layout for accessibility text sizes.
 struct DropdownView: View {
     @Environment(UsageManager.self) private var usageManager
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.sizeCategory) private var sizeCategory
 
     /// Focus state for keyboard navigation
     @FocusState private var focusedElement: FocusableElement?
@@ -202,23 +204,61 @@ struct DropdownView: View {
         usageManager.lastError != nil || usageManager.isStale
     }
 
+    /// Whether we're using accessibility sizes (AX1 and above)
+    private var isAccessibilitySize: Bool {
+        sizeCategory >= .accessibilityMedium
+    }
+
+    /// Dropdown width adapts to text size
+    /// Default: 280pt, Accessibility sizes (AX1+): 340pt
+    private var dropdownWidth: CGFloat {
+        isAccessibilitySize ? 340 : 280
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header
-            HStack {
-                Text(L("usage.header.title"))
-                    .font(Theme.Typography.title)
-                Spacer()
-                // Show burn rate badge when available
-                if let burnRateLevel = usageManager.usageData?.highestBurnRate?.level {
-                    BurnRateBadge(level: burnRateLevel)
+            // Header - adapts to accessibility sizes
+            if isAccessibilitySize {
+                // Stack vertically for accessibility sizes
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(L("usage.header.title"))
+                            .font(Theme.Typography.title)
+                        Spacer()
+                        // Show burn rate badge when available
+                        if let burnRateLevel = usageManager.usageData?.highestBurnRate?.level {
+                            BurnRateBadge(level: burnRateLevel)
+                        }
+                    }
+                    HStack {
+                        Spacer()
+                        SettingsButton {
+                            openWindow(id: "settings")
+                        }
+                        .focused($focusedElement, equals: .settings)
+                        .frame(minWidth: 44, minHeight: 44)
+                        RefreshButton()
+                            .focused($focusedElement, equals: .refresh)
+                            .frame(minWidth: 44, minHeight: 44)
+                    }
                 }
-                SettingsButton {
-                    openWindow(id: "settings")
+            } else {
+                // Standard horizontal layout
+                HStack {
+                    Text(L("usage.header.title"))
+                        .font(Theme.Typography.title)
+                    Spacer()
+                    // Show burn rate badge when available
+                    if let burnRateLevel = usageManager.usageData?.highestBurnRate?.level {
+                        BurnRateBadge(level: burnRateLevel)
+                    }
+                    SettingsButton {
+                        openWindow(id: "settings")
+                    }
+                    .focused($focusedElement, equals: .settings)
+                    RefreshButton()
+                        .focused($focusedElement, equals: .refresh)
                 }
-                .focused($focusedElement, equals: .settings)
-                RefreshButton()
-                    .focused($focusedElement, equals: .refresh)
             }
 
             Divider()
@@ -246,38 +286,74 @@ struct DropdownView: View {
 
             Divider()
 
-            // Footer
-            HStack {
-                if hasErrorWithCachedData {
-                    // Show stale warning when we have error with cached data
-                    HStack(spacing: 4) {
-                        Image(systemName: "exclamationmark.triangle.fill")
+            // Footer - adapts to accessibility sizes
+            if isAccessibilitySize {
+                // Stack vertically for accessibility sizes
+                VStack(alignment: .leading, spacing: 8) {
+                    if hasErrorWithCachedData {
+                        // Show stale warning when we have error with cached data
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(Theme.Typography.metadata)
+                                .foregroundStyle(.orange)
+                            Text(L("usage.staleData"))
+                                .font(Theme.Typography.metadata)
+                                .foregroundStyle(.secondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(L("accessibility.staleWarning"))
+                    } else if let lastUpdated = usageManager.lastUpdated {
+                        Text(updatedAgoText(for: lastUpdated))
                             .font(Theme.Typography.metadata)
-                            .foregroundStyle(.orange)
-                        Text(L("usage.staleData"))
-                            .font(Theme.Typography.metadata)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.tertiary)
                     }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel(L("accessibility.staleWarning"))
-                } else if let lastUpdated = usageManager.lastUpdated {
-                    Text(updatedAgoText(for: lastUpdated))
-                        .font(Theme.Typography.metadata)
-                        .foregroundStyle(.tertiary)
+                    HStack {
+                        Spacer()
+                        Button(L("button.quit")) {
+                            NSApplication.shared.terminate(nil)
+                        }
+                        .buttonStyle(.plain)
+                        .font(Theme.Typography.label)
+                        .keyboardShortcut("q", modifiers: .command)
+                        .focused($focusedElement, equals: .quit)
+                        .accessibilityLabel(L("accessibility.quitApp"))
+                        .frame(minWidth: 44, minHeight: 44)
+                    }
                 }
-                Spacer()
-                Button(L("button.quit")) {
-                    NSApplication.shared.terminate(nil)
+            } else {
+                // Standard horizontal layout
+                HStack {
+                    if hasErrorWithCachedData {
+                        // Show stale warning when we have error with cached data
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(Theme.Typography.metadata)
+                                .foregroundStyle(.orange)
+                            Text(L("usage.staleData"))
+                                .font(Theme.Typography.metadata)
+                                .foregroundStyle(.secondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(L("accessibility.staleWarning"))
+                    } else if let lastUpdated = usageManager.lastUpdated {
+                        Text(updatedAgoText(for: lastUpdated))
+                            .font(Theme.Typography.metadata)
+                            .foregroundStyle(.tertiary)
+                    }
+                    Spacer()
+                    Button(L("button.quit")) {
+                        NSApplication.shared.terminate(nil)
+                    }
+                    .buttonStyle(.plain)
+                    .font(Theme.Typography.label)
+                    .keyboardShortcut("q", modifiers: .command)
+                    .focused($focusedElement, equals: .quit)
+                    .accessibilityLabel(L("accessibility.quitApp"))
                 }
-                .buttonStyle(.plain)
-                .font(Theme.Typography.label)
-                .keyboardShortcut("q", modifiers: .command)
-                .focused($focusedElement, equals: .quit)
-                .accessibilityLabel(L("accessibility.quitApp"))
             }
         }
         .padding(16)
-        .frame(width: 280)
+        .frame(width: dropdownWidth)
         .background(Color(nsColor: .windowBackgroundColor))
         .task {
             // Refresh on dropdown open if data is stale or missing
@@ -628,12 +704,29 @@ struct EmptyStateView: View {
 
 /// The main settings window showing all app configuration options.
 /// Organized into sections: Display, Refresh, Notifications, General, About.
+/// Adapts size for accessibility text sizes.
 struct SettingsView: View {
     @Environment(SettingsManager.self) private var settings
     @Environment(LaunchAtLoginManager.self) private var launchAtLogin
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.sizeCategory) private var sizeCategory
 
     let updateChecker: UpdateChecker
+
+    /// Whether we're using accessibility sizes (AX1 and above)
+    private var isAccessibilitySize: Bool {
+        sizeCategory >= .accessibilityMedium
+    }
+
+    /// Settings window width adapts to text size
+    private var windowWidth: CGFloat {
+        isAccessibilitySize ? 400 : 320
+    }
+
+    /// Settings window height adapts to text size
+    private var windowHeight: CGFloat {
+        isAccessibilitySize ? 600 : 500
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -651,6 +744,7 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(L("accessibility.closeSettings"))
+                .frame(minWidth: 44, minHeight: 44)
             }
             .padding(16)
 
@@ -668,7 +762,7 @@ struct SettingsView: View {
                 .padding(16)
             }
         }
-        .frame(width: 320, height: 500)
+        .frame(width: windowWidth, height: windowHeight)
         .background(Color(nsColor: .windowBackgroundColor))
     }
 }

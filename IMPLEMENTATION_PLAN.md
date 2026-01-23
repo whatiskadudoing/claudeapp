@@ -82,13 +82,14 @@ Key research documents for this implementation:
   - **Test:** Build succeeds, all tests pass, UI readable at AX5
   - **COMPLETED:** Added `Theme.Typography` enum with semantic font styles (title, sectionHeader, body, label, percentage, metadata, badge, menuBar, tiny, iconSmall/Medium/Large). Updated all SwiftUI views to use these semantic styles instead of fixed font sizes. All 402 tests pass.
 
-- [ ] **Add layout adaptations for extreme text sizes** [spec: accessibility.md#dynamic-type] [file: App/ClaudeApp.swift]
+- [x] **Add layout adaptations for extreme text sizes** [spec: accessibility.md#dynamic-type] [file: App/ClaudeApp.swift]
   - Increase dropdown width at accessibility sizes (280px → 340px for AX1+)
   - Stack horizontal layouts vertically when text would overflow
   - Ensure minimum touch targets (44pt) maintained
   - Test with "Larger Accessibility Sizes" enabled in System Settings
   - **Research:** `specs/accessibility.md` lines 395-410 for layout rules
   - **Test:** All content visible and tappable at extreme sizes
+  - **COMPLETED:** Added `@Environment(\.sizeCategory)` detection to DropdownView, SettingsView, and UsageProgressBar. Implemented adaptive layouts: dropdown width expands from 280pt to 340pt for accessibility sizes, header/footer layouts stack vertically at accessibility sizes, progress bar label/percentage stacks vertically at accessibility sizes, settings window expands from 320x500 to 400x600, and added 44pt minimum touch targets on buttons. All 402 tests pass.
 
 ---
 <!-- CHECKPOINT: Phase 1 delivers Dynamic Type. App should be usable at all text sizes. -->

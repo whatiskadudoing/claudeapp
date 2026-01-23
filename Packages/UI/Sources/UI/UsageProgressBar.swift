@@ -4,11 +4,19 @@ import SwiftUI
 
 /// A single progress bar showing utilization percentage.
 /// Displays reset time and optionally time-to-exhaustion when calculable.
+/// Adapts layout for accessibility text sizes.
 public struct UsageProgressBar: View {
     let value: Double
     let label: String
     let resetsAt: Date?
     let timeToExhaustion: TimeInterval?
+
+    @Environment(\.sizeCategory) private var sizeCategory
+
+    /// Whether we're using accessibility sizes (AX1 and above)
+    private var isAccessibilitySize: Bool {
+        sizeCategory >= .accessibilityMedium
+    }
 
     /// Initialize with required parameters.
     /// - Parameters:
@@ -25,14 +33,30 @@ public struct UsageProgressBar: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            HStack {
-                Text(label)
-                    .font(Theme.Typography.label)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text("\(Int(value))%")
-                    .font(Theme.Typography.percentage)
-                    .fontWeight(.medium)
+            // Header adapts to accessibility sizes
+            if isAccessibilitySize {
+                // Stack vertically for accessibility sizes to prevent truncation
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label)
+                        .font(Theme.Typography.label)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("\(Int(value))%")
+                        .font(Theme.Typography.percentage)
+                        .fontWeight(.medium)
+                }
+            } else {
+                // Standard horizontal layout
+                HStack {
+                    Text(label)
+                        .font(Theme.Typography.label)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("\(Int(value))%")
+                        .font(Theme.Typography.percentage)
+                        .fontWeight(.medium)
+                }
             }
 
             GeometryReader { geometry in
