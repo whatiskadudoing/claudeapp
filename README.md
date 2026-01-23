@@ -1,5 +1,11 @@
 # ClaudeApp
 
+[![CI](https://github.com/kaduwaengertner/claudeapp/actions/workflows/ci.yml/badge.svg)](https://github.com/kaduwaengertner/claudeapp/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/kaduwaengertner/claudeapp)](https://github.com/kaduwaengertner/claudeapp/releases/latest)
+[![Swift 5.9+](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
+[![macOS 14+](https://img.shields.io/badge/macOS-14+-blue.svg)](https://www.apple.com/macos/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 > A macOS menu bar app for monitoring Claude Code usage limits
 
 A native macOS menu bar application that helps Claude Code users track their API usage in real-time, predict when limits will be reached, and stay informed with configurable notifications.
@@ -23,9 +29,16 @@ A native macOS menu bar application that helps Claude Code users track their API
 
 ## Installation
 
+### Homebrew (Coming Soon)
+
+```bash
+brew tap kaduwaengertner/tap
+brew install --cask claudeapp
+```
+
 ### Manual Download
 
-1. Download the latest release from [Releases](https://github.com/kaduwaengertner/claudeapp/releases)
+1. Download the latest `.dmg` from [Releases](https://github.com/kaduwaengertner/claudeapp/releases/latest)
 2. Open the DMG and drag ClaudeApp to Applications
 3. On first launch, right-click and select "Open" to bypass Gatekeeper
 
@@ -85,7 +98,39 @@ make build         # Build debug version
 make test          # Run all tests
 make run           # Build and run
 make dev           # Open in Xcode
+make release       # Build release .app bundle
+make dmg           # Create distributable DMG
 ```
+
+### Code Quality
+
+The project enforces code quality via pre-commit hooks and CI:
+
+```bash
+make format        # Format code with SwiftFormat
+make lint          # Lint code with SwiftLint
+make check         # Run format + lint + test (CI gate)
+make setup         # Install git hooks + resolve deps
+```
+
+## Contributing
+
+Contributions are welcome! Please follow these guidelines:
+
+1. **Fork and branch** - Create a feature branch from `main`
+2. **Code quality** - Run `make check` before committing (format, lint, test)
+3. **Tests** - Add tests for new functionality
+4. **Commits** - Write clear commit messages explaining the "why"
+5. **Pull request** - Submit PR with description of changes
+
+### Before Submitting
+
+```bash
+make setup         # One-time: install git hooks
+make check         # Must pass: format, lint, test
+```
+
+The CI workflow runs on all pull requests and must pass before merging.
 
 ## Privacy
 

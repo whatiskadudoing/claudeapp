@@ -229,13 +229,14 @@ Implement automated builds, tests, and releases via GitHub Actions.
   - **Note:** First release will need manual triggering after workflow is set up
   - **DONE:** Release job included in `.github/workflows/ci.yml`. Triggers on tags matching `v*`, runs after build-and-test job passes, creates release bundle/archive/DMG, uploads to GitHub Release via softprops/action-gh-release.
 
-- [ ] **Document release process in README** [file: README.md]
+- [x] **Document release process in README** [file: README.md]
   - Add "Installation" section with Homebrew command
   - Add "Manual Installation" section with DMG download link
   - Add "Development" section with build instructions
   - Add "Contributing" section with code quality expectations
   - Add badges: CI status, latest release, Swift version
   - **Note:** Keep README concise, link to detailed docs where appropriate
+  - **DONE:** Added badges (CI status, Release, Swift 5.9+, macOS 14+, MIT License). Added Homebrew section with "Coming Soon" note. Enhanced Development section with release/dmg commands. Added Code Quality section with format/lint/check commands. Added Contributing section with guidelines and pre-submit checklist. Total tests: 351.
 
 ---
 <!-- CHECKPOINT: Phase 3 delivers CI/CD. Verify CI runs on push, releases are automated on tag. -->
