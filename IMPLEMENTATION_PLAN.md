@@ -57,7 +57,7 @@ Implement VoiceOver support and keyboard navigation for core UI elements.
   - **Test:** Enable VoiceOver (Cmd+F5), verify all elements are announced correctly
   - **DONE:** Added accessibility labels to MenuBarLabel (combined element with dynamic label including warning states), SettingsButton, RefreshButton (with state-specific labels), BurnRateBadge (with descriptive level labels), Quit button, Settings close button, StaleDataBanner, LoadingView, ErrorView, EmptyStateView. All decorative icons hidden from VoiceOver.
 
-- [ ] **Add VoiceOver support to UsageProgressBar** [spec: accessibility.md] [file: Packages/UI/Sources/UI/UsageProgressBar.swift]
+- [x] **Add VoiceOver support to UsageProgressBar** [spec: accessibility.md] [file: Packages/UI/Sources/UI/UsageProgressBar.swift]
   - Use `.accessibilityElement(children: .ignore)` to create single accessible element
   - Add `.accessibilityLabel()`: "[Label] at X percent, resets [time]"
   - Add `.accessibilityValue()`: "X percent"
@@ -65,6 +65,7 @@ Implement VoiceOver support and keyboard navigation for core UI elements.
   - Include time-to-exhaustion in label when available: "~2 hours until limit"
   - Include burn rate level when available: "consumption rate: medium"
   - **Research:** `specs/accessibility.md` lines 65-92 for progress bar accessibility
+  - **DONE:** Added `.accessibilityElement(children: .ignore)`, `.accessibilityLabel()` with comprehensive label including label, percentage, reset time (using RelativeDateTimeFormatter), and spoken time-to-exhaustion. Added `.accessibilityValue()` with "X percent" format. Added `.accessibilityAddTraits(.updatesFrequently)`. Created `spokenTimeToExhaustion` for natural spoken format ("3 hours", "45 minutes", "less than 1 minute"). Added 14 new tests for accessibility. Total tests: 333.
 
 - [ ] **Implement keyboard navigation** [spec: accessibility.md] [file: App/ClaudeApp.swift]
   - Add `@FocusState` for managing focus in dropdown

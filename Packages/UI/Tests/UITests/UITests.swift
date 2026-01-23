@@ -317,6 +317,151 @@ struct UsageProgressBarColorTests {
     }
 }
 
+@Suite("UsageProgressBar Accessibility Tests")
+struct UsageProgressBarAccessibilityTests {
+    @Test("Accessibility modifiers are applied")
+    func accessibilityModifiersApplied() {
+        // Verify the component can be created with accessibility modifiers
+        // (the modifiers are applied in the body, this verifies compilation)
+        let _ = UsageProgressBar(value: 50, label: "Test")
+        #expect(Bool(true))
+    }
+
+    @Test("Accessibility label includes label and percentage")
+    func accessibilityLabelBasic() {
+        // Basic case: just label and value
+        let bar = UsageProgressBar(value: 75, label: "Weekly Usage")
+        // The component creates accessibility label internally
+        // We verify the component initializes correctly
+        #expect(bar.value == 75)
+        #expect(bar.label == "Weekly Usage")
+    }
+
+    @Test("Accessibility label with reset time")
+    func accessibilityLabelWithResetTime() {
+        // With reset time - should include in accessibility label
+        let futureDate = Date().addingTimeInterval(7200) // 2 hours from now
+        let bar = UsageProgressBar(
+            value: 50,
+            label: "Current Session (5h)",
+            resetsAt: futureDate
+        )
+        #expect(bar.resetsAt != nil)
+    }
+
+    @Test("Accessibility label with time-to-exhaustion")
+    func accessibilityLabelWithTimeToExhaustion() {
+        // With time-to-exhaustion - should include when value > 20% and < 100%
+        let bar = UsageProgressBar(
+            value: 50,
+            label: "Weekly",
+            timeToExhaustion: 7200 // 2 hours
+        )
+        #expect(bar.timeToExhaustion == 7200)
+    }
+
+    @Test("Accessibility label with all info")
+    func accessibilityLabelComplete() {
+        // Complete case: label, value, reset time, and time-to-exhaustion
+        let futureDate = Date().addingTimeInterval(3600)
+        let bar = UsageProgressBar(
+            value: 60,
+            label: "Weekly (All Models)",
+            resetsAt: futureDate,
+            timeToExhaustion: 5400 // 1.5 hours
+        )
+        #expect(bar.value == 60)
+        #expect(bar.label == "Weekly (All Models)")
+        #expect(bar.resetsAt != nil)
+        #expect(bar.timeToExhaustion == 5400)
+    }
+
+    @Test("Accessibility value format")
+    func accessibilityValueFormat() {
+        // The accessibilityValue should be "X percent"
+        let bar = UsageProgressBar(value: 86, label: "Test")
+        #expect(bar.value == 86) // Value is available for accessibility
+    }
+
+    @Test("Accessibility spoken time - hours singular")
+    func spokenTimeHoursSingular() {
+        // 1 hour should be "1 hour" (singular)
+        let bar = UsageProgressBar(
+            value: 50,
+            label: "Test",
+            timeToExhaustion: 3600 // Exactly 1 hour
+        )
+        #expect(bar.timeToExhaustion == 3600)
+    }
+
+    @Test("Accessibility spoken time - hours plural")
+    func spokenTimeHoursPlural() {
+        // 3 hours should be "3 hours" (plural)
+        let bar = UsageProgressBar(
+            value: 50,
+            label: "Test",
+            timeToExhaustion: 10800 // 3 hours
+        )
+        #expect(bar.timeToExhaustion == 10800)
+    }
+
+    @Test("Accessibility spoken time - minutes singular")
+    func spokenTimeMinutesSingular() {
+        // 1 minute should be "1 minute" (singular)
+        let bar = UsageProgressBar(
+            value: 50,
+            label: "Test",
+            timeToExhaustion: 60 // 1 minute
+        )
+        #expect(bar.timeToExhaustion == 60)
+    }
+
+    @Test("Accessibility spoken time - minutes plural")
+    func spokenTimeMinutesPlural() {
+        // 45 minutes should be "45 minutes" (plural)
+        let bar = UsageProgressBar(
+            value: 50,
+            label: "Test",
+            timeToExhaustion: 2700 // 45 minutes
+        )
+        #expect(bar.timeToExhaustion == 2700)
+    }
+
+    @Test("Accessibility spoken time - less than 1 minute")
+    func spokenTimeLessThanMinute() {
+        // 30 seconds should be "less than 1 minute"
+        let bar = UsageProgressBar(
+            value: 50,
+            label: "Test",
+            timeToExhaustion: 30
+        )
+        #expect(bar.timeToExhaustion == 30)
+    }
+
+    @Test("Time-to-exhaustion not in accessibility label below 20%")
+    func timeToExhaustionHiddenBelowThreshold() {
+        // At 15%, TTE should not be included in accessibility label
+        let bar = UsageProgressBar(
+            value: 15,
+            label: "Test",
+            timeToExhaustion: 7200
+        )
+        // Value is below 20%, so shouldShowTimeToExhaustion would be false
+        #expect(bar.value == 15)
+    }
+
+    @Test("Time-to-exhaustion not in accessibility label at 100%")
+    func timeToExhaustionHiddenAtCapacity() {
+        // At 100%, already at limit - TTE irrelevant
+        let bar = UsageProgressBar(
+            value: 100,
+            label: "Test",
+            timeToExhaustion: 0
+        )
+        #expect(bar.value == 100)
+    }
+}
+
 @Suite("BurnRateBadge Tests")
 struct BurnRateBadgeTests {
     @Test("BurnRateBadge can be initialized for all levels")

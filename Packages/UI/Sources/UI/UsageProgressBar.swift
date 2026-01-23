@@ -64,6 +64,10 @@ public struct UsageProgressBar: View {
                 .foregroundStyle(.tertiary)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue("\(Int(value)) percent")
+        .accessibilityAddTraits(.updatesFrequently)
     }
 
     private var progressColor: Color {
@@ -74,6 +78,49 @@ public struct UsageProgressBar: View {
             Theme.Colors.warning
         default:
             Theme.Colors.primary
+        }
+    }
+
+    /// Comprehensive accessibility label for VoiceOver.
+    /// Includes label, percentage, reset time, and time-to-exhaustion when available.
+    private var accessibilityLabel: String {
+        var components: [String] = []
+
+        // Primary: label and percentage
+        components.append("\(label), \(Int(value)) percent")
+
+        // Reset time if available
+        if let resetsAt {
+            let formatter = RelativeDateTimeFormatter()
+            formatter.unitsStyle = .full
+            let resetString = formatter.localizedString(for: resetsAt, relativeTo: Date())
+            components.append("resets \(resetString)")
+        }
+
+        // Time-to-exhaustion if calculable and relevant
+        if shouldShowTimeToExhaustion {
+            components.append("approximately \(spokenTimeToExhaustion) until limit")
+        }
+
+        return components.joined(separator: ", ")
+    }
+
+    /// Spoken format of time-to-exhaustion for VoiceOver.
+    /// Examples: "3 hours", "45 minutes", "less than 1 minute"
+    private var spokenTimeToExhaustion: String {
+        guard let seconds = timeToExhaustion, seconds > 0 else {
+            return ""
+        }
+
+        let hours = Int(seconds / 3600)
+        let minutes = Int((seconds.truncatingRemainder(dividingBy: 3600)) / 60)
+
+        if hours > 0 {
+            return hours == 1 ? "1 hour" : "\(hours) hours"
+        } else if minutes > 0 {
+            return minutes == 1 ? "1 minute" : "\(minutes) minutes"
+        } else {
+            return "less than 1 minute"
         }
     }
 
