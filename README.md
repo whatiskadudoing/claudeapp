@@ -23,6 +23,30 @@ A native macOS menu bar application that helps Claude Code users track their API
 - **Dark Mode Support** - Follows system appearance
 - **Multi-Language Support** - Available in English, Portuguese (Brazil), and Spanish (Latin America)
 
+## Accessibility
+
+ClaudeApp is fully accessible and meets WCAG 2.1 AA compliance standards:
+
+| Feature | Description |
+|---------|-------------|
+| **VoiceOver** | Full screen reader support with descriptive labels for all UI elements |
+| **Keyboard Navigation** | Complete keyboard control with standard shortcuts (Cmd+R refresh, Cmd+Q quit) |
+| **Dynamic Type** | Scales with system text size preferences, including Accessibility sizes |
+| **Reduced Motion** | Respects system "Reduce Motion" setting - animations disabled when enabled |
+| **Color-Blind Safe** | Patterns and shapes supplement color for status indicators |
+| **High Contrast** | Enhanced borders and visual separation when "Increase Contrast" is enabled |
+
+### Testing Accessibility
+
+To test accessibility features on your Mac:
+
+- **VoiceOver:** System Settings > Accessibility > VoiceOver (or press Cmd+F5)
+- **Dynamic Type:** System Settings > Accessibility > Display > Text Size
+- **Reduce Motion:** System Settings > Accessibility > Display > Reduce motion
+- **Increase Contrast:** System Settings > Accessibility > Display > Increase contrast
+
+See [specs/accessibility.md](specs/accessibility.md) for the complete accessibility specification.
+
 ## Supported Languages
 
 ClaudeApp is fully localized in the following languages:
