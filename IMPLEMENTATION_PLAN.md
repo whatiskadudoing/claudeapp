@@ -170,7 +170,7 @@ Implement VoiceOver support and keyboard navigation for core UI elements.
 
 Create release scripts and distribution artifacts.
 
-- [ ] **Create release scripts** [spec: toolchain.md] [file: scripts/]
+- [x] **Create release scripts** [spec: toolchain.md] [file: scripts/]
   - Create `scripts/create-dmg.sh` for DMG generation with Applications symlink
   - Create `scripts/install-hooks.sh` for git pre-commit hooks setup
   - Update Makefile with `make dmg`, `make archive`, `make install`, `make uninstall` targets
@@ -178,6 +178,7 @@ Create release scripts and distribution artifacts.
   - Ensure scripts are executable (`chmod +x`)
   - **Research:** `specs/toolchain.md` lines 559-607 for release process
   - **Test:** Run `make dmg`, verify DMG is created and mounts correctly
+  - **DONE:** Created `scripts/create-dmg.sh` that creates distributable DMG with Applications symlink using hdiutil. Created `scripts/install-hooks.sh` that installs pre-commit git hook running SwiftFormat and SwiftLint on staged Swift files. Both scripts executable and follow project patterns. Verified: `make dmg` creates 675KB DMG successfully, `make archive` creates ZIP, `make setup` installs hooks and resolves deps. Total tests: 351.
 
 - [ ] **Create Homebrew Cask formula** [spec: toolchain.md] [file: (external repo)]
   - Create `yourname/homebrew-tap` repository on GitHub
