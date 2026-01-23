@@ -218,7 +218,7 @@ Implement version checking via GitHub Releases API.
 
 Clean up and prepare for release.
 
-- [ ] **Refactor UI components into UI package** [file: Packages/UI/Sources/UI/]
+- [x] **Refactor UI components into UI package** [file: Packages/UI/Sources/UI/]
   - Move from App/ClaudeApp.swift to UI package:
     - `UsageProgressBar` component
     - `BurnRateBadge` component
@@ -226,8 +226,9 @@ Clean up and prepare for release.
     - `SectionHeader` component
     - Theme/color constants
   - Update imports in App/ClaudeApp.swift
-  - Reduces monolithic file from ~1000 lines to ~300 lines
+  - Reduces monolithic file from ~1185 lines to ~1004 lines (~180 lines removed)
   - **Note:** Keep views that depend on specific Environment objects in App
+  - ✅ Completed: Theme.swift, UsageProgressBar.swift, BurnRateBadge.swift, SettingsComponents.swift created. 10 new tests added (281 total tests passing)
 
 - [ ] **Add UI tests for burn rate display** [file: Tests/UITests/]
   - Snapshot test: BurnRateBadge at each level (Low/Medium/High/Very High)

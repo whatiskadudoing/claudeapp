@@ -1,6 +1,7 @@
 import Core
 import Domain
 import SwiftUI
+import UI
 import UserNotifications
 
 // MARK: - Notification Delegate
@@ -117,41 +118,9 @@ struct PlanBadgeLabel: View {
             .font(.system(size: 9, weight: .medium))
             .padding(.horizontal, 4)
             .padding(.vertical, 1)
-            .background(Color(red: 0.757, green: 0.373, blue: 0.235).opacity(0.2))
-            .foregroundStyle(Color(red: 0.757, green: 0.373, blue: 0.235))
+            .background(Theme.Colors.primary.opacity(0.2))
+            .foregroundStyle(Theme.Colors.primary)
             .clipShape(RoundedRectangle(cornerRadius: 3))
-    }
-}
-
-// MARK: - Burn Rate Badge
-
-/// A small colored pill showing the current burn rate level in the dropdown header.
-/// Shows consumption velocity at a glance: Low (green), Med (yellow), High (orange), V.High (red).
-/// Only displayed when burn rate data is available (after 2+ samples collected).
-struct BurnRateBadge: View {
-    let level: BurnRateLevel
-
-    var body: some View {
-        Text(level.rawValue)
-            .font(.system(size: 10, weight: .medium))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(badgeColor.opacity(0.15))
-            .foregroundStyle(badgeColor)
-            .clipShape(Capsule())
-    }
-
-    private var badgeColor: Color {
-        switch level {
-        case .low:
-            Color.green
-        case .medium:
-            Color.yellow
-        case .high:
-            Color.orange
-        case .veryHigh:
-            Color(red: 0.757, green: 0.373, blue: 0.235) // #C15F3C - Claude Crail
-        }
     }
 }
 
@@ -417,115 +386,6 @@ struct StaleDataBanner: View {
     }
 }
 
-// MARK: - Usage Progress Bar
-
-/// A single progress bar showing utilization percentage.
-/// Displays reset time and optionally time-to-exhaustion when calculable.
-struct UsageProgressBar: View {
-    let value: Double
-    let label: String
-    let resetsAt: Date?
-    let timeToExhaustion: TimeInterval?
-
-    /// Initialize with required parameters.
-    /// - Parameters:
-    ///   - value: Usage percentage (0-100)
-    ///   - label: Label text for the progress bar
-    ///   - resetsAt: When this window resets (optional)
-    ///   - timeToExhaustion: Seconds until limit reached (optional)
-    init(value: Double, label: String, resetsAt: Date? = nil, timeToExhaustion: TimeInterval? = nil) {
-        self.value = value
-        self.label = label
-        self.resetsAt = resetsAt
-        self.timeToExhaustion = timeToExhaustion
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(label)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text("\(Int(value))%")
-                    .font(.system(size: 13, weight: .medium).monospacedDigit())
-            }
-
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color(nsColor: .separatorColor))
-
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(progressColor)
-                        .frame(width: geometry.size.width * min(value / 100, 1))
-                        .animation(.easeOut(duration: 0.3), value: value)
-                }
-            }
-            .frame(height: 6)
-
-            // Display reset time and/or time-to-exhaustion
-            if resetsAt != nil || shouldShowTimeToExhaustion {
-                HStack(spacing: 0) {
-                    if let resetsAt {
-                        Text("Resets \(resetsAt, style: .relative)")
-                    }
-                    if resetsAt != nil, shouldShowTimeToExhaustion {
-                        Text(" · ")
-                    }
-                    if shouldShowTimeToExhaustion {
-                        Text("~\(formattedTimeToExhaustion) until limit")
-                    }
-                }
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-            }
-        }
-    }
-
-    private var progressColor: Color {
-        switch value {
-        case 0..<50:
-            Color.green
-        case 50..<90:
-            Color.yellow
-        default:
-            Color(red: 0.757, green: 0.373, blue: 0.235) // #C15F3C - Claude Crail
-        }
-    }
-
-    /// Only show time-to-exhaustion when:
-    /// - Utilization > 20% (avoid noise at low usage)
-    /// - timeToExhaustion is not nil
-    /// - value is less than 100% (not already at limit)
-    private var shouldShowTimeToExhaustion: Bool {
-        guard value > 20, value < 100, let tte = timeToExhaustion, tte > 0 else {
-            return false
-        }
-        return true
-    }
-
-    /// Format TimeInterval to human-readable string.
-    /// Examples: "3h", "45min", "<1min"
-    private var formattedTimeToExhaustion: String {
-        guard let seconds = timeToExhaustion, seconds > 0 else {
-            return "—"
-        }
-
-        let hours = Int(seconds / 3600)
-        let minutes = Int((seconds.truncatingRemainder(dividingBy: 3600)) / 60)
-
-        if hours > 0 {
-            // Show hours only for clarity (e.g., "3h" not "3h 45min")
-            return "\(hours)h"
-        } else if minutes > 0 {
-            return "\(minutes)min"
-        } else {
-            return "<1min"
-        }
-    }
-}
-
 // MARK: - Loading View
 
 /// Displayed while fetching initial data.
@@ -687,46 +547,6 @@ struct SettingsView: View {
         }
         .frame(width: 320, height: 500)
         .background(Color(nsColor: .windowBackgroundColor))
-    }
-}
-
-// MARK: - Section Header
-
-/// Consistent header style for settings sections.
-struct SectionHeader: View {
-    let title: String
-
-    var body: some View {
-        Text(title)
-            .font(.caption)
-            .fontWeight(.medium)
-            .foregroundStyle(.secondary)
-            .textCase(.uppercase)
-    }
-}
-
-// MARK: - Settings Toggle
-
-/// A toggle with consistent styling for settings.
-struct SettingsToggle: View {
-    let title: String
-    @Binding var isOn: Bool
-    var subtitle: String?
-
-    var body: some View {
-        Toggle(isOn: $isOn) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.body)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .toggleStyle(.switch)
-        .controlSize(.small)
     }
 }
 
@@ -1042,7 +862,7 @@ struct AboutSection: View {
                 // App icon
                 Image(systemName: "sparkle")
                     .font(.system(size: 40))
-                    .foregroundStyle(Color(red: 0.757, green: 0.373, blue: 0.235))
+                    .foregroundStyle(Theme.Colors.primary)
 
                 Text("ClaudeApp")
                     .font(.headline)
