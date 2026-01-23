@@ -407,6 +407,96 @@ struct UsageDataTests {
         // When sonnet is nil, should fall back to highest (which is 60.0)
         #expect(data.utilization(for: .sonnet) == 60.0)
     }
+
+    @Test("highestBurnRate returns nil when no windows have burn rate")
+    func highestBurnRateNil() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0),
+            sevenDay: UsageWindow(utilization: 50.0),
+            sevenDayOpus: UsageWindow(utilization: 20.0),
+            sevenDaySonnet: UsageWindow(utilization: 40.0)
+        )
+
+        #expect(data.highestBurnRate == nil)
+    }
+
+    @Test("highestBurnRate returns the only burn rate when one exists")
+    func highestBurnRateSingle() {
+        let burnRate = BurnRate(percentPerHour: 15.0)
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0, burnRate: burnRate),
+            sevenDay: UsageWindow(utilization: 50.0),
+            sevenDayOpus: nil,
+            sevenDaySonnet: nil
+        )
+
+        #expect(data.highestBurnRate?.percentPerHour == 15.0)
+    }
+
+    @Test("highestBurnRate returns max from fiveHour")
+    func highestBurnRateFiveHour() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0, burnRate: BurnRate(percentPerHour: 60.0)),
+            sevenDay: UsageWindow(utilization: 50.0, burnRate: BurnRate(percentPerHour: 20.0)),
+            sevenDayOpus: UsageWindow(utilization: 20.0, burnRate: BurnRate(percentPerHour: 10.0)),
+            sevenDaySonnet: UsageWindow(utilization: 40.0, burnRate: BurnRate(percentPerHour: 30.0))
+        )
+
+        #expect(data.highestBurnRate?.percentPerHour == 60.0)
+        #expect(data.highestBurnRate?.level == .veryHigh)
+    }
+
+    @Test("highestBurnRate returns max from sevenDay")
+    func highestBurnRateSevenDay() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0, burnRate: BurnRate(percentPerHour: 5.0)),
+            sevenDay: UsageWindow(utilization: 50.0, burnRate: BurnRate(percentPerHour: 35.0)),
+            sevenDayOpus: UsageWindow(utilization: 20.0, burnRate: BurnRate(percentPerHour: 10.0)),
+            sevenDaySonnet: UsageWindow(utilization: 40.0, burnRate: BurnRate(percentPerHour: 15.0))
+        )
+
+        #expect(data.highestBurnRate?.percentPerHour == 35.0)
+        #expect(data.highestBurnRate?.level == .high)
+    }
+
+    @Test("highestBurnRate returns max from optional windows")
+    func highestBurnRateOptional() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0, burnRate: BurnRate(percentPerHour: 5.0)),
+            sevenDay: UsageWindow(utilization: 50.0, burnRate: BurnRate(percentPerHour: 10.0)),
+            sevenDayOpus: UsageWindow(utilization: 20.0, burnRate: BurnRate(percentPerHour: 45.0)),
+            sevenDaySonnet: nil
+        )
+
+        #expect(data.highestBurnRate?.percentPerHour == 45.0)
+        #expect(data.highestBurnRate?.level == .high)
+    }
+
+    @Test("highestBurnRate handles mix of nil and non-nil burn rates")
+    func highestBurnRateMixed() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0),  // No burn rate
+            sevenDay: UsageWindow(utilization: 50.0, burnRate: BurnRate(percentPerHour: 12.0)),
+            sevenDayOpus: nil,
+            sevenDaySonnet: UsageWindow(utilization: 40.0, burnRate: BurnRate(percentPerHour: 8.0))
+        )
+
+        #expect(data.highestBurnRate?.percentPerHour == 12.0)
+        #expect(data.highestBurnRate?.level == .medium)
+    }
+
+    @Test("highestBurnRate ignores nil optional windows")
+    func highestBurnRateNilOptionals() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0, burnRate: BurnRate(percentPerHour: 20.0)),
+            sevenDay: UsageWindow(utilization: 50.0, burnRate: BurnRate(percentPerHour: 15.0)),
+            sevenDayOpus: nil,
+            sevenDaySonnet: nil
+        )
+
+        #expect(data.highestBurnRate?.percentPerHour == 20.0)
+        #expect(data.highestBurnRate?.level == .medium)
+    }
 }
 
 // MARK: - Credentials Tests

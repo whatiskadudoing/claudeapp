@@ -32,6 +32,9 @@ public final class AppContainer {
     /// Manager for system notifications
     public let notificationManager: NotificationManager
 
+    /// Manager for notification permission state (observable for UI)
+    public let notificationPermissionManager: NotificationPermissionManager
+
     /// Checker for triggering usage notifications
     public let notificationChecker: UsageNotificationChecker
 
@@ -64,9 +67,10 @@ public final class AppContainer {
         // Create launch at login manager
         self.launchAtLoginManager = LaunchAtLoginManager()
 
-        // Create notification manager and checker
+        // Create notification manager, permission manager, and checker
         let notifManager = NotificationManager()
         self.notificationManager = notifManager
+        self.notificationPermissionManager = NotificationPermissionManager(notificationManager: notifManager)
         self.notificationChecker = UsageNotificationChecker(
             notificationManager: notifManager,
             settingsManager: settings
@@ -120,9 +124,10 @@ public final class AppContainer {
         self.settingsManager = settings
         self.launchAtLoginManager = launchAtLoginService.map { LaunchAtLoginManager(service: $0) } ?? LaunchAtLoginManager()
 
-        // Create notification manager and checker
+        // Create notification manager, permission manager, and checker
         let notifManager = notificationService.map { NotificationManager(notificationCenter: $0) } ?? NotificationManager()
         self.notificationManager = notifManager
+        self.notificationPermissionManager = NotificationPermissionManager(notificationManager: notifManager)
         self.notificationChecker = UsageNotificationChecker(
             notificationManager: notifManager,
             settingsManager: settings

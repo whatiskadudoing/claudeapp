@@ -45,6 +45,15 @@ public struct UsageData: Sendable, Equatable {
         ].max() ?? 0
     }
 
+    /// Returns the highest burn rate across all usage windows.
+    /// Used for the burn rate badge in the dropdown header.
+    /// Returns nil if no windows have burn rate data.
+    public var highestBurnRate: BurnRate? {
+        [fiveHour.burnRate, sevenDay.burnRate, sevenDayOpus?.burnRate, sevenDaySonnet?.burnRate]
+            .compactMap { $0 }
+            .max { $0.percentPerHour < $1.percentPerHour }
+    }
+
     /// Returns the utilization for the specified percentage source.
     /// Falls back to highest utilization if the requested source is unavailable.
     public func utilization(for source: PercentageSource) -> Double {

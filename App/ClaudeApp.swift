@@ -62,6 +62,7 @@ struct ClaudeApp: App {
             SettingsView()
                 .environment(container.settingsManager)
                 .environment(container.launchAtLoginManager)
+                .environment(container.notificationPermissionManager)
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
@@ -122,6 +123,38 @@ struct PlanBadgeLabel: View {
     }
 }
 
+// MARK: - Burn Rate Badge
+
+/// A small colored pill showing the current burn rate level in the dropdown header.
+/// Shows consumption velocity at a glance: Low (green), Med (yellow), High (orange), V.High (red).
+/// Only displayed when burn rate data is available (after 2+ samples collected).
+struct BurnRateBadge: View {
+    let level: BurnRateLevel
+
+    var body: some View {
+        Text(level.rawValue)
+            .font(.system(size: 10, weight: .medium))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(badgeColor.opacity(0.15))
+            .foregroundStyle(badgeColor)
+            .clipShape(Capsule())
+    }
+
+    private var badgeColor: Color {
+        switch level {
+        case .low:
+            Color.green
+        case .medium:
+            Color.yellow
+        case .high:
+            Color.orange
+        case .veryHigh:
+            Color(red: 0.757, green: 0.373, blue: 0.235) // #C15F3C - Claude Crail
+        }
+    }
+}
+
 // MARK: - Dropdown View
 
 /// The dropdown content that appears when clicking the menu bar item.
@@ -147,6 +180,10 @@ struct DropdownView: View {
                 Text("Claude Usage")
                     .font(.headline)
                 Spacer()
+                // Show burn rate badge when available
+                if let burnRateLevel = usageManager.usageData?.highestBurnRate?.level {
+                    BurnRateBadge(level: burnRateLevel)
+                }
                 SettingsButton {
                     openWindow(id: "settings")
                 }
@@ -718,8 +755,10 @@ struct RefreshSection: View {
 // MARK: - Notifications Section
 
 /// Settings for notification preferences.
+/// Handles permission status display and denied state UI.
 struct NotificationsSection: View {
     @Environment(SettingsManager.self) private var settings
+    @Environment(NotificationPermissionManager.self) private var permissionManager
 
     var body: some View {
         @Bindable var settings = settings
@@ -727,62 +766,134 @@ struct NotificationsSection: View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "Notifications")
 
-            SettingsToggle(
-                title: "Enable Notifications",
-                isOn: $settings.notificationsEnabled
-            )
-
-            if settings.notificationsEnabled {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Warning Threshold")
-                        Spacer()
-                        Text("\(settings.warningThreshold)%")
-                            .foregroundStyle(.secondary)
-                            .font(.body.monospacedDigit())
-                    }
-
-                    Slider(
-                        value: Binding(
-                            get: { Double(settings.warningThreshold) },
-                            set: { settings.warningThreshold = Int($0) }
-                        ),
-                        in: 50...99,
-                        step: 1
-                    )
-                    .controlSize(.small)
-
-                    HStack {
-                        Text("50%")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                        Spacer()
-                        Text("99%")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
+            // Enable toggle with permission request
+            Toggle(isOn: Binding(
+                get: { settings.notificationsEnabled },
+                set: { newValue in
+                    settings.notificationsEnabled = newValue
+                    if newValue {
+                        // Request permission when enabling notifications
+                        Task {
+                            await permissionManager.requestPermission()
+                        }
                     }
                 }
-
-                Divider()
-
-                SettingsToggle(
-                    title: "Usage Warnings",
-                    isOn: $settings.warningEnabled,
-                    subtitle: "When usage crosses threshold"
-                )
-
-                SettingsToggle(
-                    title: "Capacity Full",
-                    isOn: $settings.capacityFullEnabled,
-                    subtitle: "When usage reaches 100%"
-                )
-
-                SettingsToggle(
-                    title: "Reset Complete",
-                    isOn: $settings.resetCompleteEnabled,
-                    subtitle: "When limits reset"
-                )
+            )) {
+                Text("Enable Notifications")
+                    .font(.body)
             }
+            .toggleStyle(.switch)
+            .controlSize(.small)
+
+            if settings.notificationsEnabled {
+                // Permission denied warning banner
+                if permissionManager.isPermissionDenied {
+                    PermissionDeniedBanner()
+                }
+
+                // Only show settings when permission allows
+                if permissionManager.canSendNotifications {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Warning Threshold")
+                            Spacer()
+                            Text("\(settings.warningThreshold)%")
+                                .foregroundStyle(.secondary)
+                                .font(.body.monospacedDigit())
+                        }
+
+                        Slider(
+                            value: Binding(
+                                get: { Double(settings.warningThreshold) },
+                                set: { settings.warningThreshold = Int($0) }
+                            ),
+                            in: 50...99,
+                            step: 1
+                        )
+                        .controlSize(.small)
+
+                        HStack {
+                            Text("50%")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                            Spacer()
+                            Text("99%")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+
+                    Divider()
+
+                    SettingsToggle(
+                        title: "Usage Warnings",
+                        isOn: $settings.warningEnabled,
+                        subtitle: "When usage crosses threshold"
+                    )
+
+                    SettingsToggle(
+                        title: "Capacity Full",
+                        isOn: $settings.capacityFullEnabled,
+                        subtitle: "When usage reaches 100%"
+                    )
+
+                    SettingsToggle(
+                        title: "Reset Complete",
+                        isOn: $settings.resetCompleteEnabled,
+                        subtitle: "When limits reset"
+                    )
+                }
+            }
+        }
+        .onAppear {
+            // Re-check permission status when settings view opens
+            Task {
+                await permissionManager.refreshPermissionStatus()
+            }
+        }
+    }
+}
+
+// MARK: - Permission Denied Banner
+
+/// Banner shown when notification permission is denied.
+/// Provides a button to open System Settings.
+struct PermissionDeniedBanner: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .font(.caption)
+                Text("Notifications Disabled")
+                    .font(.caption)
+                    .fontWeight(.medium)
+            }
+
+            Text("Enable in System Settings > Notifications > ClaudeApp")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Button {
+                openNotificationSettings()
+            } label: {
+                Text("Open System Settings")
+                    .font(.caption)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func openNotificationSettings() {
+        // Open System Settings to Notifications pane
+        // The URL scheme opens the Notifications section
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") {
+            NSWorkspace.shared.open(url)
         }
     }
 }

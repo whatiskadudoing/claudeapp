@@ -132,7 +132,7 @@ Implement the calculation logic for burn rates and time-to-exhaustion.
 
 Add visual indicators for burn rate and time-to-exhaustion.
 
-- [ ] **Create BurnRateBadge component** [spec: features/view-usage.md] [file: App/ClaudeApp.swift]
+- [x] **Create BurnRateBadge component** [spec: features/view-usage.md] [file: App/ClaudeApp.swift]
   - Create `BurnRateBadge` view showing burn rate level as colored pill
   - Input: `burnRateLevel: BurnRateLevel?`
   - Show nothing if nil (insufficient data)
@@ -140,6 +140,7 @@ Add visual indicators for burn rate and time-to-exhaustion.
   - Font: caption, padding: horizontal 6pt
   - Position: In dropdown header between title and buttons
   - **Research:** `specs/design-system.md` for color tokens, `specs/features/view-usage.md` lines 188-198
+  - ✅ Completed: BurnRateBadge component created with color-coded pill, integrated into DropdownView header (232 tests passing)
 
 - [ ] **Add time-to-exhaustion display to UsageProgressBar** [spec: features/view-usage.md] [file: App/ClaudeApp.swift]
   - Extend UsageProgressBar to accept optional `timeToExhaustion: TimeInterval?`
