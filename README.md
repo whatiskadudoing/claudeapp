@@ -21,6 +21,19 @@ A native macOS menu bar application that helps Claude Code users track their API
 - **Update Checking** - Automatic checks for new versions via GitHub Releases
 - **Launch at Login** - Native SMAppService integration
 - **Dark Mode Support** - Follows system appearance
+- **Multi-Language Support** - Available in English, Portuguese (Brazil), and Spanish (Latin America)
+
+## Supported Languages
+
+ClaudeApp is fully localized in the following languages:
+
+| Language | Code | Region |
+|----------|------|--------|
+| English | en | US/UK (default) |
+| Portuguese | pt-BR | Brazil |
+| Spanish | es | Latin America |
+
+The app automatically uses your macOS system language. To manually test a specific language, see [Testing Localization](#testing-localization) below.
 
 ## Requirements
 
@@ -113,6 +126,33 @@ make check         # Run format + lint + test (CI gate)
 make setup         # Install git hooks + resolve deps
 ```
 
+### Testing Localization
+
+To test the app in a specific language, use these launch arguments in Xcode:
+
+**Product > Scheme > Edit Scheme > Run > Arguments > Arguments Passed On Launch:**
+
+```bash
+# Portuguese (Brazil)
+-AppleLanguages "(pt-BR)"
+-AppleLocale "pt_BR"
+
+# Spanish (Latin America)
+-AppleLanguages "(es)"
+-AppleLocale "es_419"
+```
+
+Or run from Terminal:
+
+```bash
+# Run in Portuguese
+defaults write com.kaduwaengertner.ClaudeApp AppleLanguages -array "pt-BR"
+open /Applications/ClaudeApp.app
+
+# Reset to system default
+defaults delete com.kaduwaengertner.ClaudeApp AppleLanguages
+```
+
 ## Contributing
 
 Contributions are welcome! Please follow these guidelines:
@@ -131,6 +171,19 @@ make check         # Must pass: format, lint, test
 ```
 
 The CI workflow runs on all pull requests and must pass before merging.
+
+### Adding Translations
+
+To add support for a new language:
+
+1. **Edit String Catalog** - Open `App/Localizable.xcstrings` in Xcode
+2. **Add Language** - In the String Catalog editor, add a new language from the "+" menu
+3. **Translate All Keys** - Provide translations for all ~105 strings
+4. **Follow Glossary** - Use consistent terminology (see [specs/internationalization.md](specs/internationalization.md#glossary))
+5. **Test Thoroughly** - Run the app with your language to verify all strings appear correctly
+6. **Submit PR** - Include screenshots showing the localized UI
+
+See [specs/internationalization.md](specs/internationalization.md) for the complete localization specification.
 
 ## Privacy
 

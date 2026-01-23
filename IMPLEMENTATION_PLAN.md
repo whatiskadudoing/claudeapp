@@ -214,13 +214,14 @@ Key research documents for this implementation:
     - All 11 key categories (accessibility, button, burnRate, error, notification, etc.)
   - **Test:** Build succeeds, all 402 tests pass ✅
 
-- [ ] **Update documentation for i18n** [file: README.md, specs/README.md, IMPLEMENTATION_PLAN.md]
-  - Add "Supported Languages" section to README.md
-  - Document how to run app in different locales
-  - Document contribution guidelines for translations
-  - Update IMPLEMENTATION_PLAN.md to mark SLC 5 complete
-  - Update version to 1.4.0
-  - **Test:** Documentation is accurate and helpful
+- [x] **Update documentation for i18n** [file: README.md, specs/README.md, IMPLEMENTATION_PLAN.md]
+  - Added "Supported Languages" section to README.md with table of en, pt-BR, es
+  - Added "Multi-Language Support" to features list
+  - Added "Testing Localization" section with Xcode and Terminal instructions
+  - Added "Adding Translations" contribution guidelines with 6-step process
+  - Updated specs/README.md with i18n completion status and Multi-Language feature
+  - Updated version to 1.4.0 in version history table
+  - **Test:** Documentation is accurate and helpful ✅
 
 ---
 <!-- CHECKPOINT: Phase 4 completes SLC 5. The app now supports English, Portuguese, and Spanish. -->
@@ -437,4 +438,4 @@ All tasks completed with 369 passing tests.
 | 2 | Notifications & Settings | 1.1.0 | 155 | COMPLETE |
 | 3 | Predictive Insights | 1.2.0 | 320 | COMPLETE |
 | 4 | Distribution Ready | 1.3.0 | 369 | COMPLETE |
-| 5 | Internationalization | 1.4.0 | ~385 | **PLANNED** |
+| 5 | Internationalization | 1.4.0 | 402 | COMPLETE |
