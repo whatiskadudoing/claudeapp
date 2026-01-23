@@ -244,7 +244,7 @@ struct DropdownView: View {
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel(String(localized: "accessibility.staleWarning"))
                 } else if let lastUpdated = usageManager.lastUpdated {
-                    Text("Updated \(lastUpdated, style: .relative) ago")
+                    Text(updatedAgoText(for: lastUpdated))
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
@@ -272,6 +272,18 @@ struct DropdownView: View {
             // Set initial focus to refresh button when dropdown opens
             focusedElement = .refresh
         }
+    }
+
+    /// Localized text for "Updated X ago" display.
+    /// Combines localized format string with system-provided relative date.
+    private func updatedAgoText(for date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        let relativeTime = formatter.localizedString(for: date, relativeTo: Date())
+
+        let key = "usage.updated %@"
+        let format = Bundle.main.localizedString(forKey: key, value: "Updated %@ ago", table: nil)
+        return String(format: format, relativeTime)
     }
 }
 
