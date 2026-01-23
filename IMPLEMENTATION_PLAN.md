@@ -103,15 +103,19 @@ Key research documents for this implementation:
   - **Research:** Used `specs/user-documentation.md` templates, adapted with actual repo URLs
   - **Test:** Documentation verified against codebase exploration ✅
 
-- [ ] **Create privacy policy** [spec: user-documentation.md] [file: docs/privacy.md]
-  - Document what data is accessed (OAuth token, usage stats, preferences)
-  - Document what is NOT accessed (conversations, personal info)
-  - Explain local-only storage
-  - No analytics, no crash reporting, no telemetry
-  - Third-party services (Anthropic API, optional GitHub)
-  - User rights (data access, deletion)
-  - **Research:** `specs/user-documentation.md#privacy.md` for template
-  - **Test:** Privacy policy matches actual app behavior
+- [x] **Create privacy policy** [spec: user-documentation.md] [file: docs/privacy.md]
+  - Created comprehensive privacy policy documenting:
+    - What data is accessed: OAuth token (read-only from Keychain), usage statistics, user preferences
+    - What is NOT accessed: conversations, code, personal info, browsing history
+    - Local-only storage: Keychain (managed by Claude Code), UserDefaults for settings, memory-only for usage history
+    - No analytics, no crash reporting, no telemetry (verified via codebase audit)
+    - Third-party services: Anthropic API (required), GitHub API (optional, for updates)
+    - User rights: data access commands, complete deletion instructions
+    - Network security details (HTTPS, credential handling)
+    - Children's privacy statement
+    - Summary table for quick reference
+  - **Research:** Used `specs/user-documentation.md#privacy.md` template, verified against actual codebase
+  - **Test:** Privacy policy matches actual app behavior (verified via codebase exploration) ✅
 
 ---
 <!-- CHECKPOINT: Phase 1 delivers user documentation. Users can now install and troubleshoot. -->
