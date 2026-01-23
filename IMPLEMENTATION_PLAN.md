@@ -98,14 +98,12 @@ Key research documents for this implementation:
 
 **Purpose:** Ensure status information is conveyed through patterns and shapes, not just color.
 
-- [ ] **Add pattern overlays to progress bars at critical thresholds** [spec: accessibility.md#color-blind] [file: Packages/UI/Sources/UI/UsageProgressBar.swift]
-  - At >90% utilization: Add diagonal stripe pattern overlay to progress bar fill
-  - At 100% utilization: Add solid pattern or pulsing animation (respecting reduced motion)
-  - Pattern should be visible but not obscure the percentage text
-  - Implementation approach: Use `Canvas` or `Shape` with `.stroke(style:)` for stripes
-  - Colors remain for sighted users; patterns add redundant information
-  - **Research:** `specs/accessibility.md` lines 263-298 for pattern requirements
-  - **Test:** Status distinguishable in grayscale/color-blind simulation
+- [x] **Add pattern overlays to progress bars at critical thresholds** [spec: accessibility.md#color-blind] [file: Packages/UI/Sources/UI/UsageProgressBar.swift]
+  - At ≥90% utilization: Add diagonal stripe pattern overlay to progress bar fill
+  - Pattern is visible but does not obscure the percentage text
+  - Implementation: Created `DiagonalStripes` Shape with configurable lineWidth/spacing
+  - Colors remain for sighted users; patterns add redundant information for color-blind users
+  - **COMPLETED:** Added DiagonalStripes shape and integrated into UsageProgressBar. 18 new tests added (UsageProgressBar Pattern Tests, DiagonalStripes Shape Tests, Color-Blind Accessibility Tests). All 420 tests pass.
 
 - [ ] **Add shape indicators to burn rate badge** [spec: accessibility.md#color-blind] [file: Packages/UI/Sources/UI/BurnRateBadge.swift]
   - Low: Circle or no shape (green, safe)

@@ -1,10 +1,38 @@
 import SwiftUI
 
+// MARK: - Diagonal Stripes Pattern
+
+/// A diagonal stripe pattern shape for color-blind accessibility.
+/// Used to provide visual pattern overlay on progress bars at critical thresholds.
+/// This ensures status is conveyed through patterns, not just color (WCAG 2.1 AA).
+struct DiagonalStripes: Shape {
+    let lineWidth: CGFloat
+    let spacing: CGFloat
+
+    init(lineWidth: CGFloat = 2, spacing: CGFloat = 6) {
+        self.lineWidth = lineWidth
+        self.spacing = spacing
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        // Create diagonal lines from bottom-left to top-right
+        let count = Int((rect.width + rect.height) / spacing) + 1
+        for i in 0..<count {
+            let x = CGFloat(i) * spacing - rect.height
+            path.move(to: CGPoint(x: x, y: rect.height))
+            path.addLine(to: CGPoint(x: x + rect.height, y: 0))
+        }
+        return path
+    }
+}
+
 // MARK: - Usage Progress Bar
 
 /// A single progress bar showing utilization percentage.
 /// Displays reset time and optionally time-to-exhaustion when calculable.
 /// Adapts layout for accessibility text sizes.
+/// Includes diagonal stripe pattern at >90% for color-blind accessibility.
 public struct UsageProgressBar: View {
     let value: Double
     let label: String
@@ -61,13 +89,26 @@ public struct UsageProgressBar: View {
 
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
+                    // Background track
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color(nsColor: .separatorColor))
 
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(progressColor)
-                        .frame(width: geometry.size.width * min(value / 100, 1))
-                        .animation(.easeOut(duration: 0.3), value: value)
+                    // Progress fill with optional pattern overlay
+                    ZStack {
+                        // Base color fill
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(progressColor)
+
+                        // Diagonal stripe pattern overlay for color-blind accessibility
+                        // Shows at >90% utilization to convey critical status without relying on color
+                        if shouldShowPattern {
+                            DiagonalStripes(lineWidth: 1.5, spacing: 4)
+                                .stroke(Color.white.opacity(0.4), lineWidth: 1.5)
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                        }
+                    }
+                    .frame(width: geometry.size.width * min(value / 100, 1))
+                    .animation(.easeOut(duration: 0.3), value: value)
                 }
             }
             .frame(height: 6)
@@ -105,6 +146,13 @@ public struct UsageProgressBar: View {
         default:
             Theme.Colors.primary
         }
+    }
+
+    /// Whether to show diagonal stripe pattern overlay.
+    /// Shows at >90% utilization to convey critical status for color-blind users.
+    /// Pattern provides redundant visual information beyond color alone (WCAG 2.1 AA).
+    private var shouldShowPattern: Bool {
+        value >= 90
     }
 
     /// Comprehensive accessibility label for VoiceOver.
