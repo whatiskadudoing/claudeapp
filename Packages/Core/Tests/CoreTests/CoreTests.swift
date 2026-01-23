@@ -863,6 +863,22 @@ struct AppContainerTests {
         // Verify notification was triggered (usage warning for session)
         #expect(mockNotifications.getAddedRequestCount() >= 1)
     }
+
+    @Test("AppContainer test init creates update checker")
+    @MainActor
+    func testInitCreatesUpdateChecker() {
+        let mockCredentials = MockCredentialsRepository()
+        let mockUsage = MockUsageRepository()
+        let mockNotifications = MockNotificationService()
+        let container = AppContainer(
+            credentialsRepository: mockCredentials,
+            usageRepository: mockUsage,
+            notificationService: mockNotifications
+        )
+
+        // Verify update checker is created (it's a non-optional property, so it always exists)
+        let _: UpdateChecker = container.updateChecker
+    }
 }
 
 // MARK: - Mock Credentials Repository for Tests

@@ -38,6 +38,9 @@ public final class AppContainer {
     /// Checker for triggering usage notifications
     public let notificationChecker: UsageNotificationChecker
 
+    /// Checker for app updates via GitHub Releases
+    public let updateChecker: UpdateChecker
+
     // MARK: - Configuration
 
     /// Default auto-refresh interval (5 minutes)
@@ -76,6 +79,9 @@ public final class AppContainer {
             settingsManager: settings
         )
 
+        // Create update checker
+        self.updateChecker = UpdateChecker()
+
         // Create usage manager
         self.usageManager = UsageManager(usageRepository: apiClient)
 
@@ -99,6 +105,38 @@ public final class AppContainer {
 
         // Register sleep/wake observers
         registerSleepWakeObservers()
+
+        // Check for updates 5 seconds after launch (if enabled in settings)
+        if settings.checkForUpdates {
+            Task {
+                try? await Task.sleep(for: .seconds(5))
+                await checkForUpdatesInBackground(notificationManager: notifManager, updateChecker: self.updateChecker)
+            }
+        }
+    }
+
+    /// Performs a background update check and sends notification if update found.
+    /// - Parameters:
+    ///   - notificationManager: Manager to send notification through
+    ///   - updateChecker: Checker to perform the version check
+    private func checkForUpdatesInBackground(
+        notificationManager: NotificationManager,
+        updateChecker: UpdateChecker
+    ) async {
+        guard let result = await updateChecker.checkInBackground() else {
+            return // Rate limited or skipped
+        }
+
+        // Only notify if we should (haven't notified for this version yet)
+        guard let updateInfo = await updateChecker.shouldNotify(for: result) else {
+            return
+        }
+
+        await notificationManager.send(
+            title: "Update Available",
+            body: "ClaudeApp v\(updateInfo.version) is now available",
+            identifier: "update-available-\(updateInfo.version)"
+        )
     }
 
     /// Creates a new AppContainer with custom dependencies (for testing).
@@ -132,6 +170,9 @@ public final class AppContainer {
             notificationManager: notifManager,
             settingsManager: settings
         )
+
+        // Create update checker (uses default settings for tests)
+        self.updateChecker = UpdateChecker()
 
         self.usageManager = UsageManager(usageRepository: usageRepository)
         usageManager.setNotificationChecker(notificationChecker)

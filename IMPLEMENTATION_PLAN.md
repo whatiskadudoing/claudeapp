@@ -191,13 +191,14 @@ Implement version checking via GitHub Releases API.
   - **Research:** `research/apis/github-releases.md` lines 179-206 for models
   - ✅ Completed: All models in UpdateChecker.swift with Sendable, Equatable, Decodable conformance. Added draft/prerelease fields to GitHubRelease. Bundle extension for appVersion/buildNumber.
 
-- [ ] **Integrate update checking into app lifecycle** [file: App/ClaudeApp.swift, Packages/Core/Sources/Core/AppContainer.swift]
+- [x] **Integrate update checking into app lifecycle** [file: App/ClaudeApp.swift, Packages/Core/Sources/Core/AppContainer.swift]
   - Add `updateChecker: UpdateChecker` to AppContainer
   - Check for updates 5 seconds after app launch (non-blocking)
   - Only check if `settings.checkForUpdates` is true
   - Show notification if update found (use NotificationManager)
   - Track lastNotifiedVersion to avoid spam
   - **Note:** Respect 24-hour rate limit for auto-checks
+  - ✅ Completed: UpdateChecker added to AppContainer, background check on launch with 5s delay, notification sent when update found (271 tests passing)
 
 - [ ] **Implement update UI in Settings About section** [file: App/ClaudeApp.swift]
   - Enable the currently-disabled "Check for Updates" button
