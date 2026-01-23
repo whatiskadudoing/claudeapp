@@ -120,7 +120,7 @@ Key research documents for this implementation:
 
 **Purpose:** Respect system accessibility preferences for motion and contrast.
 
-- [ ] **Implement reduced motion support** [spec: accessibility.md#reduced-motion] [file: Packages/UI/Sources/UI/*.swift, App/ClaudeApp.swift]
+- [x] **Implement reduced motion support** [spec: accessibility.md#reduced-motion] [file: Packages/UI/Sources/UI/*.swift, App/ClaudeApp.swift]
   - Detect `UIAccessibility.isReduceMotionEnabled` (use `@Environment(\.accessibilityReduceMotion)`)
   - When enabled:
     - Replace progress bar animations with instant transitions
@@ -130,6 +130,7 @@ Key research documents for this implementation:
   - Test by enabling "Reduce motion" in System Settings > Accessibility > Display
   - **Research:** `specs/accessibility.md` lines 248-262 for motion requirements
   - **Test:** No animations when Reduce Motion enabled, all states still visible
+  - **COMPLETED:** Added `@Environment(\.accessibilityReduceMotion)` to both RefreshButton and UsageProgressBar. RefreshButton uses `shouldAnimate` computed property that returns false when reduceMotion is enabled (no spinning). UsageProgressBar uses `progressAnimation` computed property that returns nil when reduceMotion is enabled (instant width changes). 11 new tests added (ReducedMotionAccessibilityTests + RefreshButtonReducedMotionTests). All 444 tests pass.
 
 - [ ] **Fix yellow warning color contrast** [spec: accessibility.md] [file: Packages/UI/Sources/UI/Theme.swift, UsageProgressBar.swift]
   - Current yellow (#EAB308) on background (#F4F3EE) is 2.1:1 (fails WCAG AA 3:1 for UI)

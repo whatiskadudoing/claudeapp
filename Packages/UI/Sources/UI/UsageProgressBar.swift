@@ -33,17 +33,25 @@ struct DiagonalStripes: Shape {
 /// Displays reset time and optionally time-to-exhaustion when calculable.
 /// Adapts layout for accessibility text sizes.
 /// Includes diagonal stripe pattern at >90% for color-blind accessibility.
+/// Respects "Reduce Motion" accessibility setting - instant width changes instead of animated.
 public struct UsageProgressBar: View {
-    let value: Double
-    let label: String
-    let resetsAt: Date?
-    let timeToExhaustion: TimeInterval?
+    public let value: Double
+    public let label: String
+    public let resetsAt: Date?
+    public let timeToExhaustion: TimeInterval?
 
     @Environment(\.sizeCategory) private var sizeCategory
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Whether we're using accessibility sizes (AX1 and above)
     private var isAccessibilitySize: Bool {
         sizeCategory >= .accessibilityMedium
+    }
+
+    /// Animation for the progress bar fill.
+    /// Returns nil when Reduce Motion is enabled (instant width changes).
+    private var progressAnimation: Animation? {
+        reduceMotion ? nil : .easeOut(duration: 0.3)
     }
 
     /// Initialize with required parameters.
@@ -108,7 +116,7 @@ public struct UsageProgressBar: View {
                         }
                     }
                     .frame(width: geometry.size.width * min(value / 100, 1))
-                    .animation(.easeOut(duration: 0.3), value: value)
+                    .animation(progressAnimation, value: value)
                 }
             }
             .frame(height: 6)

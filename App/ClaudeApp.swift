@@ -401,8 +401,10 @@ struct SettingsButton: View {
 
 /// Button for manual refresh with visual state feedback.
 /// Shows different icons based on refresh state: idle, loading, success, error.
+/// Respects "Reduce Motion" accessibility setting - shows static icon instead of spinning.
 struct RefreshButton: View {
     @Environment(UsageManager.self) private var usageManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Button {
@@ -410,18 +412,28 @@ struct RefreshButton: View {
         } label: {
             Image(systemName: iconName)
                 .foregroundStyle(iconColor)
-                .rotationEffect(.degrees(usageManager.refreshState == .loading ? 360 : 0))
-                .animation(
-                    usageManager.refreshState == .loading
-                        ? .linear(duration: 1).repeatForever(autoreverses: false)
-                        : .default,
-                    value: usageManager.refreshState
-                )
+                .rotationEffect(.degrees(shouldAnimate ? 360 : 0))
+                .animation(animationValue, value: usageManager.refreshState)
         }
         .buttonStyle(.plain)
         .disabled(usageManager.isLoading)
         .keyboardShortcut("r", modifiers: .command)
         .accessibilityLabel(refreshAccessibilityLabel)
+    }
+
+    /// Whether the spinning animation should be active.
+    /// Disabled when Reduce Motion is enabled - shows static icon instead.
+    private var shouldAnimate: Bool {
+        usageManager.refreshState == .loading && !reduceMotion
+    }
+
+    /// Animation for the refresh button rotation.
+    /// Returns nil when Reduce Motion is enabled (instant state changes).
+    private var animationValue: Animation? {
+        guard !reduceMotion else { return nil }
+        return usageManager.refreshState == .loading
+            ? .linear(duration: 1).repeatForever(autoreverses: false)
+            : .default
     }
 
     private var iconName: String {
