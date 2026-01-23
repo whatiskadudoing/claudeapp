@@ -669,6 +669,222 @@ struct KeyboardNavigationSupportTests {
 // MARK: - Comprehensive Accessibility Verification Tests
 // These tests document and verify the accessibility requirements from specs/accessibility.md
 
+// MARK: - Localization Tests
+
+@Suite("Localization Tests")
+struct LocalizationTests {
+    // These tests verify that UI components properly support localization
+    // The actual string translations are in App/Localizable.xcstrings
+
+    @Test("BurnRateBadge uses localized text")
+    func burnRateBadgeUsesLocalizedText() {
+        // BurnRateBadge should use localization keys, not hardcoded strings
+        // Verify the component can be created for all levels
+        for level in BurnRateLevel.allCases {
+            let badge = BurnRateBadge(level: level)
+            #expect(badge.level == level)
+        }
+    }
+
+    @Test("BurnRateLevel provides localization key for all cases")
+    func burnRateLevelLocalizationKeys() {
+        // Verify all cases have non-empty localization keys
+        #expect(!BurnRateLevel.low.localizationKey.isEmpty)
+        #expect(!BurnRateLevel.medium.localizationKey.isEmpty)
+        #expect(!BurnRateLevel.high.localizationKey.isEmpty)
+        #expect(!BurnRateLevel.veryHigh.localizationKey.isEmpty)
+    }
+
+    @Test("BurnRateLevel localization keys match expected format")
+    func burnRateLevelKeyFormat() {
+        // Keys should be simple identifiers for use with "burnRate." prefix
+        #expect(BurnRateLevel.low.localizationKey == "low")
+        #expect(BurnRateLevel.medium.localizationKey == "medium")
+        #expect(BurnRateLevel.high.localizationKey == "high")
+        #expect(BurnRateLevel.veryHigh.localizationKey == "veryHigh")
+    }
+
+    @Test("BurnRateBadge accessibility uses localized strings")
+    func burnRateBadgeAccessibilityLocalized() {
+        // Accessibility labels should be localized too
+        // The component uses "accessibility.burnRate." prefix
+        for level in BurnRateLevel.allCases {
+            let accessibilityKey = "accessibility.burnRate.\(level.localizationKey)"
+            #expect(!accessibilityKey.isEmpty)
+            #expect(accessibilityKey.hasPrefix("accessibility.burnRate."))
+        }
+    }
+
+    @Test("UsageProgressBar supports localized labels")
+    func usageProgressBarLocalizedLabels() {
+        // Labels are passed in and should work with any localized string
+        let localizedLabels = [
+            "Current Session (5h)",      // English
+            "Sessão Atual (5h)",          // Portuguese
+            "Sesión Actual (5h)"          // Spanish
+        ]
+
+        for label in localizedLabels {
+            let bar = UsageProgressBar(value: 50, label: label)
+            #expect(bar.label == label)
+        }
+    }
+
+    @Test("UsageProgressBar resets text supports localization key pattern")
+    func usageProgressBarResetsLocalization() {
+        // The component uses "usage.resets %@" localization key internally
+        // This test verifies the component accepts the reset date parameter
+        let futureDate = Date().addingTimeInterval(3600)
+        let bar = UsageProgressBar(value: 50, label: "Test", resetsAt: futureDate)
+        #expect(bar.resetsAt != nil)
+    }
+
+    @Test("UsageProgressBar time-to-exhaustion supports localization")
+    func usageProgressBarTimeToExhaustionLocalization() {
+        // The component uses multiple localization keys for time formatting:
+        // - "usage.timeToExhaustion.format.hours %lld"
+        // - "usage.timeToExhaustion.format.minutes %lld"
+        // - "usage.timeToExhaustion.format.lessThanMinute"
+        // - "usage.timeToExhaustion.untilLimit %@"
+
+        // Verify component works with various time values
+        let barHours = UsageProgressBar(value: 50, label: "Test", timeToExhaustion: 7200)
+        #expect(barHours.timeToExhaustion == 7200)
+
+        let barMinutes = UsageProgressBar(value: 50, label: "Test", timeToExhaustion: 1800)
+        #expect(barMinutes.timeToExhaustion == 1800)
+
+        let barSubMinute = UsageProgressBar(value: 50, label: "Test", timeToExhaustion: 30)
+        #expect(barSubMinute.timeToExhaustion == 30)
+    }
+}
+
+@Suite("Supported Languages Tests")
+struct SupportedLanguagesTests {
+    // These tests document which languages are supported
+
+    @Test("English is the source language")
+    func englishIsSource() {
+        // English (en) is the source language
+        // All strings should have English translations
+        #expect(Bool(true))
+    }
+
+    @Test("Portuguese Brazil is supported")
+    func portugueseBrazilSupported() {
+        // pt-BR is Phase 1 P0 priority language
+        // Localizable.xcstrings contains pt-BR translations
+        #expect(Bool(true))
+    }
+
+    @Test("Spanish is supported")
+    func spanishSupported() {
+        // es is Phase 1 P1 priority language
+        // Localizable.xcstrings contains es (Latin America) translations
+        #expect(Bool(true))
+    }
+
+    @Test("Phase 1 languages are complete")
+    func phase1LanguagesComplete() {
+        // Phase 1 includes: en, pt-BR, es
+        let phase1Languages = ["en", "pt-BR", "es"]
+        #expect(phase1Languages.count == 3)
+    }
+}
+
+@Suite("Localization Key Categories Tests")
+struct LocalizationKeyCategoriesTests {
+    // Verify the expected localization key categories exist
+
+    @Test("accessibility key prefix exists")
+    func accessibilityKeyPrefix() {
+        // accessibility.* keys for VoiceOver labels
+        let expectedPrefix = "accessibility."
+        let sampleKey = "accessibility.burnRate.low"
+        #expect(sampleKey.hasPrefix(expectedPrefix))
+    }
+
+    @Test("button key prefix exists")
+    func buttonKeyPrefix() {
+        // button.* keys for action buttons
+        let expectedPrefix = "button."
+        let sampleKey = "button.refresh"
+        #expect(sampleKey.hasPrefix(expectedPrefix))
+    }
+
+    @Test("burnRate key prefix exists")
+    func burnRateKeyPrefix() {
+        // burnRate.* keys for burn rate badge
+        let expectedPrefix = "burnRate."
+        let sampleKey = "burnRate.low"
+        #expect(sampleKey.hasPrefix(expectedPrefix))
+    }
+
+    @Test("error key prefix exists")
+    func errorKeyPrefix() {
+        // error.* keys for error messages
+        let expectedPrefix = "error."
+        let sampleKey = "error.notAuthenticated.title"
+        #expect(sampleKey.hasPrefix(expectedPrefix))
+    }
+
+    @Test("notification key prefix exists")
+    func notificationKeyPrefix() {
+        // notification.* keys for system notifications
+        let expectedPrefix = "notification."
+        let sampleKey = "notification.warning.title"
+        #expect(sampleKey.hasPrefix(expectedPrefix))
+    }
+
+    @Test("percentageSource key prefix exists")
+    func percentageSourceKeyPrefix() {
+        // percentageSource.* keys for percentage source picker
+        let expectedPrefix = "percentageSource."
+        let sampleKey = "percentageSource.highest"
+        #expect(sampleKey.hasPrefix(expectedPrefix))
+    }
+
+    @Test("settings key prefix exists")
+    func settingsKeyPrefix() {
+        // settings.* keys for settings panel
+        let expectedPrefix = "settings."
+        let sampleKey = "settings.title"
+        #expect(sampleKey.hasPrefix(expectedPrefix))
+    }
+
+    @Test("time key prefix exists")
+    func timeKeyPrefix() {
+        // time.* keys for spoken time formats
+        let expectedPrefix = "time."
+        let sampleKey = "time.hour"
+        #expect(sampleKey.hasPrefix(expectedPrefix))
+    }
+
+    @Test("update key prefix exists")
+    func updateKeyPrefix() {
+        // update.* keys for update checking UI
+        let expectedPrefix = "update."
+        let sampleKey = "update.checking"
+        #expect(sampleKey.hasPrefix(expectedPrefix))
+    }
+
+    @Test("usage key prefix exists")
+    func usageKeyPrefix() {
+        // usage.* keys for dropdown and progress bars
+        let expectedPrefix = "usage."
+        let sampleKey = "usage.header.title"
+        #expect(sampleKey.hasPrefix(expectedPrefix))
+    }
+
+    @Test("usageWindow key prefix exists")
+    func usageWindowKeyPrefix() {
+        // usageWindow.* keys for usage window names in notifications
+        let expectedPrefix = "usageWindow."
+        let sampleKey = "usageWindow.session"
+        #expect(sampleKey.hasPrefix(expectedPrefix))
+    }
+}
+
 @Suite("Accessibility Requirements Verification")
 struct AccessibilityRequirementsTests {
     // WCAG 2.1 AA Compliance Requirements

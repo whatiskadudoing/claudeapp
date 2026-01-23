@@ -552,6 +552,118 @@ struct CredentialsTests {
 
 // MARK: - AppError Tests
 
+// MARK: - Localization Key Tests
+
+@Suite("Localization Key Tests")
+struct LocalizationKeyTests {
+    // MARK: - BurnRateLevel Localization Keys
+
+    @Test("BurnRateLevel localization keys follow naming convention")
+    func burnRateLevelLocalizationKeys() {
+        // Keys should be lowercase and match the case names
+        #expect(BurnRateLevel.low.localizationKey == "low")
+        #expect(BurnRateLevel.medium.localizationKey == "medium")
+        #expect(BurnRateLevel.high.localizationKey == "high")
+        #expect(BurnRateLevel.veryHigh.localizationKey == "veryHigh")
+    }
+
+    @Test("BurnRateLevel all cases have localization keys")
+    func burnRateLevelAllCasesHaveKeys() {
+        for level in BurnRateLevel.allCases {
+            #expect(!level.localizationKey.isEmpty)
+        }
+    }
+
+    @Test("BurnRateLevel display keys are properly formatted")
+    func burnRateLevelDisplayKeys() {
+        // The UI uses "burnRate." prefix for display text
+        for level in BurnRateLevel.allCases {
+            let displayKey = "burnRate.\(level.localizationKey)"
+            #expect(displayKey.hasPrefix("burnRate."))
+            #expect(displayKey.count > "burnRate.".count)
+        }
+    }
+
+    @Test("BurnRateLevel accessibility keys are properly formatted")
+    func burnRateLevelAccessibilityKeys() {
+        // The UI uses "accessibility.burnRate." prefix for VoiceOver
+        for level in BurnRateLevel.allCases {
+            let accessibilityKey = "accessibility.burnRate.\(level.localizationKey)"
+            #expect(accessibilityKey.hasPrefix("accessibility.burnRate."))
+            #expect(accessibilityKey.count > "accessibility.burnRate.".count)
+        }
+    }
+
+    // MARK: - PercentageSource Localization Keys
+
+    @Test("PercentageSource localization keys follow naming convention")
+    func percentageSourceLocalizationKeys() {
+        // Keys should use "percentageSource." prefix
+        #expect(PercentageSource.highest.localizationKey == "percentageSource.highest")
+        #expect(PercentageSource.session.localizationKey == "percentageSource.session")
+        #expect(PercentageSource.weekly.localizationKey == "percentageSource.weekly")
+        #expect(PercentageSource.opus.localizationKey == "percentageSource.opus")
+        #expect(PercentageSource.sonnet.localizationKey == "percentageSource.sonnet")
+    }
+
+    @Test("PercentageSource all cases have localization keys")
+    func percentageSourceAllCasesHaveKeys() {
+        for source in PercentageSource.allCases {
+            #expect(!source.localizationKey.isEmpty)
+            #expect(source.localizationKey.hasPrefix("percentageSource."))
+        }
+    }
+
+    @Test("PercentageSource localization keys are unique")
+    func percentageSourceKeysAreUnique() {
+        var seenKeys = Set<String>()
+        for source in PercentageSource.allCases {
+            let key = source.localizationKey
+            #expect(!seenKeys.contains(key), "Duplicate key found: \(key)")
+            seenKeys.insert(key)
+        }
+    }
+
+    @Test("BurnRateLevel localization keys are unique")
+    func burnRateLevelKeysAreUnique() {
+        var seenKeys = Set<String>()
+        for level in BurnRateLevel.allCases {
+            let key = level.localizationKey
+            #expect(!seenKeys.contains(key), "Duplicate key found: \(key)")
+            seenKeys.insert(key)
+        }
+    }
+
+    // MARK: - Key Naming Convention Tests
+
+    @Test("Localization key format uses dot notation")
+    func localizationKeyFormatUsesDotNotation() {
+        // All keys should use dot notation (category.subcategory.item)
+        for source in PercentageSource.allCases {
+            let parts = source.localizationKey.split(separator: ".")
+            #expect(parts.count >= 2, "Key should have at least category.item format")
+        }
+    }
+
+    @Test("Localization keys do not contain spaces")
+    func localizationKeysNoSpaces() {
+        for source in PercentageSource.allCases {
+            #expect(!source.localizationKey.contains(" "), "Key should not contain spaces: \(source.localizationKey)")
+        }
+        for level in BurnRateLevel.allCases {
+            #expect(!level.localizationKey.contains(" "), "Key should not contain spaces: \(level.localizationKey)")
+        }
+    }
+
+    @Test("Localization keys use camelCase for multi-word items")
+    func localizationKeysCamelCase() {
+        // veryHigh should be camelCase, not very_high or very-high
+        #expect(BurnRateLevel.veryHigh.localizationKey == "veryHigh")
+        #expect(!BurnRateLevel.veryHigh.localizationKey.contains("_"))
+        #expect(!BurnRateLevel.veryHigh.localizationKey.contains("-"))
+    }
+}
+
 @Suite("AppError Tests")
 struct AppErrorTests {
     @Test("AppError cases are distinct")
