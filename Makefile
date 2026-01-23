@@ -132,8 +132,8 @@ reset: clean ## Full reset (clean + resolve dependencies)
 release: build-release ## Build release and create app bundle
 	@echo "$(CYAN)Creating release...$(NC)"
 	@mkdir -p $(RELEASE_DIR)
-	@cp -R $(BUILD_DIR)/release/$(APP_NAME).app $(RELEASE_DIR)/ 2>/dev/null || cp $(BUILD_DIR)/release/$(APP_NAME) $(RELEASE_DIR)/
-	@echo "$(GREEN)Release created at $(RELEASE_DIR)/$(NC)"
+	@./scripts/create-bundle.sh release
+	@echo "$(GREEN)Release created at $(RELEASE_DIR)/$(APP_NAME).app$(NC)"
 
 dmg: release ## Create distributable DMG
 	@echo "$(CYAN)Creating DMG...$(NC)"
@@ -142,7 +142,7 @@ dmg: release ## Create distributable DMG
 
 archive: release ## Create ZIP archive for GitHub release
 	@echo "$(CYAN)Creating archive...$(NC)"
-	@cd $(RELEASE_DIR) && zip -r $(APP_NAME).zip $(APP_NAME).app 2>/dev/null || zip -r $(APP_NAME).zip $(APP_NAME)
+	@cd $(RELEASE_DIR) && zip -r $(APP_NAME).zip $(APP_NAME).app
 	@echo "$(GREEN)Archive created at $(RELEASE_DIR)/$(APP_NAME).zip$(NC)"
 
 # ============================================================================
@@ -151,7 +151,7 @@ archive: release ## Create ZIP archive for GitHub release
 
 install: release ## Install to /Applications
 	@echo "$(CYAN)Installing to /Applications...$(NC)"
-	@cp -R $(RELEASE_DIR)/$(APP_NAME).app /Applications/ 2>/dev/null || echo "$(YELLOW)No .app bundle to install$(NC)"
+	@cp -R $(RELEASE_DIR)/$(APP_NAME).app /Applications/
 	@echo "$(GREEN)Installed to /Applications/$(APP_NAME).app$(NC)"
 
 uninstall: ## Remove from /Applications

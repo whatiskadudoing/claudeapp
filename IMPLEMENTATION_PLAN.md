@@ -53,9 +53,9 @@ Key research documents for this implementation:
 |-------|--------|-------|
 | `make build` | ✅ PASS | Debug build succeeds |
 | `swift build --configuration release` | ✅ PASS | Release build succeeds (1.3MB binary) |
-| `swift test` | ✅ PASS | 333 tests passing |
+| `swift test` | ✅ PASS | 351 tests passing |
 | Binary validity | ✅ PASS | Valid Mach-O 64-bit arm64 executable |
-| App bundle (.app) | ❌ FAIL | SPM produces bare executable, not .app bundle |
+| App bundle (.app) | ✅ PASS | `make release` creates proper .app bundle |
 | DMG creation | ❌ BLOCKED | No `scripts/create-dmg.sh`, depends on .app bundle |
 | CI/CD workflows | ❌ MISSING | No `.github/workflows/` files exist |
 
@@ -79,7 +79,7 @@ Key research documents for this implementation:
   - ✅ Binary is valid Mach-O arm64 executable
   - **Status:** All compilation checks pass. App bundle creation is the blocker.
 
-- [ ] **Create app bundle generation script** [file: scripts/create-bundle.sh, Resources/Info.plist]
+- [x] **Create app bundle generation script** [file: scripts/create-bundle.sh, Resources/Info.plist]
   - Create `scripts/create-bundle.sh` to assemble .app bundle from SPM binary
   - Create `Resources/Info.plist` with required keys:
     - `CFBundleIdentifier`: `com.claudeapp.ClaudeApp`
@@ -103,14 +103,16 @@ Key research documents for this implementation:
   - Update Makefile `release` target to use this script
   - **Research:** `research/approaches/menubar-extra.md` lines 265-274 for Info.plist
   - **Test:** Run `make release`, verify `.app` bundle is created, double-click to launch
+  - **DONE:** Created `Resources/Info.plist` with all required keys including LSUIElement=true. Created placeholder `Resources/AppIcon.icns` using Claude's primary color (#C15F3C). Created `scripts/create-bundle.sh` that assembles the .app bundle from SPM binary with proper structure including PkgInfo file. Updated Makefile `release` target to use the script. Verified: `make release` creates proper bundle, app launches from .app bundle, appears only in menu bar (not Dock), fetches usage data. Total tests: 351.
 
-- [ ] **Verify app bundle launches correctly** [file: release/ClaudeApp.app]
+- [x] **Verify app bundle launches correctly** [file: release/ClaudeApp.app]
   - After bundle creation, test: `open release/ClaudeApp.app`
   - Verify app appears in menu bar (not Dock due to LSUIElement)
   - Verify dropdown shows usage data
   - Verify settings window opens
   - If any failures, debug and fix bundle configuration
   - **Success criteria:** App launches from .app bundle, shows in menu bar, fetches data
+  - **DONE:** Verified as part of bundle creation task. App launches successfully, runs as background-only process (LSUIElement=1), appears in menu bar.
 
 ---
 <!-- CHECKPOINT: Phase 0 must pass before continuing. The app must build, test, and bundle correctly. -->
