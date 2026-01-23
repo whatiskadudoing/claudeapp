@@ -83,6 +83,26 @@ else
     echo -e "${YELLOW}Warning: AppIcon.icns not found, skipping icon${NC}"
 fi
 
+# Create and compile localization resources
+# SPM doesn't compile .xcstrings to runtime format, so we do it manually
+XCSTRINGS_FILE="$PROJECT_ROOT/App/Localizable.xcstrings"
+RESOURCE_BUNDLE_NAME="ClaudeApp_ClaudeApp.bundle"
+RESOURCE_BUNDLE_PATH="$APP_BUNDLE/$RESOURCE_BUNDLE_NAME"
+
+if [[ -f "$XCSTRINGS_FILE" ]]; then
+    echo "Compiling localization strings..."
+    mkdir -p "$RESOURCE_BUNDLE_PATH"
+    python3 "$SCRIPT_DIR/compile-strings.py" "$XCSTRINGS_FILE" "$RESOURCE_BUNDLE_PATH"
+else
+    echo -e "${YELLOW}Warning: Localizable.xcstrings not found at $XCSTRINGS_FILE${NC}"
+    # Fall back to copying SPM bundle if xcstrings not found
+    RESOURCE_BUNDLE="$BUILD_DIR/arm64-apple-macosx/${CONFIG}/ClaudeApp_ClaudeApp.bundle"
+    if [[ -d "$RESOURCE_BUNDLE" ]]; then
+        echo "Copying localization resources from SPM build..."
+        cp -R "$RESOURCE_BUNDLE" "$APP_BUNDLE/"
+    fi
+fi
+
 # Create PkgInfo
 echo "Creating PkgInfo..."
 echo -n "APPL????" > "$CONTENTS_DIR/PkgInfo"

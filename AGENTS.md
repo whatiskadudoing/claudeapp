@@ -35,3 +35,10 @@ If any fail → fix before committing.
 - SPM doesn't allow Info.plist as a resource; MenuBarExtra works without explicit plist
 - `xcbeautify` is optional for prettier build output
 - Use `swift test --filter {PackageName}Tests` to run specific package tests
+
+## Localization
+
+- SPM doesn't compile `.xcstrings` to runtime format - use `scripts/compile-strings.py`
+- App target uses `L("key")` helper for localized strings (uses `Bundle.module`)
+- UI package uses `Bundle.main.localizedString()` - works because release bundle has compiled strings
+- Release builds: `make release` runs `compile-strings.py` automatically

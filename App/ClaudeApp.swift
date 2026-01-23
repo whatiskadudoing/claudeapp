@@ -1,8 +1,23 @@
 import Core
 import Domain
+import Foundation
 import SwiftUI
 import UI
 import UserNotifications
+
+// MARK: - Localization Helpers
+
+/// Returns a localized string from the app's resource bundle.
+/// This is needed because SPM resource bundles use Bundle.module, not Bundle.main.
+func L(_ key: String) -> String {
+    Bundle.module.localizedString(forKey: key, value: key, table: nil)
+}
+
+/// Returns a localized string with format arguments from the app's resource bundle.
+func L(_ key: String, _ args: CVarArg...) -> String {
+    let format = Bundle.module.localizedString(forKey: key, value: key, table: nil)
+    return String(format: format, arguments: args)
+}
 
 // MARK: - Notification Delegate
 
@@ -101,14 +116,14 @@ struct MenuBarLabel: View {
                 }
             } else {
                 if settings.showPercentage {
-                    Text("usage.noPercentage")
+                    Text(L("usage.noPercentage"))
                         .font(.system(size: 12, weight: .medium))
                 }
             }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
-        .accessibilityHint(String(localized: "accessibility.menuBar.hint"))
+        .accessibilityHint(L("accessibility.menuBar.hint"))
     }
 
     /// Accessibility label combining all menu bar element information for VoiceOver
@@ -116,19 +131,19 @@ struct MenuBarLabel: View {
         var label = "ClaudeApp"
 
         if usageManager.isLoading && usageManager.usageData == nil {
-            label += String(localized: "accessibility.menuBar.loading")
+            label += L("accessibility.menuBar.loading")
         } else if let data = usageManager.usageData {
             let percentage = Int(data.utilization(for: settings.percentageSource))
-            label += String(localized: "accessibility.menuBar.usage \(percentage)")
+            label += L("accessibility.menuBar.usage", percentage)
 
             // Add warning state for high usage
             if percentage >= 100 {
-                label += String(localized: "accessibility.menuBar.limitReached")
+                label += L("accessibility.menuBar.limitReached")
             } else if percentage >= 90 {
-                label += String(localized: "accessibility.menuBar.approachingLimit")
+                label += L("accessibility.menuBar.approachingLimit")
             }
         } else {
-            label += String(localized: "accessibility.menuBar.noData")
+            label += L("accessibility.menuBar.noData")
         }
 
         return label
@@ -142,7 +157,7 @@ struct MenuBarLabel: View {
 /// For now, this displays a placeholder badge.
 struct PlanBadgeLabel: View {
     var body: some View {
-        Text("usage.planBadge.pro")
+        Text(L("usage.planBadge.pro"))
             .font(.system(size: 9, weight: .medium))
             .padding(.horizontal, 4)
             .padding(.vertical, 1)
@@ -189,7 +204,7 @@ struct DropdownView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
-                Text("usage.header.title")
+                Text(L("usage.header.title"))
                     .font(.headline)
                 Spacer()
                 // Show burn rate badge when available
@@ -237,26 +252,26 @@ struct DropdownView: View {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.caption2)
                             .foregroundStyle(.orange)
-                        Text("usage.staleData")
+                        Text(L("usage.staleData"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel(String(localized: "accessibility.staleWarning"))
+                    .accessibilityLabel(L("accessibility.staleWarning"))
                 } else if let lastUpdated = usageManager.lastUpdated {
                     Text(updatedAgoText(for: lastUpdated))
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
                 Spacer()
-                Button("button.quit") {
+                Button(L("button.quit")) {
                     NSApplication.shared.terminate(nil)
                 }
                 .buttonStyle(.plain)
                 .font(.caption)
                 .keyboardShortcut("q", modifiers: .command)
                 .focused($focusedElement, equals: .quit)
-                .accessibilityLabel(String(localized: "accessibility.quitApp"))
+                .accessibilityLabel(L("accessibility.quitApp"))
             }
         }
         .padding(16)
@@ -282,7 +297,7 @@ struct DropdownView: View {
         let relativeTime = formatter.localizedString(for: date, relativeTo: Date())
 
         let key = "usage.updated %@"
-        let format = Bundle.main.localizedString(forKey: key, value: "Updated %@ ago", table: nil)
+        let format = Bundle.module.localizedString(forKey: key, value: "Updated %@ ago", table: nil)
         return String(format: format, relativeTime)
     }
 }
@@ -300,7 +315,7 @@ struct SettingsButton: View {
         }
         .buttonStyle(.plain)
         .keyboardShortcut(",", modifiers: .command)
-        .accessibilityLabel(String(localized: "accessibility.openSettings"))
+        .accessibilityLabel(L("accessibility.openSettings"))
     }
 }
 
@@ -359,13 +374,13 @@ struct RefreshButton: View {
     private var refreshAccessibilityLabel: String {
         switch usageManager.refreshState {
         case .idle:
-            String(localized: "accessibility.refresh")
+            L("accessibility.refresh")
         case .loading:
-            String(localized: "accessibility.refreshing")
+            L("accessibility.refreshing")
         case .success:
-            String(localized: "accessibility.refreshComplete")
+            L("accessibility.refreshComplete")
         case .error:
-            String(localized: "accessibility.refreshFailed")
+            L("accessibility.refreshFailed")
         }
     }
 }
@@ -383,7 +398,7 @@ struct UsageContent: View {
         VStack(alignment: .leading, spacing: 12) {
             UsageProgressBar(
                 value: data.fiveHour.utilization,
-                label: String(localized: "usage.progressBar.session"),
+                label: L("usage.progressBar.session"),
                 resetsAt: data.fiveHour.resetsAt,
                 timeToExhaustion: data.fiveHour.timeToExhaustion
             )
@@ -392,7 +407,7 @@ struct UsageContent: View {
 
             UsageProgressBar(
                 value: data.sevenDay.utilization,
-                label: String(localized: "usage.progressBar.weekly"),
+                label: L("usage.progressBar.weekly"),
                 resetsAt: data.sevenDay.resetsAt,
                 timeToExhaustion: data.sevenDay.timeToExhaustion
             )
@@ -402,7 +417,7 @@ struct UsageContent: View {
             if let opus = data.sevenDayOpus {
                 UsageProgressBar(
                     value: opus.utilization,
-                    label: String(localized: "usage.progressBar.opus"),
+                    label: L("usage.progressBar.opus"),
                     resetsAt: opus.resetsAt,
                     timeToExhaustion: opus.timeToExhaustion
                 )
@@ -413,7 +428,7 @@ struct UsageContent: View {
             if let sonnet = data.sevenDaySonnet {
                 UsageProgressBar(
                     value: sonnet.utilization,
-                    label: String(localized: "usage.progressBar.sonnet"),
+                    label: L("usage.progressBar.sonnet"),
                     resetsAt: sonnet.resetsAt,
                     timeToExhaustion: sonnet.timeToExhaustion
                 )
@@ -440,7 +455,7 @@ struct StaleDataBanner: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("error.unableToRefresh")
+                Text(L("error.unableToRefresh"))
                     .font(.caption)
                     .fontWeight(.medium)
                 Text(errorReason)
@@ -450,33 +465,33 @@ struct StaleDataBanner: View {
 
             Spacer()
 
-            Button("button.retry", action: retryAction)
+            Button(L("button.retry"), action: retryAction)
                 .buttonStyle(.bordered)
                 .controlSize(.mini)
-                .accessibilityLabel(String(localized: "accessibility.retryRefresh"))
+                .accessibilityLabel(L("accessibility.retryRefresh"))
         }
         .padding(8)
         .background(Color.orange.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .padding(.bottom, 4)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(String(localized: "accessibility.unableToRefresh \(errorReason)"))
+        .accessibilityLabel(L("accessibility.unableToRefresh", errorReason))
     }
 
     private var errorReason: String {
         switch error {
         case .networkError:
-            String(localized: "error.connectionIssue")
+            L("error.connectionIssue")
         case .rateLimited(let retryAfter):
-            String(localized: "error.rateLimited.reason \(retryAfter)")
+            L("error.rateLimited.reason", retryAfter)
         case .apiError(let statusCode, _):
-            String(localized: "error.serverError \(statusCode)")
+            L("error.serverError", statusCode)
         case .notAuthenticated:
-            String(localized: "error.authRequired")
+            L("error.authRequired")
         case .keychainError:
-            String(localized: "error.keychainError")
+            L("error.keychainError")
         case .decodingError:
-            String(localized: "error.dataFormatError")
+            L("error.dataFormatError")
         }
     }
 }
@@ -490,7 +505,7 @@ struct LoadingView: View {
             Spacer()
             VStack(spacing: 8) {
                 ProgressView()
-                Text("usage.loading")
+                Text(L("usage.loading"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -498,7 +513,7 @@ struct LoadingView: View {
         }
         .padding(.vertical, 20)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(String(localized: "accessibility.loading"))
+        .accessibilityLabel(L("accessibility.loading"))
     }
 }
 
@@ -525,16 +540,16 @@ struct ErrorView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
-            Button("button.tryAgain", action: retryAction)
+            Button(L("button.tryAgain"), action: retryAction)
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .padding(.top, 4)
-                .accessibilityLabel(String(localized: "accessibility.retryLoad"))
+                .accessibilityLabel(L("accessibility.retryLoad"))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(String(localized: "accessibility.error \(errorTitle) \(errorMessage)"))
+        .accessibilityLabel(L("accessibility.error", errorTitle, errorMessage))
     }
 
     private var errorIcon: String {
@@ -549,26 +564,26 @@ struct ErrorView: View {
     private var errorTitle: String {
         switch error {
         case .notAuthenticated:
-            String(localized: "error.notAuthenticated.title")
+            L("error.notAuthenticated.title")
         case .networkError:
-            String(localized: "error.connectionError")
+            L("error.connectionError")
         case .rateLimited:
-            String(localized: "error.rateLimited")
+            L("error.rateLimited")
         default:
-            String(localized: "error.unableToLoad")
+            L("error.unableToLoad")
         }
     }
 
     private var errorMessage: String {
         switch error {
         case .notAuthenticated:
-            String(localized: "error.notAuthenticated.message")
+            L("error.notAuthenticated.message")
         case .networkError(let message):
             message
         case .rateLimited(let retryAfter):
-            String(localized: "error.rateLimited.wait \(retryAfter)")
+            L("error.rateLimited.wait", retryAfter)
         case .apiError(let statusCode, _):
-            String(localized: "error.serverError \(statusCode)")
+            L("error.serverError", statusCode)
         case .keychainError(let message):
             message
         case .decodingError(let message):
@@ -590,20 +605,20 @@ struct EmptyStateView: View {
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
 
-            Text("usage.noData")
+            Text(L("usage.noData"))
                 .font(.caption)
                 .fontWeight(.medium)
 
-            Button("button.refresh", action: refreshAction)
+            Button(L("button.refresh"), action: refreshAction)
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .padding(.top, 4)
-                .accessibilityLabel(String(localized: "accessibility.refresh"))
+                .accessibilityLabel(L("accessibility.refresh"))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(String(localized: "accessibility.noUsageData"))
+        .accessibilityLabel(L("accessibility.noUsageData"))
     }
 }
 
@@ -622,7 +637,7 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("settings.title")
+                Text(L("settings.title"))
                     .font(.headline)
                 Spacer()
                 Button {
@@ -633,7 +648,7 @@ struct SettingsView: View {
                         .font(.title3)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(String(localized: "accessibility.closeSettings"))
+                .accessibilityLabel(L("accessibility.closeSettings"))
             }
             .padding(16)
 
@@ -666,22 +681,22 @@ struct DisplaySection: View {
         @Bindable var settings = settings
 
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: String(localized: "settings.display"))
+            SectionHeader(title: L("settings.display"))
 
             SettingsToggle(
-                title: String(localized: "settings.display.showPlanBadge"),
+                title: L("settings.display.showPlanBadge"),
                 isOn: $settings.showPlanBadge,
-                subtitle: String(localized: "settings.display.showPlanBadge.subtitle")
+                subtitle: L("settings.display.showPlanBadge.subtitle")
             )
 
             SettingsToggle(
-                title: String(localized: "settings.display.showPercentage"),
+                title: L("settings.display.showPercentage"),
                 isOn: $settings.showPercentage
             )
 
             if settings.showPercentage {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("settings.display.percentageSource")
+                    Text(L("settings.display.percentageSource"))
                         .font(.body)
 
                     Picker("", selection: $settings.percentageSource) {
@@ -707,13 +722,13 @@ struct RefreshSection: View {
         @Bindable var settings = settings
 
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: String(localized: "settings.refresh"))
+            SectionHeader(title: L("settings.refresh"))
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("settings.refresh.interval")
+                    Text(L("settings.refresh.interval"))
                     Spacer()
-                    Text("settings.refresh.interval.value \(settings.refreshInterval)")
+                    Text(L("settings.refresh.interval.value", settings.refreshInterval))
                         .foregroundStyle(.secondary)
                         .font(.body.monospacedDigit())
                 }
@@ -729,11 +744,11 @@ struct RefreshSection: View {
                 .controlSize(.small)
 
                 HStack {
-                    Text("settings.refresh.interval.min")
+                    Text(L("settings.refresh.interval.min"))
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                     Spacer()
-                    Text("settings.refresh.interval.max")
+                    Text(L("settings.refresh.interval.max"))
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
@@ -754,7 +769,7 @@ struct NotificationsSection: View {
         @Bindable var settings = settings
 
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: String(localized: "settings.notifications"))
+            SectionHeader(title: L("settings.notifications"))
 
             // Enable toggle with permission request
             Toggle(isOn: Binding(
@@ -769,7 +784,7 @@ struct NotificationsSection: View {
                     }
                 }
             )) {
-                Text("settings.notifications.enable")
+                Text(L("settings.notifications.enable"))
                     .font(.body)
             }
             .toggleStyle(.switch)
@@ -785,7 +800,7 @@ struct NotificationsSection: View {
                 if permissionManager.canSendNotifications {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("settings.notifications.warningThreshold")
+                            Text(L("settings.notifications.warningThreshold"))
                             Spacer()
                             Text("\(settings.warningThreshold)%")
                                 .foregroundStyle(.secondary)
@@ -816,21 +831,21 @@ struct NotificationsSection: View {
                     Divider()
 
                     SettingsToggle(
-                        title: String(localized: "settings.notifications.usageWarnings"),
+                        title: L("settings.notifications.usageWarnings"),
                         isOn: $settings.warningEnabled,
-                        subtitle: String(localized: "settings.notifications.usageWarnings.subtitle")
+                        subtitle: L("settings.notifications.usageWarnings.subtitle")
                     )
 
                     SettingsToggle(
-                        title: String(localized: "settings.notifications.capacityFull"),
+                        title: L("settings.notifications.capacityFull"),
                         isOn: $settings.capacityFullEnabled,
-                        subtitle: String(localized: "settings.notifications.capacityFull.subtitle")
+                        subtitle: L("settings.notifications.capacityFull.subtitle")
                     )
 
                     SettingsToggle(
-                        title: String(localized: "settings.notifications.resetComplete"),
+                        title: L("settings.notifications.resetComplete"),
                         isOn: $settings.resetCompleteEnabled,
-                        subtitle: String(localized: "settings.notifications.resetComplete.subtitle")
+                        subtitle: L("settings.notifications.resetComplete.subtitle")
                     )
                 }
             }
@@ -855,19 +870,19 @@ struct PermissionDeniedBanner: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
                     .font(.caption)
-                Text("settings.notifications.disabled.title")
+                Text(L("settings.notifications.disabled.title"))
                     .font(.caption)
                     .fontWeight(.medium)
             }
 
-            Text("settings.notifications.disabled.instructions")
+            Text(L("settings.notifications.disabled.instructions"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
             Button {
                 openNotificationSettings()
             } label: {
-                Text("button.openSystemSettings")
+                Text(L("button.openSystemSettings"))
                     .font(.caption)
             }
             .buttonStyle(.borderedProminent)
@@ -900,11 +915,11 @@ struct GeneralSection: View {
         @Bindable var settings = settings
 
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: String(localized: "settings.general"))
+            SectionHeader(title: L("settings.general"))
 
             VStack(alignment: .leading, spacing: 4) {
                 Toggle(isOn: $launchAtLogin.isEnabled) {
-                    Text("settings.general.launchAtLogin")
+                    Text(L("settings.general.launchAtLogin"))
                         .font(.body)
                 }
                 .toggleStyle(.switch)
@@ -917,7 +932,7 @@ struct GeneralSection: View {
                         HStack(spacing: 4) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.caption2)
-                            Text("settings.general.requiresApproval")
+                            Text(L("settings.general.requiresApproval"))
                                 .font(.caption)
                         }
                         .foregroundStyle(.orange)
@@ -933,9 +948,9 @@ struct GeneralSection: View {
             }
 
             SettingsToggle(
-                title: String(localized: "settings.general.checkForUpdates"),
+                title: L("settings.general.checkForUpdates"),
                 isOn: $settings.checkForUpdates,
-                subtitle: String(localized: "settings.general.checkForUpdates.subtitle")
+                subtitle: L("settings.general.checkForUpdates.subtitle")
             )
         }
     }
@@ -962,7 +977,7 @@ struct AboutSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: String(localized: "settings.about"))
+            SectionHeader(title: L("settings.about"))
 
             VStack(spacing: 12) {
                 // App icon
@@ -970,10 +985,10 @@ struct AboutSection: View {
                     .font(.system(size: 40))
                     .foregroundStyle(Theme.Colors.primary)
 
-                Text("settings.about.appName")
+                Text(L("settings.about.appName"))
                     .font(.headline)
 
-                Text("settings.about.version \(appVersion)")
+                Text(L("settings.about.version", appVersion))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -983,11 +998,11 @@ struct AboutSection: View {
                 // Links
                 HStack(spacing: 8) {
                     if let githubURL = URL(string: "https://github.com/anthropics/claude-code") {
-                        Link(String(localized: "settings.about.github"), destination: githubURL)
+                        Link(L("settings.about.github"), destination: githubURL)
                     }
                     Text("•")
                         .foregroundStyle(.tertiary)
-                    Text("settings.about.description")
+                    Text(L("settings.about.description"))
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -1006,14 +1021,14 @@ struct AboutSection: View {
             HStack(spacing: 6) {
                 ProgressView()
                     .controlSize(.small)
-                Text("update.checking")
+                Text(L("update.checking"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
         case (false, nil):
             // Default state: show button
-            Button("button.checkForUpdates") {
+            Button(L("button.checkForUpdates")) {
                 checkForUpdates()
             }
             .buttonStyle(.bordered)
@@ -1024,18 +1039,18 @@ struct AboutSection: View {
             HStack(spacing: 4) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
-                Text("update.upToDate")
+                Text(L("update.upToDate"))
             }
             .font(.caption)
 
         case (false, .updateAvailable(let info)):
             // Update available state
             VStack(spacing: 8) {
-                Text("update.versionAvailable \(info.version)")
+                Text(L("update.versionAvailable", info.version))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Button("button.download") {
+                Button(L("button.download")) {
                     NSWorkspace.shared.open(info.downloadURL)
                 }
                 .buttonStyle(.borderedProminent)
@@ -1047,7 +1062,7 @@ struct AboutSection: View {
             HStack(spacing: 4) {
                 Image(systemName: "clock.fill")
                     .foregroundStyle(.secondary)
-                Text("update.tryAgainLater")
+                Text(L("update.tryAgainLater"))
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -1058,12 +1073,12 @@ struct AboutSection: View {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.circle.fill")
                         .foregroundStyle(.red)
-                    Text("update.unableToCheck")
+                    Text(L("update.unableToCheck"))
                 }
                 .font(.caption)
 
                 // Show brief error, allow retry
-                Button("button.retry") {
+                Button(L("button.retry")) {
                     checkForUpdates()
                 }
                 .buttonStyle(.bordered)
