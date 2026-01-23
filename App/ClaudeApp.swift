@@ -150,13 +150,28 @@ struct PlanBadgeLabel: View {
     }
 }
 
+// MARK: - Focusable Elements
+
+/// Enum defining all focusable elements in the dropdown for keyboard navigation.
+/// Used with @FocusState to manage Tab key navigation order.
+enum FocusableElement: Hashable {
+    case refresh
+    case settings
+    case progressBar(Int)
+    case quit
+}
+
 // MARK: - Dropdown View
 
 /// The dropdown content that appears when clicking the menu bar item.
 /// Shows detailed usage information with progress bars.
+/// Supports keyboard navigation via Tab key and keyboard shortcuts.
 struct DropdownView: View {
     @Environment(UsageManager.self) private var usageManager
     @Environment(\.openWindow) private var openWindow
+
+    /// Focus state for keyboard navigation
+    @FocusState private var focusedElement: FocusableElement?
 
     /// Whether we have an error but also have cached data to show
     private var hasErrorWithCachedData: Bool {
@@ -182,7 +197,9 @@ struct DropdownView: View {
                 SettingsButton {
                     openWindow(id: "settings")
                 }
+                .focused($focusedElement, equals: .settings)
                 RefreshButton()
+                    .focused($focusedElement, equals: .refresh)
             }
 
             Divider()
@@ -195,7 +212,7 @@ struct DropdownView: View {
                         Task { await usageManager.refresh() }
                     }
                 }
-                UsageContent(data: data)
+                UsageContent(data: data, focusedElement: $focusedElement)
             } else if usageManager.isLoading {
                 LoadingView()
             } else if let error = usageManager.lastError {
@@ -235,18 +252,23 @@ struct DropdownView: View {
                 }
                 .buttonStyle(.plain)
                 .font(.caption)
+                .keyboardShortcut("q", modifiers: .command)
+                .focused($focusedElement, equals: .quit)
                 .accessibilityLabel("Quit ClaudeApp")
             }
         }
         .padding(16)
         .frame(width: 280)
         .background(Color(nsColor: .windowBackgroundColor))
-        .keyboardShortcut("r", modifiers: .command)
         .task {
             // Refresh on dropdown open if data is stale or missing
             if usageManager.usageData == nil || usageManager.isStale {
                 await usageManager.refresh()
             }
+        }
+        .onAppear {
+            // Set initial focus to refresh button when dropdown opens
+            focusedElement = .refresh
         }
     }
 }
@@ -338,8 +360,10 @@ struct RefreshButton: View {
 
 /// Displays the usage progress bars when data is available.
 /// Passes time-to-exhaustion data from UsageWindow to each progress bar.
+/// Supports keyboard focus navigation through progress bars.
 struct UsageContent: View {
     let data: UsageData
+    var focusedElement: FocusState<FocusableElement?>.Binding
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -349,6 +373,8 @@ struct UsageContent: View {
                 resetsAt: data.fiveHour.resetsAt,
                 timeToExhaustion: data.fiveHour.timeToExhaustion
             )
+            .focusable()
+            .focused(focusedElement, equals: .progressBar(0))
 
             UsageProgressBar(
                 value: data.sevenDay.utilization,
@@ -356,6 +382,8 @@ struct UsageContent: View {
                 resetsAt: data.sevenDay.resetsAt,
                 timeToExhaustion: data.sevenDay.timeToExhaustion
             )
+            .focusable()
+            .focused(focusedElement, equals: .progressBar(1))
 
             if let opus = data.sevenDayOpus {
                 UsageProgressBar(
@@ -364,6 +392,8 @@ struct UsageContent: View {
                     resetsAt: opus.resetsAt,
                     timeToExhaustion: opus.timeToExhaustion
                 )
+                .focusable()
+                .focused(focusedElement, equals: .progressBar(2))
             }
 
             if let sonnet = data.sevenDaySonnet {
@@ -373,6 +403,8 @@ struct UsageContent: View {
                     resetsAt: sonnet.resetsAt,
                     timeToExhaustion: sonnet.timeToExhaustion
                 )
+                .focusable()
+                .focused(focusedElement, equals: .progressBar(3))
             }
         }
     }

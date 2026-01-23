@@ -67,7 +67,7 @@ Implement VoiceOver support and keyboard navigation for core UI elements.
   - **Research:** `specs/accessibility.md` lines 65-92 for progress bar accessibility
   - **DONE:** Added `.accessibilityElement(children: .ignore)`, `.accessibilityLabel()` with comprehensive label including label, percentage, reset time (using RelativeDateTimeFormatter), and spoken time-to-exhaustion. Added `.accessibilityValue()` with "X percent" format. Added `.accessibilityAddTraits(.updatesFrequently)`. Created `spokenTimeToExhaustion` for natural spoken format ("3 hours", "45 minutes", "less than 1 minute"). Added 14 new tests for accessibility. Total tests: 333.
 
-- [ ] **Implement keyboard navigation** [spec: accessibility.md] [file: App/ClaudeApp.swift]
+- [x] **Implement keyboard navigation** [spec: accessibility.md] [file: App/ClaudeApp.swift]
   - Add `@FocusState` for managing focus in dropdown
   - Define `FocusableElement` enum: refresh, settings, progressBars(0-3), quit
   - Apply `.focused()` modifier to all focusable elements
@@ -76,6 +76,7 @@ Implement VoiceOver support and keyboard navigation for core UI elements.
   - Implement Tab key navigation through focusable elements
   - **Research:** `specs/accessibility.md` lines 111-173 for focus management
   - **Test:** Open dropdown, press Tab repeatedly, verify focus moves logically
+  - **DONE:** Added `FocusableElement` enum with cases for refresh, settings, progressBar(Int), and quit. Added `@FocusState` to DropdownView. Applied `.focused()` to RefreshButton, SettingsButton, all UsageProgressBar instances (made focusable with `.focusable()`), and Quit button. Added `.keyboardShortcut("q", modifiers: .command)` to Quit button. Removed duplicate Cmd+R shortcut from DropdownView (kept only on RefreshButton). Set initial focus to refresh button via `.onAppear`. Updated UsageContent to accept focus binding. Note: Escape key behavior is handled natively by macOS for MenuBarExtra windows. Total tests: 333.
 
 - [ ] **Add VoiceOver announcements for state changes** [spec: accessibility.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
   - Post announcement after refresh completes: "Usage data updated"
