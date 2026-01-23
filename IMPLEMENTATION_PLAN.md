@@ -1,27 +1,28 @@
 # Implementation Plan
 
-## Recommended SLC Release: Distribution Ready (SLC 4)
+## Recommended SLC Release: Internationalization (SLC 5)
 
-**Audience:** Professional developers using Claude Code (Pro, Max 5x, Max 20x plans) who want to install and use ClaudeApp without friction.
+**Audience:** Professional developers using Claude Code globally, including Portuguese (Brazil) and Spanish (Latin America) speakers who prefer native language interfaces.
 
-**Value proposition:** Make ClaudeApp installable and accessible to all users. A feature-complete app that nobody can install delivers zero value. This slice focuses on distribution (Homebrew, signed DMG), accessibility (VoiceOver, keyboard navigation), and quality infrastructure (CI/CD) to transform ClaudeApp from a developer project into a polished, distributable product.
+**Value proposition:** Make ClaudeApp accessible to non-English speakers. A fully functional app that only speaks English excludes a significant portion of the global developer community. This slice adds internationalization infrastructure and Phase 1 languages (English, Portuguese, Spanish) to deliver a truly global product.
 
 **Activities included:**
 
 | Activity | Depth | Why Included |
 |----------|-------|--------------|
-| Build Infrastructure | Basic | Required - SPM doesn't create .app bundles, must fix first |
-| Accessibility | Standard | Required for quality - serves users with disabilities (Job 6) |
-| Distribution Tooling | Basic | Required for installation - DMG creation, Homebrew formula |
-| CI/CD Pipeline | Basic | Required for sustainable releases - automated builds and tests |
-| Code Quality | Basic | Pre-commit hooks, SwiftFormat/SwiftLint enforcement |
+| Internationalization Infrastructure | Basic | Required - Extract all strings to String Catalog |
+| English (en) Localization | Complete | Base language with all strings defined |
+| Portuguese (pt-BR) Localization | Complete | P0 priority - large developer community |
+| Spanish (es-LATAM) Localization | Complete | P1 priority - large developer community |
+| Locale-aware Formatting | Standard | Dates, numbers, percentages use system locale |
 
 **What's NOT in this slice:**
-- Historical usage graphs/trends → Future
-- Internationalization (i18n) → SLC 5
-- Widget support for Notification Center → Future
-- Apple Developer ID signing/notarization → Future (requires paid account)
-- Advanced accessibility (dynamic type, color-blind patterns) → SLC 5
+- Phase 2 languages (French, German, Japanese, Chinese, Korean) → Future
+- RTL language support (Arabic, Hebrew) → Future
+- Advanced accessibility (Dynamic Type, color patterns) → SLC 6
+- Local JSONL fallback → Future
+- Custom app icon design → Future
+- Plan badge auto-detection (requires API support) → Future
 
 ---
 
@@ -31,352 +32,256 @@ Key research documents for this implementation:
 
 | Topic | Document | Why Relevant |
 |-------|----------|--------------|
-| Menu Bar Apps | `research/approaches/menubar-extra.md` | Info.plist requirements for LSUIElement |
-| Accessibility | `specs/accessibility.md` | VoiceOver labels, keyboard nav, focus states |
-| Toolchain | `specs/toolchain.md` | Makefile commands, release scripts, CI/CD |
-| Distribution | `specs/toolchain.md#homebrew` | Homebrew Cask formula template |
-| Inspiration | `research/inspiration.md` | Stats app, iStat Menus distribution patterns |
+| i18n Strategy | `specs/internationalization.md` | Complete localization spec with string keys |
+| String Catalog Format | `specs/internationalization.md#string-management` | .xcstrings format and structure |
+| SwiftUI Implementation | `specs/internationalization.md#swiftui-implementation` | LocalizedStringKey patterns |
+| Translation Glossary | `specs/internationalization.md#glossary` | Technical term translations |
+| Date/Time Formatting | `specs/internationalization.md#date--time-formatting` | Locale-aware formatters |
 
 ---
 <!-- HUMAN VERIFICATION: Does this slice form a coherent, valuable product? -->
-<!-- Answer: YES - Users can now install ClaudeApp via Homebrew or DMG download.
-     Accessibility ensures all users can use the app effectively.
-     CI/CD ensures sustainable release process for ongoing updates. -->
+<!-- Answer: YES - Users who prefer Portuguese or Spanish interfaces can now use ClaudeApp
+     in their native language. All UI text, notifications, and error messages are localized.
+     This opens the app to a significantly larger audience without changing functionality. -->
 
 ## Phase 0: Build Verification - CRITICAL
 
-**Purpose:** Verify the app compiles, tests pass, runs correctly, and can be bundled for distribution. Fix any issues found before proceeding.
+**Purpose:** Verify the app still compiles, tests pass, and runs correctly before making changes.
 
-### Current Status (Auto-verified 2026-01-23)
+### Pre-Flight Checks
 
-| Check | Status | Notes |
-|-------|--------|-------|
-| `make build` | ✅ PASS | Debug build succeeds |
-| `swift build --configuration release` | ✅ PASS | Release build succeeds (1.3MB binary) |
-| `swift test` | ✅ PASS | 351 tests passing |
-| Binary validity | ✅ PASS | Valid Mach-O 64-bit arm64 executable |
-| App bundle (.app) | ✅ PASS | `make release` creates proper .app bundle |
-| DMG creation | ❌ BLOCKED | No `scripts/create-dmg.sh`, depends on .app bundle |
-| CI/CD workflows | ❌ MISSING | No `.github/workflows/` files exist |
-
-### Blocking Issue: No App Bundle
-
-**Problem:** Swift Package Manager with `.executableTarget` only produces a bare binary (`.build/release/ClaudeApp`), not a macOS app bundle (`.app`). This means:
-- No `Info.plist` (required for `LSUIElement` to hide from Dock)
-- No app icon
-- No bundle identifier
-- Cannot be distributed via DMG or Homebrew Cask
-- Gatekeeper/notarization not possible
-
-**Solution:** Create a shell script that assembles the `.app` bundle from SPM output.
+- [x] **Verify current build and test status** [file: Makefile]
+  - Run `make clean && make build` - should succeed ✅
+  - Run `swift test` - all 369 tests should pass ✅
+  - Run `make release` - .app bundle should be created ✅
+  - Run `open release/ClaudeApp.app` - app should launch and show usage ✅
+  - **Success criteria:** All checks pass, no regressions from SLC 4
 
 ---
+<!-- CHECKPOINT: Phase 0 must pass before continuing. Do not proceed if build is broken. -->
 
-- [x] **Verify build, test, and run work correctly** [file: Makefile]
-  - ✅ `make build` - Debug build succeeds
-  - ✅ `swift build --configuration release` - Release build succeeds
-  - ✅ `swift test` - 333 tests pass
-  - ✅ Binary is valid Mach-O arm64 executable
-  - **Status:** All compilation checks pass. App bundle creation is the blocker.
+## Phase 1: Internationalization Infrastructure - CRITICAL
 
-- [x] **Create app bundle generation script** [file: scripts/create-bundle.sh, Resources/Info.plist]
-  - Create `scripts/create-bundle.sh` to assemble .app bundle from SPM binary
-  - Create `Resources/Info.plist` with required keys:
-    - `CFBundleIdentifier`: `com.claudeapp.ClaudeApp`
-    - `CFBundleName`: `ClaudeApp`
-    - `CFBundleExecutable`: `ClaudeApp`
-    - `CFBundleVersion` and `CFBundleShortVersionString`: `1.3.0`
-    - `LSUIElement`: `true` (hide from Dock, menu bar only)
-    - `LSMinimumSystemVersion`: `14.0`
-    - `NSHighResolutionCapable`: `true`
-  - Create `Resources/AppIcon.icns` (or use placeholder)
-  - Script should create bundle structure:
-    ```
-    ClaudeApp.app/
-    ├── Contents/
-    │   ├── Info.plist
-    │   ├── MacOS/
-    │   │   └── ClaudeApp
-    │   └── Resources/
-    │       └── AppIcon.icns
-    ```
-  - Update Makefile `release` target to use this script
-  - **Research:** `research/approaches/menubar-extra.md` lines 265-274 for Info.plist
-  - **Test:** Run `make release`, verify `.app` bundle is created, double-click to launch
-  - **DONE:** Created `Resources/Info.plist` with all required keys including LSUIElement=true. Created placeholder `Resources/AppIcon.icns` using Claude's primary color (#C15F3C). Created `scripts/create-bundle.sh` that assembles the .app bundle from SPM binary with proper structure including PkgInfo file. Updated Makefile `release` target to use the script. Verified: `make release` creates proper bundle, app launches from .app bundle, appears only in menu bar (not Dock), fetches usage data. Total tests: 351.
+**Purpose:** Create the foundation for localization by extracting all hardcoded strings and setting up String Catalogs.
 
-- [x] **Verify app bundle launches correctly** [file: release/ClaudeApp.app]
-  - After bundle creation, test: `open release/ClaudeApp.app`
-  - Verify app appears in menu bar (not Dock due to LSUIElement)
-  - Verify dropdown shows usage data
-  - Verify settings window opens
-  - If any failures, debug and fix bundle configuration
-  - **Success criteria:** App launches from .app bundle, shows in menu bar, fetches data
-  - **DONE:** Verified as part of bundle creation task. App launches successfully, runs as background-only process (LSUIElement=1), appears in menu bar.
+- [ ] **Create String Catalog and extract all UI strings** [spec: internationalization.md] [file: Resources/Localizable.xcstrings]
+  - Create `Resources/Localizable.xcstrings` String Catalog file
+  - Extract ALL hardcoded strings from:
+    - `App/ClaudeApp.swift` - Menu bar labels, dropdown text, button labels
+    - `Packages/UI/Sources/UI/*.swift` - Progress bar labels, badges, theme text
+    - `Packages/Core/Sources/Core/*.swift` - Notification messages, error messages
+  - Use key naming convention: `{feature}.{component}.{element}`
+  - Key examples from spec:
+    - `usage.header.title` = "Claude Usage"
+    - `usage.session.label` = "Current Session (5h)"
+    - `usage.reset.relative` = "Resets %@"
+    - `settings.title` = "Settings"
+    - `button.refresh` = "Refresh"
+    - `error.notAuthenticated.title` = "Claude Code not found"
+    - `notification.warning.title` = "Claude Usage Warning"
+  - Estimate: ~50-80 unique strings
+  - **Research:** `specs/internationalization.md` lines 36-125 for string keys
+  - **Test:** Build succeeds, all strings display correctly, no regressions
 
----
-<!-- CHECKPOINT: Phase 0 must pass before continuing. The app must build, test, and bundle correctly. -->
+- [ ] **Update SwiftUI views to use LocalizedStringKey** [spec: internationalization.md#swiftui-implementation] [file: App/ClaudeApp.swift, Packages/UI/Sources/UI/*.swift]
+  - Replace hardcoded `Text("string")` with `Text("key.name")`
+  - Create `LocalizedStringKey` extensions for type-safe access
+  - Use `String(localized:)` for non-Text contexts (notifications, accessibility)
+  - Handle string interpolation with positional placeholders (`%@`, `%d`)
+  - Update accessibility labels to use localized strings
+  - **Research:** `specs/internationalization.md` lines 129-168 for SwiftUI patterns
+  - **Test:** VoiceOver announces localized strings correctly
 
-## Phase 1: Accessibility Foundation - CRITICAL
-
-Implement VoiceOver support and keyboard navigation for core UI elements.
-
-- [x] **Implement VoiceOver labels for menu bar and dropdown** [spec: accessibility.md] [file: App/ClaudeApp.swift, Packages/UI/Sources/UI/]
-  - Add `.accessibilityLabel()` to menu bar icon: "ClaudeApp, usage at X percent"
-  - Add `.accessibilityHint()` to menu bar: "Click to view usage details"
-  - Add `.accessibilityLabel()` to refresh button: "Refresh usage data"
-  - Add `.accessibilityLabel()` to settings button: "Open settings"
-  - Add `.accessibilityLabel()` to quit button: "Quit ClaudeApp"
-  - Add `.accessibilityElement(children: .combine)` to group related elements
-  - Add dynamic label for warning state: "Warning: usage limit reached"
-  - **Research:** `specs/accessibility.md` lines 19-107 for VoiceOver implementation patterns
-  - **Test:** Enable VoiceOver (Cmd+F5), verify all elements are announced correctly
-  - **DONE:** Added accessibility labels to MenuBarLabel (combined element with dynamic label including warning states), SettingsButton, RefreshButton (with state-specific labels), BurnRateBadge (with descriptive level labels), Quit button, Settings close button, StaleDataBanner, LoadingView, ErrorView, EmptyStateView. All decorative icons hidden from VoiceOver.
-
-- [x] **Add VoiceOver support to UsageProgressBar** [spec: accessibility.md] [file: Packages/UI/Sources/UI/UsageProgressBar.swift]
-  - Use `.accessibilityElement(children: .ignore)` to create single accessible element
-  - Add `.accessibilityLabel()`: "[Label] at X percent, resets [time]"
-  - Add `.accessibilityValue()`: "X percent"
-  - Add `.accessibilityAddTraits(.updatesFrequently)` for dynamic content
-  - Include time-to-exhaustion in label when available: "~2 hours until limit"
-  - Include burn rate level when available: "consumption rate: medium"
-  - **Research:** `specs/accessibility.md` lines 65-92 for progress bar accessibility
-  - **DONE:** Added `.accessibilityElement(children: .ignore)`, `.accessibilityLabel()` with comprehensive label including label, percentage, reset time (using RelativeDateTimeFormatter), and spoken time-to-exhaustion. Added `.accessibilityValue()` with "X percent" format. Added `.accessibilityAddTraits(.updatesFrequently)`. Created `spokenTimeToExhaustion` for natural spoken format ("3 hours", "45 minutes", "less than 1 minute"). Added 14 new tests for accessibility. Total tests: 333.
-
-- [x] **Implement keyboard navigation** [spec: accessibility.md] [file: App/ClaudeApp.swift]
-  - Add `@FocusState` for managing focus in dropdown
-  - Define `FocusableElement` enum: refresh, settings, progressBars(0-3), quit
-  - Apply `.focused()` modifier to all focusable elements
-  - Set initial focus to refresh button when dropdown opens
-  - Add keyboard shortcuts: Cmd+R (refresh), Cmd+, (settings), Cmd+Q (quit), Escape (close)
-  - Implement Tab key navigation through focusable elements
-  - **Research:** `specs/accessibility.md` lines 111-173 for focus management
-  - **Test:** Open dropdown, press Tab repeatedly, verify focus moves logically
-  - **DONE:** Added `FocusableElement` enum with cases for refresh, settings, progressBar(Int), and quit. Added `@FocusState` to DropdownView. Applied `.focused()` to RefreshButton, SettingsButton, all UsageProgressBar instances (made focusable with `.focusable()`), and Quit button. Added `.keyboardShortcut("q", modifiers: .command)` to Quit button. Removed duplicate Cmd+R shortcut from DropdownView (kept only on RefreshButton). Set initial focus to refresh button via `.onAppear`. Updated UsageContent to accept focus binding. Note: Escape key behavior is handled natively by macOS for MenuBarExtra windows. Total tests: 333.
-
-- [x] **Add VoiceOver announcements for state changes** [spec: accessibility.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
-  - Post announcement after refresh completes: "Usage data updated"
-  - Post announcement on error: "Unable to refresh usage data"
-  - Post announcement when threshold crossed: "Warning: usage at X percent"
-  - Use `NSAccessibility.post(notification: .announcement, argument: message)`
-  - Ensure announcements only fire when VoiceOver is active
-  - **Research:** `specs/accessibility.md` lines 96-107 for announcement patterns
-  - **DONE:** Created AccessibilityAnnouncer class with AccessibilityAnnouncerProtocol for testability. Integrated into UsageManager for refresh success/failure announcements. Integrated into UsageNotificationChecker for warning threshold, capacity full, and reset complete announcements. Added AccessibilityAnnouncementMessages enum for predefined message strings. Announcements only fire when NSWorkspace.shared.isVoiceOverEnabled is true. Added 18 new tests. Total tests: 351.
+- [ ] **Implement locale-aware date and number formatting** [spec: internationalization.md#date--time-formatting] [file: Packages/UI/Sources/UI/UsageProgressBar.swift, Packages/Core/Sources/Core/*.swift]
+  - Replace custom date formatting with `Text(date, style: .relative)`
+  - Use `DateComponentsFormatter` for time intervals
+  - Ensure percentages use `.monospacedDigit()` (locale-independent)
+  - Update time-to-exhaustion display to use localized formatters
+  - Review `spokenTimeToExhaustion` for localization
+  - **Research:** `specs/internationalization.md` lines 212-268 for formatters
+  - **Test:** Run app with different system locales, verify dates display correctly
 
 ---
-<!-- CHECKPOINT: Phase 1 delivers accessibility. Test with VoiceOver enabled, verify all elements are announced and keyboard navigation works. -->
+<!-- CHECKPOINT: Phase 1 delivers infrastructure. All strings should be in String Catalog with English values. -->
 
-## Phase 2: Distribution Tooling
+## Phase 2: Portuguese (pt-BR) Localization
 
-Create release scripts and distribution artifacts.
+**Purpose:** Add complete Portuguese (Brazil) translations for all user-facing strings.
 
-- [x] **Create release scripts** [spec: toolchain.md] [file: scripts/]
-  - Create `scripts/create-dmg.sh` for DMG generation with Applications symlink
-  - Create `scripts/install-hooks.sh` for git pre-commit hooks setup
-  - Update Makefile with `make dmg`, `make archive`, `make install`, `make uninstall` targets
-  - Add `make setup` command for initial project setup (deps + hooks)
-  - Ensure scripts are executable (`chmod +x`)
-  - **Research:** `specs/toolchain.md` lines 559-607 for release process
-  - **Test:** Run `make dmg`, verify DMG is created and mounts correctly
-  - **DONE:** Created `scripts/create-dmg.sh` that creates distributable DMG with Applications symlink using hdiutil. Created `scripts/install-hooks.sh` that installs pre-commit git hook running SwiftFormat and SwiftLint on staged Swift files. Both scripts executable and follow project patterns. Verified: `make dmg` creates 675KB DMG successfully, `make archive` creates ZIP, `make setup` installs hooks and resolves deps. Total tests: 351.
+- [ ] **Add Portuguese translations to String Catalog** [spec: internationalization.md#glossary] [file: Resources/Localizable.xcstrings]
+  - Add `pt-BR` localizations for all strings
+  - Follow glossary from spec:
+    - Usage → Uso
+    - Session → Sessão
+    - Weekly → Semanal
+    - Refresh → Atualizar
+    - Settings → Configurações
+    - Threshold → Limite
+    - Plan → Plano
+    - Capacity → Capacidade
+  - Translate all ~50-80 strings
+  - Handle pluralization rules for Portuguese
+  - **Research:** `specs/internationalization.md` lines 336-347 for glossary
+  - **Research:** `specs/internationalization.md` lines 176-206 for pluralization
+  - **Test:** Launch with `-AppleLanguages "(pt-BR)"`, verify all text is Portuguese
 
-- [ ] **Create Homebrew Cask formula** [spec: toolchain.md] [file: (external repo)]
-  - Create `yourname/homebrew-tap` repository on GitHub
-  - Create `Casks/claudeapp.rb` formula with:
-    - Version, SHA256 hash of DMG
-    - URL pointing to GitHub release asset
-    - `depends_on macos: ">= :sonoma"`
-    - `zap trash:` for cleanup paths
-  - Document installation: `brew tap yourname/tap && brew install --cask claudeapp`
-  - **Research:** `specs/toolchain.md` lines 704-728 for Homebrew formula template
-  - **Note:** Formula will need SHA256 update after each release
-
-- [x] **Add SwiftFormat and SwiftLint configuration** [spec: toolchain.md] [file: .swiftformat, .swiftlint.yml]
-  - Create `.swiftformat` with Swift 5.9 rules (120 char line width, balanced closing parens)
-  - Create `.swiftlint.yml` with opt-in rules and configured thresholds
-  - Add `make format` and `make lint` targets to Makefile
-  - Add `make check` target that runs format + lint + test (CI gate)
-  - Run initial format pass on codebase
-  - **Research:** `specs/toolchain.md` lines 279-477 for configuration files
-  - **Test:** Run `make check`, ensure all checks pass
-  - **DONE:** Configuration files already exist and are properly configured. `.swiftformat` has Swift 5.9, 120 char width, balanced parens. `.swiftlint.yml` has all opt-in rules and configured thresholds. Makefile has `format`, `lint`, `lint-fix`, and `check` targets. All 351 tests pass.
+- [ ] **Test Portuguese localization end-to-end** [file: Resources/Localizable.xcstrings]
+  - Test menu bar label displays correctly
+  - Test dropdown with all usage windows
+  - Test settings panel (all sections)
+  - Test notifications (warning, capacity full, reset)
+  - Test error states (not authenticated, network error)
+  - Test accessibility labels with VoiceOver
+  - Verify no truncation issues (Portuguese strings ~10-20% longer)
+  - **Research:** `specs/internationalization.md` lines 390-409 for string limits
+  - **Test:** `make test` passes, manual testing with pt-BR locale
 
 ---
-<!-- CHECKPOINT: Phase 2 delivers distribution tooling. Verify DMG creation works, Homebrew formula is valid, code quality tools are configured. -->
+<!-- CHECKPOINT: Phase 2 delivers Portuguese. App should be fully usable in Portuguese. -->
 
-## Phase 3: CI/CD Pipeline
+## Phase 3: Spanish (es-LATAM) Localization
 
-Implement automated builds, tests, and releases via GitHub Actions.
+**Purpose:** Add complete Spanish (Latin America) translations for all user-facing strings.
 
-- [x] **Create GitHub Actions CI workflow** [spec: toolchain.md] [file: .github/workflows/ci.yml]
-  - Trigger on push to main and pull requests
-  - Use `macos-14` runner with Xcode 15.2
-  - Install SwiftFormat and SwiftLint via Homebrew
-  - Run format check (lint mode), lint, build, and test
-  - Cache Swift packages for faster builds
-  - Report test results as GitHub Check annotations
-  - **Research:** `specs/toolchain.md` lines 629-697 for CI workflow template
-  - **Test:** Push a test commit, verify workflow runs and passes
-  - **DONE:** Created `.github/workflows/ci.yml` with build-and-test job (checkout, select Xcode 15.2, show Swift version, cache SPM packages, install swiftformat/swiftlint, format check, lint, build, test). All 351 tests pass locally.
+- [ ] **Add Spanish translations to String Catalog** [spec: internationalization.md#glossary] [file: Resources/Localizable.xcstrings]
+  - Add `es` localizations for all strings
+  - Follow glossary from spec:
+    - Usage → Uso
+    - Session → Sesión
+    - Weekly → Semanal
+    - Refresh → Actualizar
+    - Settings → Configuración
+    - Threshold → Límite
+    - Plan → Plan
+    - Capacity → Capacidad
+  - Translate all ~50-80 strings
+  - Handle pluralization rules for Spanish
+  - Use neutral Latin American Spanish (avoid Spain-specific terms)
+  - **Research:** `specs/internationalization.md` lines 336-347 for glossary
+  - **Test:** Launch with `-AppleLanguages "(es)"`, verify all text is Spanish
 
-- [x] **Create GitHub Actions release workflow** [spec: toolchain.md] [file: .github/workflows/ci.yml]
-  - Trigger on tag push matching `v*`
-  - Build release version
-  - Create DMG and ZIP archive
-  - Upload artifacts to GitHub Release using `softprops/action-gh-release`
-  - Auto-generate release notes from commits since last tag
-  - **Research:** `specs/toolchain.md` lines 672-697 for release job template
-  - **Note:** First release will need manual triggering after workflow is set up
-  - **DONE:** Release job included in `.github/workflows/ci.yml`. Triggers on tags matching `v*`, runs after build-and-test job passes, creates release bundle/archive/DMG, uploads to GitHub Release via softprops/action-gh-release.
-
-- [x] **Document release process in README** [file: README.md]
-  - Add "Installation" section with Homebrew command
-  - Add "Manual Installation" section with DMG download link
-  - Add "Development" section with build instructions
-  - Add "Contributing" section with code quality expectations
-  - Add badges: CI status, latest release, Swift version
-  - **Note:** Keep README concise, link to detailed docs where appropriate
-  - **DONE:** Added badges (CI status, Release, Swift 5.9+, macOS 14+, MIT License). Added Homebrew section with "Coming Soon" note. Enhanced Development section with release/dmg commands. Added Code Quality section with format/lint/check commands. Added Contributing section with guidelines and pre-submit checklist. Total tests: 351.
+- [ ] **Test Spanish localization end-to-end** [file: Resources/Localizable.xcstrings]
+  - Test all UI elements (same checklist as Portuguese)
+  - Verify no truncation issues
+  - Test VoiceOver in Spanish
+  - **Test:** `make test` passes, manual testing with es locale
 
 ---
-<!-- CHECKPOINT: Phase 3 delivers CI/CD. Verify CI runs on push, releases are automated on tag. -->
+<!-- CHECKPOINT: Phase 3 delivers Spanish. App now supports 3 languages. -->
 
-## Phase 4: Polish & Testing
+## Phase 4: Localization Tests & Documentation
 
-Final quality checks and test coverage.
+**Purpose:** Add automated tests for localization and update documentation.
 
-- [x] **Add accessibility tests** [file: Packages/UI/Tests/UITests/UITests.swift]
-  - ~~Create XCUITest target for accessibility verification~~ (Not feasible: SPM project has no .xcodeproj; XCUITest requires Xcode project with UI test target)
-  - Test that all interactive elements have accessibility labels ✅ (BurnRateBadge, UsageProgressBar tests)
-  - Test that focus order is logical (Tab through dropdown) ✅ (Keyboard Navigation Support Tests)
-  - ~~Test that keyboard shortcuts work (Cmd+R, Escape)~~ (Requires UI interaction testing, not possible with unit tests)
-  - Test that VoiceOver announces state changes ✅ (AccessibilityAnnouncer tests in CoreTests)
-  - **Research:** `specs/accessibility.md` lines 515-529 for test patterns
-  - **Target:** 100% coverage of accessibility requirements ✅
-  - **DONE:** Added 18 new accessibility tests to UITests:
-    - BurnRateBadge Accessibility Tests (6 tests): Verifies accessibility labels for all burn rate levels
-    - Keyboard Navigation Support Tests (3 tests): Verifies focusable components
-    - Accessibility Requirements Verification (9 tests): Verifies WCAG 2.1 AA compliance requirements
-    - Note: XCUITest is not feasible for pure SPM projects - would require wrapping in Xcode project.
-    - Total tests: 369 (was 351)
+- [ ] **Add localization unit tests** [file: Packages/UI/Tests/UITests/UITests.swift, Packages/Core/Tests/CoreTests/CoreTests.swift]
+  - Test that all localized keys exist in String Catalog
+  - Test that all supported locales have translations
+  - Test string interpolation with placeholders
+  - Test date/time formatters produce valid output for all locales
+  - Test pluralization rules
+  - Test that no hardcoded English strings remain in code
+  - **Research:** `specs/internationalization.md` lines 377-386 for UI test patterns
+  - **Target:** 10-15 new tests for i18n
 
-- [x] **Verify color contrast and update documentation** [spec: accessibility.md] [file: various]
-  - Verify all color combinations meet WCAG AA (4.5:1 for text, 3:1 for UI)
-  - Document any contrast issues found (yellow progress bar noted in spec)
-  - Update specs/features/README.md to mark features as implemented/tested
-  - Update IMPLEMENTATION_PLAN.md to mark SLC 4 complete
-  - **Research:** `specs/accessibility.md` lines 209-295 for contrast requirements
-  - **Tool:** Use WebAIM Contrast Checker or similar
-  - **DONE:** Verified contrast ratios documented in accessibility.md. Key finding: Yellow warning color (#EAB308) on background (#F4F3EE) has 2.1:1 ratio, below WCAG AA 3:1 for UI. This is documented and deferred to SLC 6 (Advanced Accessibility) for pattern-based solution. Updated specs/features/README.md: all features marked as ✅ implemented and tested. All implementation phases marked complete. Total tests: 369.
+- [ ] **Update documentation for i18n** [file: README.md, specs/README.md, IMPLEMENTATION_PLAN.md]
+  - Add "Supported Languages" section to README.md
+  - Document how to run app in different locales
+  - Document contribution guidelines for translations
+  - Update IMPLEMENTATION_PLAN.md to mark SLC 5 complete
+  - Update version to 1.4.0
+  - **Test:** Documentation is accurate and helpful
 
 ---
-<!-- CHECKPOINT: Phase 4 completes SLC 4. The app is now distributable with accessibility support and automated releases. -->
+<!-- CHECKPOINT: Phase 4 completes SLC 5. The app now supports English, Portuguese, and Spanish. -->
 
 ## Future Work (Outside Current Scope)
 
 The following items were identified during analysis but are deferred to maintain SLC focus:
 
-### SLC 5: Internationalization
-- Localization for English, Portuguese (pt-BR), Spanish (es)
-- String Catalog (.xcstrings) implementation
-- Number and date formatters using system locale
-- RTL preparation for future languages
-- **Research:** `specs/internationalization.md`
-
 ### SLC 6: Advanced Accessibility
 - Dynamic Type support with adaptive layouts
 - Reduced motion support for animations
 - Color-blind safe patterns (diagonal stripes at >90%)
-- Dark mode with equivalent contrast ratios
+- High contrast mode support
+- Yellow warning color fix (pattern-based solution for 2.1:1 contrast issue)
 - **Research:** `specs/accessibility.md` lines 299-410
 
+### SLC 7: Phase 2 Languages
+- French (fr-FR/CA)
+- German (de-DE)
+- Japanese (ja-JP)
+- Chinese Simplified (zh-Hans)
+- Chinese Traditional (zh-Hant)
+- Korean (ko-KR)
+- RTL preparation for future Arabic/Hebrew
+- **Research:** `specs/internationalization.md` Phase 2 section
+
 ### Future Releases
+- Local JSONL fallback when API unavailable
+- Custom Claude brand app icon (replace SF Symbol)
+- Plan badge auto-detection (requires Anthropic API support)
+- Apple Developer ID signing and notarization
+- Homebrew tap repository setup
 - Historical usage graphs/trends visualization
 - Widget support for Notification Center
-- Local JSONL fallback when API unavailable
-- Apple Developer ID signing and notarization (requires paid account)
-- Plan type auto-detection from API
-- Quiet hours setting for notifications
-- Export/import settings
-- Custom Claude brand icon (replace SF "sparkle" symbol)
 
 ### Technical Debt Identified
-- Integration tests with mock network layer
-- API retry with exponential backoff refinement
-- Keychain error recovery mechanism
-- Performance profiling and optimization
-- Memory leak detection in long-running sessions
+- Hysteresis values hardcoded (5%) - could be configurable
+- Burn rate thresholds hardcoded (10/25/50% per hour)
+- No integration tests with mock network layer
+- Memory leak detection for long-running sessions
 
 ---
 
 ## Implementation Notes
 
-### App Bundle Creation (Phase 0 - Critical)
+### String Catalog Structure
 
-The critical path is creating the `.app` bundle. Without it, the app cannot be distributed. The bundle structure must be:
+The `.xcstrings` file should follow this structure:
 
-```
-ClaudeApp.app/
-├── Contents/
-│   ├── Info.plist          # Bundle metadata, LSUIElement=true
-│   ├── MacOS/
-│   │   └── ClaudeApp       # Binary from SPM build
-│   └── Resources/
-│       └── AppIcon.icns    # App icon for Finder
-```
-
-**Minimum Info.plist keys:**
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleIdentifier</key>
-    <string>com.claudeapp.ClaudeApp</string>
-    <key>CFBundleName</key>
-    <string>ClaudeApp</string>
-    <key>CFBundleExecutable</key>
-    <string>ClaudeApp</string>
-    <key>CFBundleVersion</key>
-    <string>1.3.0</string>
-    <key>CFBundleShortVersionString</key>
-    <string>1.3.0</string>
-    <key>LSUIElement</key>
-    <true/>
-    <key>LSMinimumSystemVersion</key>
-    <string>14.0</string>
-    <key>NSHighResolutionCapable</key>
-    <true/>
-</dict>
-</plist>
+```json
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "usage.header.title": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Claude Usage" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Uso do Claude" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Uso de Claude" } }
+      }
+    }
+  }
+}
 ```
 
-### Accessibility Priority Order
+### Key Categories
 
-1. **VoiceOver labels** - Most critical for screen reader users
-2. **Keyboard navigation** - Essential for motor-impaired users
-3. **Focus indicators** - Visual feedback for keyboard users
-4. **Announcements** - Dynamic content updates for screen readers
+Organize strings by feature:
+- `usage.*` - Dropdown and progress bars (~20 strings)
+- `settings.*` - Settings panel (~15 strings)
+- `button.*` - Action buttons (~5 strings)
+- `error.*` - Error states (~10 strings)
+- `notification.*` - System notifications (~10 strings)
+- `update.*` - Update checking (~5 strings)
+- `accessibility.*` - VoiceOver labels (~15 strings)
 
-### Distribution Strategy
+### Testing Strategy
 
-1. **Primary:** Homebrew Cask (easiest for developers)
-2. **Secondary:** DMG download from GitHub Releases
-3. **Future:** Mac App Store (requires signing, paid developer account)
+1. **Automated:** Unit tests verify all keys exist and have translations
+2. **Manual:** Test with launch arguments:
+   ```bash
+   # In Xcode: Product > Scheme > Edit Scheme > Run > Arguments
+   -AppleLanguages "(pt-BR)"
+   -AppleLocale "pt_BR"
+   ```
+3. **Pseudo-localization:** Extend strings by 30% to test truncation
 
-### CI/CD Considerations
+### Accessibility Considerations
 
-- GitHub Actions free tier: 2000 minutes/month (sufficient for this project)
-- macOS runners are slower than Linux - keep workflows efficient
-- Cache Swift packages to reduce build time
-- Use matrix builds only if supporting multiple Swift/macOS versions
-
-### Testing Strategy for Accessibility
-
-- Manual testing with VoiceOver is required (automated tests have limitations)
-- Use Accessibility Inspector.app to verify element attributes
-- Test with actual keyboard-only navigation
-- Verify announcements are timely and not repetitive
+- All accessibility labels must be localized
+- VoiceOver announcements use `String(localized:)`
+- Test VoiceOver in each supported language
+- Ensure spoken numbers and dates are locale-appropriate
 
 ---
 
@@ -501,3 +406,4 @@ All tasks completed with 369 passing tests.
 | 2 | Notifications & Settings | 1.1.0 | 155 | COMPLETE |
 | 3 | Predictive Insights | 1.2.0 | 320 | COMPLETE |
 | 4 | Distribution Ready | 1.3.0 | 369 | COMPLETE |
+| 5 | Internationalization | 1.4.0 | ~385 | **PLANNED** |
