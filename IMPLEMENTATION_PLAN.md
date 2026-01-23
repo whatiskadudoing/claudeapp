@@ -82,24 +82,26 @@ Key research documents for this implementation:
     - Supported languages list
   - **Test:** Documentation verified against codebase exploration ✅
 
-- [ ] **Create troubleshooting and FAQ documentation** [spec: user-documentation.md] [file: docs/troubleshooting.md, docs/faq.md]
-  - Create `docs/troubleshooting.md` with:
-    - "Claude Code not found" resolution
-    - Stale data issues
-    - Gatekeeper bypass
-    - Notification permission issues
-    - High CPU/memory troubleshooting
-    - Menu bar icon missing
-    - Settings not saving
-    - How to report issues
-  - Create `docs/faq.md` with:
-    - What is ClaudeApp?
-    - Is it official/free?
-    - Privacy & security questions
-    - Usage window explanations
-    - Technical questions (why macOS 14+, why not App Store)
-  - **Research:** `specs/user-documentation.md` FAQ and troubleshooting templates
-  - **Test:** All troubleshooting steps actually work
+- [x] **Create troubleshooting and FAQ documentation** [spec: user-documentation.md] [file: docs/troubleshooting.md, docs/faq.md]
+  - Created `docs/troubleshooting.md` with:
+    - "Claude Code not found" resolution with Keychain details
+    - Stale data issues and refresh behavior
+    - Gatekeeper bypass (both right-click and System Settings methods)
+    - Notification permission issues with in-app guidance
+    - High CPU/memory troubleshooting with expected values
+    - Menu bar icon missing solutions
+    - Settings not saving fix
+    - Rate limiting explanation with exponential backoff
+    - Burn rate and time-to-exhaustion visibility conditions
+    - Complete issue reporting guide with version info steps
+  - Created `docs/faq.md` with:
+    - General section: What is ClaudeApp, official status, free/open source
+    - Privacy & security: Data access, security, storage locations table
+    - Usage section: Claude Code requirement, usage windows table, percentages, refresh, burn rate, time-to-exhaustion
+    - Troubleshooting section: Common quick fixes with links
+    - Technical section: macOS 14+ requirement, App Store, Homebrew, contributing, languages
+  - **Research:** Used `specs/user-documentation.md` templates, adapted with actual repo URLs
+  - **Test:** Documentation verified against codebase exploration ✅
 
 - [ ] **Create privacy policy** [spec: user-documentation.md] [file: docs/privacy.md]
   - Document what data is accessed (OAuth token, usage stats, preferences)
