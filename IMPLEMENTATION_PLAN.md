@@ -10,6 +10,7 @@
 
 | Activity | Depth | Why Included |
 |----------|-------|--------------|
+| Build Infrastructure | Basic | Required - SPM doesn't create .app bundles, must fix first |
 | Accessibility | Standard | Required for quality - serves users with disabilities (Job 6) |
 | Distribution Tooling | Basic | Required for installation - DMG creation, Homebrew formula |
 | CI/CD Pipeline | Basic | Required for sustainable releases - automated builds and tests |
@@ -30,6 +31,7 @@ Key research documents for this implementation:
 
 | Topic | Document | Why Relevant |
 |-------|----------|--------------|
+| Menu Bar Apps | `research/approaches/menubar-extra.md` | Info.plist requirements for LSUIElement |
 | Accessibility | `specs/accessibility.md` | VoiceOver labels, keyboard nav, focus states |
 | Toolchain | `specs/toolchain.md` | Makefile commands, release scripts, CI/CD |
 | Distribution | `specs/toolchain.md#homebrew` | Homebrew Cask formula template |
@@ -40,6 +42,78 @@ Key research documents for this implementation:
 <!-- Answer: YES - Users can now install ClaudeApp via Homebrew or DMG download.
      Accessibility ensures all users can use the app effectively.
      CI/CD ensures sustainable release process for ongoing updates. -->
+
+## Phase 0: Build Verification - CRITICAL
+
+**Purpose:** Verify the app compiles, tests pass, runs correctly, and can be bundled for distribution. Fix any issues found before proceeding.
+
+### Current Status (Auto-verified 2026-01-23)
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| `make build` | ✅ PASS | Debug build succeeds |
+| `swift build --configuration release` | ✅ PASS | Release build succeeds (1.3MB binary) |
+| `swift test` | ✅ PASS | 333 tests passing |
+| Binary validity | ✅ PASS | Valid Mach-O 64-bit arm64 executable |
+| App bundle (.app) | ❌ FAIL | SPM produces bare executable, not .app bundle |
+| DMG creation | ❌ BLOCKED | No `scripts/create-dmg.sh`, depends on .app bundle |
+| CI/CD workflows | ❌ MISSING | No `.github/workflows/` files exist |
+
+### Blocking Issue: No App Bundle
+
+**Problem:** Swift Package Manager with `.executableTarget` only produces a bare binary (`.build/release/ClaudeApp`), not a macOS app bundle (`.app`). This means:
+- No `Info.plist` (required for `LSUIElement` to hide from Dock)
+- No app icon
+- No bundle identifier
+- Cannot be distributed via DMG or Homebrew Cask
+- Gatekeeper/notarization not possible
+
+**Solution:** Create a shell script that assembles the `.app` bundle from SPM output.
+
+---
+
+- [x] **Verify build, test, and run work correctly** [file: Makefile]
+  - ✅ `make build` - Debug build succeeds
+  - ✅ `swift build --configuration release` - Release build succeeds
+  - ✅ `swift test` - 333 tests pass
+  - ✅ Binary is valid Mach-O arm64 executable
+  - **Status:** All compilation checks pass. App bundle creation is the blocker.
+
+- [ ] **Create app bundle generation script** [file: scripts/create-bundle.sh, Resources/Info.plist]
+  - Create `scripts/create-bundle.sh` to assemble .app bundle from SPM binary
+  - Create `Resources/Info.plist` with required keys:
+    - `CFBundleIdentifier`: `com.claudeapp.ClaudeApp`
+    - `CFBundleName`: `ClaudeApp`
+    - `CFBundleExecutable`: `ClaudeApp`
+    - `CFBundleVersion` and `CFBundleShortVersionString`: `1.3.0`
+    - `LSUIElement`: `true` (hide from Dock, menu bar only)
+    - `LSMinimumSystemVersion`: `14.0`
+    - `NSHighResolutionCapable`: `true`
+  - Create `Resources/AppIcon.icns` (or use placeholder)
+  - Script should create bundle structure:
+    ```
+    ClaudeApp.app/
+    ├── Contents/
+    │   ├── Info.plist
+    │   ├── MacOS/
+    │   │   └── ClaudeApp
+    │   └── Resources/
+    │       └── AppIcon.icns
+    ```
+  - Update Makefile `release` target to use this script
+  - **Research:** `research/approaches/menubar-extra.md` lines 265-274 for Info.plist
+  - **Test:** Run `make release`, verify `.app` bundle is created, double-click to launch
+
+- [ ] **Verify app bundle launches correctly** [file: release/ClaudeApp.app]
+  - After bundle creation, test: `open release/ClaudeApp.app`
+  - Verify app appears in menu bar (not Dock due to LSUIElement)
+  - Verify dropdown shows usage data
+  - Verify settings window opens
+  - If any failures, debug and fix bundle configuration
+  - **Success criteria:** App launches from .app bundle, shows in menu bar, fetches data
+
+---
+<!-- CHECKPOINT: Phase 0 must pass before continuing. The app must build, test, and bundle correctly. -->
 
 ## Phase 1: Accessibility Foundation - CRITICAL
 
@@ -78,13 +152,14 @@ Implement VoiceOver support and keyboard navigation for core UI elements.
   - **Test:** Open dropdown, press Tab repeatedly, verify focus moves logically
   - **DONE:** Added `FocusableElement` enum with cases for refresh, settings, progressBar(Int), and quit. Added `@FocusState` to DropdownView. Applied `.focused()` to RefreshButton, SettingsButton, all UsageProgressBar instances (made focusable with `.focusable()`), and Quit button. Added `.keyboardShortcut("q", modifiers: .command)` to Quit button. Removed duplicate Cmd+R shortcut from DropdownView (kept only on RefreshButton). Set initial focus to refresh button via `.onAppear`. Updated UsageContent to accept focus binding. Note: Escape key behavior is handled natively by macOS for MenuBarExtra windows. Total tests: 333.
 
-- [ ] **Add VoiceOver announcements for state changes** [spec: accessibility.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
+- [x] **Add VoiceOver announcements for state changes** [spec: accessibility.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
   - Post announcement after refresh completes: "Usage data updated"
   - Post announcement on error: "Unable to refresh usage data"
   - Post announcement when threshold crossed: "Warning: usage at X percent"
   - Use `NSAccessibility.post(notification: .announcement, argument: message)`
   - Ensure announcements only fire when VoiceOver is active
   - **Research:** `specs/accessibility.md` lines 96-107 for announcement patterns
+  - **DONE:** Created AccessibilityAnnouncer class with AccessibilityAnnouncerProtocol for testability. Integrated into UsageManager for refresh success/failure announcements. Integrated into UsageNotificationChecker for warning threshold, capacity full, and reset complete announcements. Added AccessibilityAnnouncementMessages enum for predefined message strings. Announcements only fire when NSWorkspace.shared.isVoiceOverEnabled is true. Added 18 new tests. Total tests: 351.
 
 ---
 <!-- CHECKPOINT: Phase 1 delivers accessibility. Test with VoiceOver enabled, verify all elements are announced and keyboard navigation works. -->
@@ -222,6 +297,46 @@ The following items were identified during analysis but are deferred to maintain
 
 ## Implementation Notes
 
+### App Bundle Creation (Phase 0 - Critical)
+
+The critical path is creating the `.app` bundle. Without it, the app cannot be distributed. The bundle structure must be:
+
+```
+ClaudeApp.app/
+├── Contents/
+│   ├── Info.plist          # Bundle metadata, LSUIElement=true
+│   ├── MacOS/
+│   │   └── ClaudeApp       # Binary from SPM build
+│   └── Resources/
+│       └── AppIcon.icns    # App icon for Finder
+```
+
+**Minimum Info.plist keys:**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.claudeapp.ClaudeApp</string>
+    <key>CFBundleName</key>
+    <string>ClaudeApp</string>
+    <key>CFBundleExecutable</key>
+    <string>ClaudeApp</string>
+    <key>CFBundleVersion</key>
+    <string>1.3.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.3.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+</dict>
+</plist>
+```
+
 ### Accessibility Priority Order
 
 1. **VoiceOver labels** - Most critical for screen reader users
@@ -339,4 +454,4 @@ All tasks completed with 320 passing tests.
 | 1 | Usage Monitor | 1.0.0 | 81 | COMPLETE |
 | 2 | Notifications & Settings | 1.1.0 | 155 | COMPLETE |
 | 3 | Predictive Insights | 1.2.0 | 320 | COMPLETE |
-| 4 | Distribution Ready | 1.3.0 | TBD | PLANNED |
+| 4 | Distribution Ready | 1.3.0 | 333 | IN PROGRESS |

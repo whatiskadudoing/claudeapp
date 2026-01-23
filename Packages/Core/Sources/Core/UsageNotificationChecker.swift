@@ -42,6 +42,7 @@ public final class UsageNotificationChecker {
 
     private let notificationManager: NotificationManager
     private let settingsManager: SettingsManager
+    private let accessibilityAnnouncer: AccessibilityAnnouncerProtocol
 
     // MARK: - Initialization
 
@@ -50,12 +51,15 @@ public final class UsageNotificationChecker {
     /// - Parameters:
     ///   - notificationManager: Manager for sending notifications
     ///   - settingsManager: Manager for reading notification settings
+    ///   - accessibilityAnnouncer: Announcer for VoiceOver feedback (defaults to shared instance)
     public init(
         notificationManager: NotificationManager,
-        settingsManager: SettingsManager
+        settingsManager: SettingsManager,
+        accessibilityAnnouncer: AccessibilityAnnouncerProtocol = AccessibilityAnnouncer.shared
     ) {
         self.notificationManager = notificationManager
         self.settingsManager = settingsManager
+        self.accessibilityAnnouncer = accessibilityAnnouncer
     }
 
     // MARK: - Public Methods
@@ -184,6 +188,11 @@ public final class UsageNotificationChecker {
                 body: body,
                 identifier: notificationId
             )
+
+            // Post VoiceOver announcement for threshold crossing
+            accessibilityAnnouncer.announce(
+                AccessibilityAnnouncementMessages.warningThreshold(percentage: Int(currentUtil))
+            )
         }
     }
 
@@ -212,6 +221,11 @@ public final class UsageNotificationChecker {
                 body: body,
                 identifier: notificationId
             )
+
+            // Post VoiceOver announcement for capacity full
+            accessibilityAnnouncer.announce(
+                AccessibilityAnnouncementMessages.capacityFull(windowName: name)
+            )
         }
     }
 
@@ -235,6 +249,9 @@ public final class UsageNotificationChecker {
                 body: "Your weekly limit has reset. Full capacity available.",
                 identifier: notificationId
             )
+
+            // Post VoiceOver announcement for reset complete
+            accessibilityAnnouncer.announce(AccessibilityAnnouncementMessages.resetComplete)
         }
 
         // Reset state when utilization rises above the low threshold

@@ -44,6 +44,7 @@ public final class UsageManager {
 
     private let usageRepository: UsageRepository
     private var notificationChecker: UsageNotificationChecker?
+    private let accessibilityAnnouncer: AccessibilityAnnouncerProtocol
 
     // MARK: - Burn Rate State
 
@@ -82,9 +83,15 @@ public final class UsageManager {
     // MARK: - Initialization
 
     /// Creates a new UsageManager with the given repository.
-    /// - Parameter usageRepository: Repository for fetching usage data
-    public init(usageRepository: UsageRepository) {
+    /// - Parameters:
+    ///   - usageRepository: Repository for fetching usage data
+    ///   - accessibilityAnnouncer: Announcer for VoiceOver feedback (defaults to shared instance)
+    public init(
+        usageRepository: UsageRepository,
+        accessibilityAnnouncer: AccessibilityAnnouncerProtocol = AccessibilityAnnouncer.shared
+    ) {
         self.usageRepository = usageRepository
+        self.accessibilityAnnouncer = accessibilityAnnouncer
     }
 
     /// Sets the notification checker for triggering usage notifications.
@@ -186,6 +193,14 @@ public final class UsageManager {
 
         // Show success/error flash briefly, then return to idle
         refreshState = succeeded ? .success : .error
+
+        // Post VoiceOver announcement for state change
+        if succeeded {
+            accessibilityAnnouncer.announce(AccessibilityAnnouncementMessages.refreshComplete)
+        } else {
+            accessibilityAnnouncer.announce(AccessibilityAnnouncementMessages.refreshFailed)
+        }
+
         Task {
             try? await Task.sleep(for: .seconds(1))
             // Only reset to idle if we're still in the flash state

@@ -3363,3 +3363,371 @@ struct UpdateCheckerTests {
         #expect(crossedAsset.name == "app.dmg")
     }
 }
+
+// MARK: - Mock Accessibility Announcer
+
+/// Mock accessibility announcer for testing VoiceOver announcements.
+final class MockAccessibilityAnnouncer: AccessibilityAnnouncerProtocol, @unchecked Sendable {
+    private var lock = NSLock()
+    private var _announcements: [String] = []
+
+    var announcements: [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return _announcements
+    }
+
+    var lastAnnouncement: String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return _announcements.last
+    }
+
+    var announcementCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return _announcements.count
+    }
+
+    func announce(_ message: String) {
+        lock.lock()
+        _announcements.append(message)
+        lock.unlock()
+    }
+
+    func reset() {
+        lock.lock()
+        _announcements.removeAll()
+        lock.unlock()
+    }
+}
+
+// MARK: - AccessibilityAnnouncer Tests
+
+@Suite("AccessibilityAnnouncer Tests")
+struct AccessibilityAnnouncerTests {
+    @Test("Announcement messages are correct")
+    func announcementMessages() {
+        // Verify static message content
+        #expect(AccessibilityAnnouncementMessages.refreshComplete == "Usage data updated")
+        #expect(AccessibilityAnnouncementMessages.refreshFailed == "Unable to refresh usage data")
+        #expect(AccessibilityAnnouncementMessages.resetComplete == "Usage limit has reset. Full capacity available.")
+    }
+
+    @Test("Warning threshold message formats correctly")
+    func warningThresholdMessage() {
+        let message90 = AccessibilityAnnouncementMessages.warningThreshold(percentage: 90)
+        #expect(message90 == "Warning: usage at 90 percent")
+
+        let message100 = AccessibilityAnnouncementMessages.warningThreshold(percentage: 100)
+        #expect(message100 == "Warning: usage at 100 percent")
+
+        let message75 = AccessibilityAnnouncementMessages.warningThreshold(percentage: 75)
+        #expect(message75 == "Warning: usage at 75 percent")
+    }
+
+    @Test("Capacity full message formats correctly")
+    func capacityFullMessage() {
+        let sessionMessage = AccessibilityAnnouncementMessages.capacityFull(windowName: "Current session")
+        #expect(sessionMessage == "Current session limit reached")
+
+        let weeklyMessage = AccessibilityAnnouncementMessages.capacityFull(windowName: "Weekly (all models)")
+        #expect(weeklyMessage == "Weekly (all models) limit reached")
+    }
+
+    @Test("Mock announcer records announcements")
+    func mockAnnouncerRecords() {
+        let announcer = MockAccessibilityAnnouncer()
+
+        announcer.announce("Test message 1")
+        announcer.announce("Test message 2")
+
+        #expect(announcer.announcementCount == 2)
+        #expect(announcer.announcements == ["Test message 1", "Test message 2"])
+        #expect(announcer.lastAnnouncement == "Test message 2")
+    }
+
+    @Test("Mock announcer reset clears announcements")
+    func mockAnnouncerReset() {
+        let announcer = MockAccessibilityAnnouncer()
+
+        announcer.announce("Test message")
+        #expect(announcer.announcementCount == 1)
+
+        announcer.reset()
+        #expect(announcer.announcementCount == 0)
+        #expect(announcer.lastAnnouncement == nil)
+    }
+}
+
+// MARK: - UsageManager Accessibility Tests
+
+@Suite("UsageManager Accessibility Tests")
+struct UsageManagerAccessibilityTests {
+    @Test("Refresh announces success on successful fetch")
+    @MainActor
+    func refreshAnnouncesSuccess() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let mockAnnouncer = MockAccessibilityAnnouncer()
+        let manager = UsageManager(usageRepository: mockRepo, accessibilityAnnouncer: mockAnnouncer)
+
+        await manager.refresh()
+
+        #expect(mockAnnouncer.announcementCount == 1)
+        #expect(mockAnnouncer.lastAnnouncement == AccessibilityAnnouncementMessages.refreshComplete)
+    }
+
+    @Test("Refresh announces failure on error")
+    @MainActor
+    func refreshAnnouncesFailure() async {
+        let mockRepo = MockUsageRepository(error: .networkError(message: "Connection failed"))
+        let mockAnnouncer = MockAccessibilityAnnouncer()
+        let manager = UsageManager(usageRepository: mockRepo, accessibilityAnnouncer: mockAnnouncer)
+
+        await manager.refresh()
+
+        #expect(mockAnnouncer.announcementCount == 1)
+        #expect(mockAnnouncer.lastAnnouncement == AccessibilityAnnouncementMessages.refreshFailed)
+    }
+
+    @Test("Refresh announces failure on auth error")
+    @MainActor
+    func refreshAnnouncesAuthFailure() async {
+        let mockRepo = MockUsageRepository(error: .notAuthenticated)
+        let mockAnnouncer = MockAccessibilityAnnouncer()
+        let manager = UsageManager(usageRepository: mockRepo, accessibilityAnnouncer: mockAnnouncer)
+
+        await manager.refresh()
+
+        #expect(mockAnnouncer.announcementCount == 1)
+        #expect(mockAnnouncer.lastAnnouncement == AccessibilityAnnouncementMessages.refreshFailed)
+    }
+
+    @Test("Multiple refreshes create multiple announcements")
+    @MainActor
+    func multipleRefreshesAnnounce() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let mockAnnouncer = MockAccessibilityAnnouncer()
+        let manager = UsageManager(usageRepository: mockRepo, accessibilityAnnouncer: mockAnnouncer)
+
+        await manager.refresh()
+        await manager.refresh()
+        await manager.refresh()
+
+        #expect(mockAnnouncer.announcementCount == 3)
+        #expect(mockAnnouncer.announcements.allSatisfy { $0 == AccessibilityAnnouncementMessages.refreshComplete })
+    }
+
+    @Test("Mixed success and failure announcements")
+    @MainActor
+    func mixedSuccessAndFailure() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let mockAnnouncer = MockAccessibilityAnnouncer()
+        let manager = UsageManager(usageRepository: mockRepo, accessibilityAnnouncer: mockAnnouncer)
+
+        // First refresh succeeds
+        await manager.refresh()
+        #expect(mockAnnouncer.lastAnnouncement == AccessibilityAnnouncementMessages.refreshComplete)
+
+        // Configure failure - setting error will cause it to throw before returning data
+        await mockRepo.setError(.networkError(message: "No connection"))
+
+        // Second refresh fails
+        await manager.refresh()
+        #expect(mockAnnouncer.lastAnnouncement == AccessibilityAnnouncementMessages.refreshFailed)
+
+        #expect(mockAnnouncer.announcementCount == 2)
+        #expect(mockAnnouncer.announcements[0] == AccessibilityAnnouncementMessages.refreshComplete)
+        #expect(mockAnnouncer.announcements[1] == AccessibilityAnnouncementMessages.refreshFailed)
+    }
+}
+
+// MARK: - UsageNotificationChecker Accessibility Tests
+
+@Suite("UsageNotificationChecker Accessibility Tests")
+struct UsageNotificationCheckerAccessibilityTests {
+    /// Creates test dependencies with mock announcer
+    @MainActor
+    private static func createTestDependencies(
+        notificationsEnabled: Bool = true,
+        warningEnabled: Bool = true,
+        capacityFullEnabled: Bool = true,
+        resetCompleteEnabled: Bool = true,
+        warningThreshold: Int = 90
+    ) -> (checker: UsageNotificationChecker, service: MockNotificationService, announcer: MockAccessibilityAnnouncer) {
+        let mockService = MockNotificationService()
+        let notificationManager = NotificationManager(notificationCenter: mockService)
+        let mockSettingsRepo = MockSettingsRepository()
+        let mockAnnouncer = MockAccessibilityAnnouncer()
+
+        // Configure settings
+        mockSettingsRepo.set(.notificationsEnabled, value: notificationsEnabled)
+        mockSettingsRepo.set(.warningEnabled, value: warningEnabled)
+        mockSettingsRepo.set(.capacityFullEnabled, value: capacityFullEnabled)
+        mockSettingsRepo.set(.resetCompleteEnabled, value: resetCompleteEnabled)
+        mockSettingsRepo.set(.warningThreshold, value: warningThreshold)
+
+        let settingsManager = SettingsManager(repository: mockSettingsRepo)
+
+        let checker = UsageNotificationChecker(
+            notificationManager: notificationManager,
+            settingsManager: settingsManager,
+            accessibilityAnnouncer: mockAnnouncer
+        )
+
+        return (checker, mockService, mockAnnouncer)
+    }
+
+    /// Creates test usage data
+    private static func createUsageData(
+        fiveHour: Double,
+        sevenDay: Double,
+        opus: Double? = nil,
+        sonnet: Double? = nil
+    ) -> UsageData {
+        UsageData(
+            fiveHour: UsageWindow(utilization: fiveHour, resetsAt: Date().addingTimeInterval(3600)),
+            sevenDay: UsageWindow(utilization: sevenDay, resetsAt: Date().addingTimeInterval(86400)),
+            sevenDayOpus: opus.map { UsageWindow(utilization: $0) },
+            sevenDaySonnet: sonnet.map { UsageWindow(utilization: $0) },
+            fetchedAt: Date()
+        )
+    }
+
+    @Test("Warning threshold crossing announces to VoiceOver")
+    @MainActor
+    func warningThresholdAnnounces() async {
+        let deps = Self.createTestDependencies(warningThreshold: 90)
+
+        // Cross from 80% to 95%
+        let previous = Self.createUsageData(fiveHour: 80, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 95, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        #expect(deps.announcer.announcementCount == 1)
+        #expect(deps.announcer.lastAnnouncement == "Warning: usage at 95 percent")
+    }
+
+    @Test("Capacity full announces to VoiceOver")
+    @MainActor
+    func capacityFullAnnounces() async {
+        let deps = Self.createTestDependencies()
+
+        // Cross from 95% to 100%
+        let previous = Self.createUsageData(fiveHour: 95, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 100, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        // Should announce both warning (crossing 90) and capacity full
+        // Actually, capacity full is separate from warning
+        // Since we went from 95 to 100, no warning (already above 90), but capacity full
+        #expect(deps.announcer.announcementCount == 1)
+        #expect(deps.announcer.lastAnnouncement == "Current session limit reached")
+    }
+
+    @Test("Reset complete announces to VoiceOver")
+    @MainActor
+    func resetCompleteAnnounces() async {
+        let deps = Self.createTestDependencies()
+
+        // Simulate reset: previous high (60%), current low (5%)
+        let previous = Self.createUsageData(fiveHour: 50, sevenDay: 60)
+        let current = Self.createUsageData(fiveHour: 5, sevenDay: 5)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        #expect(deps.announcer.announcementCount == 1)
+        #expect(deps.announcer.lastAnnouncement == AccessibilityAnnouncementMessages.resetComplete)
+    }
+
+    @Test("No announcement when notifications disabled")
+    @MainActor
+    func noAnnouncementWhenDisabled() async {
+        let deps = Self.createTestDependencies(notificationsEnabled: false)
+
+        // Cross threshold but notifications are disabled
+        let previous = Self.createUsageData(fiveHour: 80, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 95, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        #expect(deps.announcer.announcementCount == 0)
+    }
+
+    @Test("No warning announcement when warning disabled")
+    @MainActor
+    func noWarningWhenDisabled() async {
+        let deps = Self.createTestDependencies(warningEnabled: false, capacityFullEnabled: false)
+
+        // Cross warning threshold
+        let previous = Self.createUsageData(fiveHour: 80, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 95, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        #expect(deps.announcer.announcementCount == 0)
+    }
+
+    @Test("Multiple window crossings announce multiple times")
+    @MainActor
+    func multipleWindowCrossings() async {
+        let deps = Self.createTestDependencies()
+
+        // Cross threshold in multiple windows
+        let previous = Self.createUsageData(fiveHour: 80, sevenDay: 80, opus: 80)
+        let current = Self.createUsageData(fiveHour: 95, sevenDay: 95, opus: 95)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        // Should announce warning for session, weekly, and opus
+        #expect(deps.announcer.announcementCount == 3)
+    }
+
+    @Test("Both warning and capacity full can announce")
+    @MainActor
+    func warningAndCapacityFull() async {
+        let deps = Self.createTestDependencies()
+
+        // Cross from below threshold to 100%
+        let previous = Self.createUsageData(fiveHour: 80, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 100, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        // Should announce both warning (crossing 90) and capacity full (crossing 100)
+        #expect(deps.announcer.announcementCount == 2)
+        #expect(deps.announcer.announcements.contains("Warning: usage at 100 percent"))
+        #expect(deps.announcer.announcements.contains("Current session limit reached"))
+    }
+
+    @Test("No announcement when not crossing threshold")
+    @MainActor
+    func noAnnouncementWhenNotCrossing() async {
+        let deps = Self.createTestDependencies()
+
+        // Both already above threshold
+        let previous = Self.createUsageData(fiveHour: 92, sevenDay: 50)
+        let current = Self.createUsageData(fiveHour: 95, sevenDay: 50)
+
+        await deps.checker.check(current: current, previous: previous)
+
+        #expect(deps.announcer.announcementCount == 0)
+    }
+}
