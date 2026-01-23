@@ -1,29 +1,26 @@
 # Implementation Plan
 
-## Recommended SLC Release: Advanced Accessibility (SLC 6)
+## Recommended SLC Release: Community Ready (SLC 7)
 
-**Audience:** Professional developers using Claude Code, including those with visual impairments, color vision deficiency, or preferences for reduced motion and larger text.
+**Audience:** Professional developers using Claude Code who want to adopt ClaudeApp and potentially contribute to the project.
 
-**Value proposition:** Make ClaudeApp truly accessible to all developers. While SLC 4 added basic VoiceOver support and keyboard navigation, users with color blindness cannot distinguish warning states, Dynamic Type users see truncated text, and motion-sensitive users experience discomfort. This slice delivers WCAG 2.1 AA compliance across all accessibility dimensions.
+**Value proposition:** Transform ClaudeApp from a working application into a professional open-source project ready for community adoption. Users need documentation to install, troubleshoot, and contribute. Without proper docs, adoption friction is high and contributions are unlikely.
 
 **Activities included:**
 
 | Activity | Depth | Why Included |
 |----------|-------|--------------|
-| Dynamic Type Support | Standard | Large text users need readable UI |
-| Color-Blind Safe Patterns | Standard | Color alone isn't sufficient for status |
-| Reduced Motion Support | Basic | Respect system preferences |
-| High Contrast Mode | Basic | Low vision users need stronger contrast |
-| Yellow Warning Color Fix | Standard | Current 2.1:1 ratio fails WCAG AA |
+| User Documentation | Standard | Users need installation/usage guides |
+| Community Files | Basic | Contributors need CONTRIBUTING/CODE_OF_CONDUCT |
+| Homebrew Distribution | Basic | Most macOS developers expect Homebrew install |
 
 **What's NOT in this slice:**
-- Phase 2 languages (French, German, Japanese, Chinese, Korean) → SLC 7
+- Phase 2 languages (French, German, Japanese, Chinese, Korean) → SLC 8
 - RTL language support (Arabic, Hebrew) → Future
 - Local JSONL fallback → Future
 - Custom app icon design → Future
-- Plan badge auto-detection (requires API support) → Future
-- Homebrew tap setup → Future
-- Documentation site (docs/) → Future
+- Plan badge auto-detection (requires API support) → BLOCKED
+- Historical usage graphs/trends → Future
 
 ---
 
@@ -33,18 +30,16 @@ Key research documents for this implementation:
 
 | Topic | Document | Why Relevant |
 |-------|----------|--------------|
-| Accessibility Requirements | `specs/accessibility.md` | Complete accessibility spec with WCAG requirements |
-| Dynamic Type | `specs/accessibility.md#dynamic-type` | Size categories and adaptive layouts |
-| Color Patterns | `specs/accessibility.md#color-blind` | Pattern overlays for color-blind users |
-| Motion Preferences | `specs/accessibility.md#reduced-motion` | System preference detection |
-| Design System | `specs/design-system.md` | Current colors and spacing tokens |
-| View Usage Spec | `specs/features/view-usage.md` | UI components to update |
+| Documentation Structure | `specs/user-documentation.md` | Complete doc spec with templates |
+| Homebrew Setup | `research/inspiration.md#distribution` | Example cask formulas |
+| Project Conventions | `README.md` | Current state to extend |
+| Contributing Guide | `specs/toolchain.md` | Build commands and workflow |
 
 ---
 <!-- HUMAN VERIFICATION: Does this slice form a coherent, valuable product? -->
-<!-- Answer: YES - Users who rely on accessibility features will have a fully
-     usable experience. This is not just about compliance - it's about ensuring
-     every developer can monitor their Claude usage effectively. -->
+<!-- Answer: YES - A professional open-source project needs documentation and
+     proper distribution channels. This slice removes adoption barriers and
+     enables community contributions. -->
 
 ## Phase 0: Build Verification - CRITICAL
 
@@ -53,158 +48,160 @@ Key research documents for this implementation:
 ### Pre-Flight Checks
 
 - [x] **Verify current build and test status** [file: Makefile]
-  - Run `make clean && make build` - should succeed ✓
-  - Run `swift test` - all 402 tests should pass ✓
-  - Run `make release` - .app bundle should be created ✓
-  - Run `open release/ClaudeApp.app` - app should launch and show usage ✓
-  - **Success criteria:** All checks pass, no regressions from SLC 5
-  - **Bug Found & Fixed:** Localization strings showed as keys (e.g., "usage.header.title") instead of values in release bundle. Root cause: SPM doesn't compile `.xcstrings` to runtime format; code was using `Bundle.main` instead of `Bundle.module`. Fix: Added `L()` helper function using `Bundle.module`, updated all localized strings, added `compile-strings.py` to convert `.xcstrings` → `.strings` in bundle script.
+  - Run `make clean && make build` - should succeed ✅
+  - Run `swift test` - all 489 tests should pass ✅
+  - Run `make release` - .app bundle should be created ✅
+  - **Success criteria:** All checks pass, no regressions from SLC 6 ✅
 
 ---
 <!-- CHECKPOINT: Phase 0 must pass before continuing. Do not proceed if build is broken. -->
 
-## Phase 1: Dynamic Type Support - CRITICAL
+## Phase 1: User Documentation - CRITICAL
 
-**Purpose:** Enable the app to scale text appropriately for users who need larger (or smaller) text sizes.
+**Purpose:** Create the docs/ folder with user-facing documentation that enables self-service installation and troubleshooting.
 
-- [x] **Implement adaptive text scaling throughout UI** [spec: accessibility.md#dynamic-type] [file: App/ClaudeApp.swift, Packages/UI/Sources/UI/*.swift]
-  - Replace fixed font sizes with `.font(.body)`, `.font(.headline)`, `.font(.caption)` semantic styles
-  - Use `@ScaledMetric` for custom sizes that must scale (icons, spacing tied to text)
-  - Test with all size categories: xSmall through AX5 (Accessibility sizes)
-  - Ensure text doesn't truncate at largest sizes - use `lineLimit(nil)` or scroll where appropriate
-  - Key areas to update:
-    - Menu bar label (percentage display)
-    - Dropdown header (title, burn rate badge)
-    - Usage progress bars (percentage, label, reset time, time-to-exhaustion)
-    - Settings sections (all labels and descriptions)
-    - Error states and buttons
-  - **Research:** `specs/accessibility.md` lines 341-410 for size category table
-  - **Test:** Build succeeds, all tests pass, UI readable at AX5
-  - **COMPLETED:** Added `Theme.Typography` enum with semantic font styles (title, sectionHeader, body, label, percentage, metadata, badge, menuBar, tiny, iconSmall/Medium/Large). Updated all SwiftUI views to use these semantic styles instead of fixed font sizes. All 402 tests pass.
+- [ ] **Create docs/ folder with installation and usage guides** [spec: user-documentation.md] [file: docs/installation.md, docs/usage.md]
+  - Create `docs/installation.md` with:
+    - System requirements (macOS 14+, Claude Code CLI)
+    - Homebrew installation (with note about "coming soon" until tap is ready)
+    - Direct download from GitHub Releases
+    - Bypassing Gatekeeper instructions
+    - Build from source instructions
+    - Post-installation setup (claude login)
+  - Create `docs/usage.md` with:
+    - Menu bar display explanation
+    - Dropdown view breakdown (all usage windows)
+    - Progress bar colors meaning
+    - Burn rate and time-to-exhaustion explanations
+    - Settings documentation (all sections)
+    - Keyboard shortcuts reference
+  - Follow templates in `specs/user-documentation.md`
+  - **Research:** `specs/user-documentation.md` for exact content structure
+  - **Test:** Documentation accurate against current app behavior
 
-- [x] **Add layout adaptations for extreme text sizes** [spec: accessibility.md#dynamic-type] [file: App/ClaudeApp.swift]
-  - Increase dropdown width at accessibility sizes (280px → 340px for AX1+)
-  - Stack horizontal layouts vertically when text would overflow
-  - Ensure minimum touch targets (44pt) maintained
-  - Test with "Larger Accessibility Sizes" enabled in System Settings
-  - **Research:** `specs/accessibility.md` lines 395-410 for layout rules
-  - **Test:** All content visible and tappable at extreme sizes
-  - **COMPLETED:** Added `@Environment(\.sizeCategory)` detection to DropdownView, SettingsView, and UsageProgressBar. Implemented adaptive layouts: dropdown width expands from 280pt to 340pt for accessibility sizes, header/footer layouts stack vertically at accessibility sizes, progress bar label/percentage stacks vertically at accessibility sizes, settings window expands from 320x500 to 400x600, and added 44pt minimum touch targets on buttons. All 402 tests pass.
+- [ ] **Create troubleshooting and FAQ documentation** [spec: user-documentation.md] [file: docs/troubleshooting.md, docs/faq.md]
+  - Create `docs/troubleshooting.md` with:
+    - "Claude Code not found" resolution
+    - Stale data issues
+    - Gatekeeper bypass
+    - Notification permission issues
+    - High CPU/memory troubleshooting
+    - Menu bar icon missing
+    - Settings not saving
+    - How to report issues
+  - Create `docs/faq.md` with:
+    - What is ClaudeApp?
+    - Is it official/free?
+    - Privacy & security questions
+    - Usage window explanations
+    - Technical questions (why macOS 14+, why not App Store)
+  - **Research:** `specs/user-documentation.md` FAQ and troubleshooting templates
+  - **Test:** All troubleshooting steps actually work
 
----
-<!-- CHECKPOINT: Phase 1 delivers Dynamic Type. App should be usable at all text sizes. -->
-
-## Phase 2: Color-Blind Safe Patterns
-
-**Purpose:** Ensure status information is conveyed through patterns and shapes, not just color.
-
-- [x] **Add pattern overlays to progress bars at critical thresholds** [spec: accessibility.md#color-blind] [file: Packages/UI/Sources/UI/UsageProgressBar.swift]
-  - At ≥90% utilization: Add diagonal stripe pattern overlay to progress bar fill
-  - Pattern is visible but does not obscure the percentage text
-  - Implementation: Created `DiagonalStripes` Shape with configurable lineWidth/spacing
-  - Colors remain for sighted users; patterns add redundant information for color-blind users
-  - **COMPLETED:** Added DiagonalStripes shape and integrated into UsageProgressBar. 18 new tests added (UsageProgressBar Pattern Tests, DiagonalStripes Shape Tests, Color-Blind Accessibility Tests). All 420 tests pass.
-
-- [x] **Add shape indicators to burn rate badge** [spec: accessibility.md#color-blind] [file: Packages/UI/Sources/UI/BurnRateBadge.swift]
-  - Low: Circle shape (circle.fill SF Symbol) - represents safe/stable
-  - Medium: Triangle shape (triangle.fill SF Symbol) - represents caution
-  - High: Diamond shape (diamond.fill SF Symbol) - represents warning
-  - Very High: Exclamation shape (exclamationmark.circle.fill SF Symbol) - represents alert
-  - Shapes are small (8pt), subtle, and displayed before the text label in the badge
-  - **COMPLETED:** Added HStack with shape indicator + text label. Shape uses SF Symbols with 8pt bold font. Combined with `.accessibilityElement(children: .combine)` for proper VoiceOver grouping. 13 new tests added covering shape indicators and color-blind accessibility (deuteranopia, protanopia, tritanopia). All 433 tests pass.
-
----
-<!-- CHECKPOINT: Phase 2 delivers color-blind support. Status clear without color alone. -->
-
-## Phase 3: Reduced Motion & High Contrast
-
-**Purpose:** Respect system accessibility preferences for motion and contrast.
-
-- [x] **Implement reduced motion support** [spec: accessibility.md#reduced-motion] [file: Packages/UI/Sources/UI/*.swift, App/ClaudeApp.swift]
-  - Detect `UIAccessibility.isReduceMotionEnabled` (use `@Environment(\.accessibilityReduceMotion)`)
-  - When enabled:
-    - Replace progress bar animations with instant transitions
-    - Remove refresh button spinning animation
-    - Remove any pulsing or repeating animations
-    - Keep essential state changes visible (use opacity or instant color change)
-  - Test by enabling "Reduce motion" in System Settings > Accessibility > Display
-  - **Research:** `specs/accessibility.md` lines 248-262 for motion requirements
-  - **Test:** No animations when Reduce Motion enabled, all states still visible
-  - **COMPLETED:** Added `@Environment(\.accessibilityReduceMotion)` to both RefreshButton and UsageProgressBar. RefreshButton uses `shouldAnimate` computed property that returns false when reduceMotion is enabled (no spinning). UsageProgressBar uses `progressAnimation` computed property that returns nil when reduceMotion is enabled (instant width changes). 11 new tests added (ReducedMotionAccessibilityTests + RefreshButtonReducedMotionTests). All 444 tests pass.
-
-- [x] **Fix yellow warning color contrast** [spec: accessibility.md] [file: Packages/UI/Sources/UI/Theme.swift, UsageProgressBar.swift]
-  - Current yellow (#EAB308) on background (#F4F3EE) is 2.1:1 (fails WCAG AA 3:1 for UI)
-  - Solution options:
-    1. Darken yellow to #B8860B (goldenrod) - achieves 3.5:1
-    2. Add dark border/outline to yellow elements
-    3. Use pattern overlay (from Phase 2) to provide additional contrast
-  - Ensure the fix works in both light and dark modes
-  - Update `Theme.warning` color if changed
-  - **Research:** `specs/accessibility.md` contrast requirements, `specs/design-system.md` color definitions
-  - **Test:** Contrast ratio ≥3:1 for all UI components, verified with color contrast tool
-  - **COMPLETED:** Updated `Theme.Colors.warning` from #EAB308 (2.1:1 contrast) to #B8860B goldenrod (3.5:1 contrast). This meets WCAG AA 3:1 minimum for UI components. The change applies to both UsageProgressBar (50-89% range) and BurnRateBadge (medium level). Updated test comments to reflect the new compliant color. All 444 tests pass.
-  - **Spec Note:** specs/design-system.md, specs/accessibility.md, specs/features/view-usage.md, and specs/architecture.md still reference old #EAB308 value - these are documentation files that should be updated to match implementation.
-
-- [x] **Add high contrast mode support** [spec: accessibility.md#high-contrast] [file: Packages/UI/Sources/UI/Theme.swift]
-  - Detect `@Environment(\.colorSchemeContrast)` (SwiftUI's official API for high contrast)
-  - When `colorSchemeContrast == .increased`:
-    - Added `Theme.Borders` enum with standard (1pt) and highContrast (2pt) widths
-    - Added `HighContrastBorderModifier` and `ProgressBarHighContrastModifier` view modifiers
-    - Added `highContrastBorder()` and `progressBarHighContrast()` view extensions
-    - Progress bar tracks get visible 1.5pt border with 0.4 opacity
-    - BurnRateBadge gets 1.5pt border matching badge color with 0.6 opacity
-    - PlanBadgeLabel gets 1pt border with 0.6 opacity
-    - StaleDataBanner and PermissionDeniedBanner get 1.5pt orange borders with 0.5 opacity
-  - **Research:** Apple docs for `ColorSchemeContrast`, SwiftUI accessibility APIs
-  - **Test:** UI clearly visible with "Increase Contrast" enabled. 17 new tests added covering high contrast borders and accessibility. All 461 tests pass.
-  - **Note:** WCAG AAA 7:1 contrast is achieved through system colors when "Increase Contrast" is enabled; manual color overrides not needed as system handles semantic colors appropriately.
+- [ ] **Create privacy policy** [spec: user-documentation.md] [file: docs/privacy.md]
+  - Document what data is accessed (OAuth token, usage stats, preferences)
+  - Document what is NOT accessed (conversations, personal info)
+  - Explain local-only storage
+  - No analytics, no crash reporting, no telemetry
+  - Third-party services (Anthropic API, optional GitHub)
+  - User rights (data access, deletion)
+  - **Research:** `specs/user-documentation.md#privacy.md` for template
+  - **Test:** Privacy policy matches actual app behavior
 
 ---
-<!-- CHECKPOINT: Phase 3 delivers motion and contrast improvements. -->
+<!-- CHECKPOINT: Phase 1 delivers user documentation. Users can now install and troubleshoot. -->
 
-## Phase 4: Accessibility Tests & Documentation
+## Phase 2: Community Files
 
-**Purpose:** Add automated tests for accessibility features and update documentation.
+**Purpose:** Add standard open-source community files that enable and guide contributions.
 
-- [x] **Add accessibility unit tests** [file: Packages/UI/Tests/UITests/UITests.swift, Packages/Core/Tests/CoreTests/CoreTests.swift]
-  - Test Dynamic Type scaling with `@ScaledMetric`
-  - Test reduced motion behavior (animation disabled)
-  - Test pattern presence at >90% utilization
-  - Test shape indicators on burn rate badges
-  - Test color contrast values programmatically
-  - Verify accessibility labels still work with new features
-  - Target: 20+ new accessibility tests
-  - **Test:** All new tests pass, total test count ~420+
-  - **COMPLETED:** Added 28 new Dynamic Type support tests across 5 test suites:
-    - `Dynamic Type Support Tests` (10 tests) - semantic fonts, icon sizes, component support
-    - `Dynamic Type Size Category Tests` (6 tests) - behavior across size categories
-    - `Dynamic Type Layout Adaptation Tests` (5 tests) - horizontal→vertical adaptation
-    - `Dynamic Type Accessibility Label Tests` (3 tests) - VoiceOver with Dynamic Type
-    - `Theme Typography Consistency Tests` (4 tests) - typography system validation
-  - Total test count: 489 tests (28 new + 461 existing). All pass.
+- [ ] **Create CONTRIBUTING.md with development guide** [spec: user-documentation.md] [file: CONTRIBUTING.md]
+  - Code of Conduct reference
+  - Ways to contribute (bugs, features, code)
+  - Development setup (`make setup`, `make run`)
+  - Pull request process and checklist
+  - Code style (SwiftFormat, SwiftLint)
+  - Commit conventions
+  - Architecture reference (link to specs/)
+  - Testing requirements
+  - Localization contribution guide
+  - **Research:** `specs/user-documentation.md#CONTRIBUTING.md`, `specs/toolchain.md`
+  - **Test:** New contributor can follow guide to set up and make first PR
 
-- [x] **Update accessibility documentation** [file: specs/accessibility.md, README.md]
-  - Mark completed items in accessibility.md checklist
-  - Add "Accessibility Features" section to README.md
-  - Document testing procedures for accessibility
-  - List supported accessibility features:
-    - VoiceOver (SLC 4)
-    - Keyboard Navigation (SLC 4)
-    - Dynamic Type (SLC 6)
-    - Reduced Motion (SLC 6)
-    - Color-Blind Patterns (SLC 6)
-    - High Contrast (SLC 6)
-  - **Test:** Documentation accurate and helpful
-  - **COMPLETED:** Updated specs/accessibility.md with Implementation Status table, marked all checklist items complete (VoiceOver audit, Before Release checklist), and fixed yellow warning color contrast entry from #EAB308 to #B8860B. Added "Accessibility" section to README.md documenting all features (VoiceOver, Keyboard Navigation, Dynamic Type, Reduced Motion, Color-Blind Safe, High Contrast) with testing instructions. All 489 tests pass.
+- [ ] **Create CODE_OF_CONDUCT.md and SECURITY.md** [spec: user-documentation.md] [file: CODE_OF_CONDUCT.md, SECURITY.md]
+  - `CODE_OF_CONDUCT.md`: Use Contributor Covenant v2.1 (industry standard)
+  - `SECURITY.md`:
+    - Security scope (local app, no network except Anthropic/GitHub)
+    - How to report vulnerabilities (email or GitHub private advisory)
+    - Supported versions
+    - Response process
+  - **Research:** https://www.contributor-covenant.org/version/2/1/code_of_conduct/
+  - **Test:** Files follow standard formats, links work
+
+- [ ] **Update CHANGELOG.md with proper version dates and SLC 3-6 entries** [file: CHANGELOG.md]
+  - Add missing version entries:
+    - v1.3.0 (Distribution Ready - SLC 4)
+    - v1.4.0 (Internationalization - SLC 5)
+    - v1.5.0 (Advanced Accessibility - SLC 6)
+  - Fix placeholder dates (2026-01-XX → actual dates)
+  - Add current v1.6.0 entry for Community Ready (SLC 7)
+  - Ensure format follows Keep a Changelog
+  - **Test:** CHANGELOG accurately reflects git history
 
 ---
-<!-- CHECKPOINT: Phase 4 completes SLC 6. The app is now fully WCAG 2.1 AA compliant. -->
+<!-- CHECKPOINT: Phase 2 delivers community files. Contributors can now participate. -->
+
+## Phase 3: Homebrew Distribution
+
+**Purpose:** Enable the standard macOS developer installation method.
+
+- [ ] **Create Homebrew tap repository and cask formula** [spec: user-documentation.md] [file: external: homebrew-tap repo]
+  - Create new GitHub repository: `kaduwaengertner/homebrew-tap`
+  - Create `Casks/claudeapp.rb` with:
+    - Version from GitHub Releases
+    - SHA256 checksum for DMG
+    - URL to GitHub Release DMG asset
+    - App name and target location
+    - Caveats about Gatekeeper bypass
+  - Document tap creation in project wiki or docs
+  - Update README.md to remove "(Coming Soon)" from Homebrew section
+  - **Research:** `research/inspiration.md` for example Homebrew casks
+  - **Test:** `brew tap kaduwaengertner/tap && brew install --cask claudeapp` works
+
+---
+<!-- CHECKPOINT: Phase 3 delivers Homebrew distribution. Standard installation works. -->
+
+## Phase 4: Polish & Cross-References
+
+**Purpose:** Ensure all documentation is consistent and cross-referenced.
+
+- [ ] **Update README.md with documentation links and finalize content** [file: README.md]
+  - Add Documentation section with links to:
+    - [Installation Guide](docs/installation.md)
+    - [Usage Guide](docs/usage.md)
+    - [Troubleshooting](docs/troubleshooting.md)
+    - [FAQ](docs/faq.md)
+    - [Privacy Policy](docs/privacy.md)
+  - Update Homebrew installation (remove "Coming Soon" after Phase 3)
+  - Ensure Contributing section links to CONTRIBUTING.md
+  - Add Acknowledgments section
+  - **Test:** All links work, content accurate
+
+- [ ] **Run final verification** [file: Makefile]
+  - Run `make check` (format, lint, test) - all must pass
+  - Verify all new markdown files have no broken links
+  - Test app still builds and runs correctly
+  - Verify release workflow works with `make dmg`
+  - **Success criteria:** 489+ tests passing, all docs accurate, build green
+
+---
+<!-- CHECKPOINT: Phase 4 completes SLC 7. The project is now community-ready. -->
 
 ## Future Work (Outside Current Scope)
 
 The following items were identified during analysis but are deferred to maintain SLC focus:
 
-### SLC 7: Phase 2 Languages
+### SLC 8: Phase 2 Languages
 - French (fr-FR/CA)
 - German (de-DE)
 - Japanese (ja-JP)
@@ -214,24 +211,10 @@ The following items were identified during analysis but are deferred to maintain
 - RTL preparation for future Arabic/Hebrew
 - **Research:** `specs/internationalization.md` Phase 2 section
 
-### SLC 8: Distribution & Documentation
-- Homebrew tap repository setup
-- Documentation site (docs/ folder):
-  - docs/installation.md
-  - docs/usage.md
-  - docs/troubleshooting.md
-  - docs/faq.md
-  - docs/privacy.md
-- CHANGELOG.md
-- CODE_OF_CONDUCT.md
-- SECURITY.md
-- **Research:** `specs/user-documentation.md`
-
 ### Future Releases
 - Local JSONL fallback when API unavailable
 - Custom Claude brand app icon (replace SF Symbol)
-- Plan badge auto-detection (requires Anthropic API support)
-- Apple Developer ID signing and notarization
+- Plan badge auto-detection (requires Anthropic API support - BLOCKED)
 - Historical usage graphs/trends visualization
 - Widget support for Notification Center
 - Warning badge at 100% in menu bar icon
@@ -245,87 +228,56 @@ The following items were identified during analysis but are deferred to maintain
 - Burn rate thresholds hardcoded (10/25/50% per hour)
 - No integration tests with mock network layer
 - Memory leak detection for long-running sessions
-- GitHub repo URL placeholders in UpdateChecker (repoOwner: "yourname", repoName: "claudeapp")
+- GitHub repo URL uses actual repo now (kaduwaengertner/claudeapp)
 
 ---
 
 ## Implementation Notes
 
-### Dynamic Type Implementation
+### Homebrew Cask Formula Template
 
-Use SwiftUI's built-in Dynamic Type support:
+```ruby
+cask "claudeapp" do
+  version "1.6.0"
+  sha256 "CHECKSUM_HERE"
 
-```swift
-// Before (fixed size)
-Text("86%").font(.system(size: 24, weight: .bold))
+  url "https://github.com/kaduwaengertner/claudeapp/releases/download/v#{version}/ClaudeApp-#{version}.dmg"
+  name "ClaudeApp"
+  desc "macOS menu bar app for monitoring Claude Code usage limits"
+  homepage "https://github.com/kaduwaengertner/claudeapp"
 
-// After (scales with Dynamic Type)
-Text("86%").font(.title.bold())
+  depends_on macos: ">= :sonoma"
 
-// For custom sizes that must scale
-@ScaledMetric(relativeTo: .body) private var iconSize: CGFloat = 16
+  app "ClaudeApp.app"
+
+  caveats <<~EOS
+    ClaudeApp requires Claude Code CLI to be installed and authenticated.
+    Run `claude login` if you haven't already.
+
+    On first launch, you may need to bypass Gatekeeper:
+    - Right-click the app and select "Open"
+    - Or go to System Settings > Privacy & Security and click "Open Anyway"
+  EOS
+
+  zap trash: [
+    "~/Library/Preferences/com.kaduwaengertner.ClaudeApp.plist",
+  ]
+end
 ```
 
-### Pattern Overlay for Progress Bars
+### Documentation Style Guide
 
-```swift
-struct DiagonalStripes: Shape {
-    let lineWidth: CGFloat = 2
-    let spacing: CGFloat = 6
+- Use clear, concise language
+- Include code examples where helpful
+- Provide screenshots for UI-related docs
+- Use tables for structured information
+- Include command-line examples
+- Test all instructions before publishing
 
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let count = Int((rect.width + rect.height) / spacing)
-        for i in 0..<count {
-            let x = CGFloat(i) * spacing - rect.height
-            path.move(to: CGPoint(x: x, y: rect.height))
-            path.addLine(to: CGPoint(x: x + rect.height, y: 0))
-        }
-        return path
-    }
-}
+### Contributor Covenant Reference
 
-// Usage in progress bar at >90%
-if utilization > 0.9 {
-    DiagonalStripes()
-        .stroke(Color.white.opacity(0.3), lineWidth: 2)
-        .clipShape(progressShape)
-}
-```
-
-### Reduced Motion Detection
-
-```swift
-@Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-var animation: Animation? {
-    reduceMotion ? nil : .easeOut(duration: 0.3)
-}
-```
-
-### Color Contrast Fix Options
-
-| Option | Color | Contrast | Pros | Cons |
-|--------|-------|----------|------|------|
-| Darken yellow | #B8860B | 3.5:1 | Simple change | Slightly different look |
-| Add border | Current + border | 4.5:1+ | Preserves brand color | More visual complexity |
-| Pattern only | Current + stripes | N/A | Brand color + accessibility | Relies on Phase 2 |
-
-Recommendation: Darken yellow (#B8860B) for simplicity and universal benefit.
-
-### Testing Strategy
-
-1. **Automated:** Unit tests for scaling, patterns, motion preferences
-2. **Manual Testing:**
-   - Enable Larger Accessibility Sizes in System Settings
-   - Enable Reduce Motion in System Settings
-   - Enable Increase Contrast in System Settings
-   - Use Color Filter (Grayscale) to simulate color blindness
-   - Test with VoiceOver at each size
-3. **Tools:**
-   - Accessibility Inspector (Xcode)
-   - Color contrast analyzer
-   - Sim Daltonism (color blindness simulator)
+Use version 2.1 of the Contributor Covenant:
+https://www.contributor-covenant.org/version/2/1/code_of_conduct/
 
 ---
 
@@ -465,6 +417,33 @@ All tasks completed with 402 passing tests.
 
 ---
 
+### SLC 6: Advanced Accessibility - COMPLETE ✅
+
+All tasks completed with 489 passing tests.
+
+**Phase 0: Build Verification**
+- [x] Verify current build and test status
+- [x] Bug Found & Fixed: Localization strings showed as keys instead of values in release bundle
+
+**Phase 1: Dynamic Type Support**
+- [x] Implement adaptive text scaling throughout UI
+- [x] Add layout adaptations for extreme text sizes
+
+**Phase 2: Color-Blind Safe Patterns**
+- [x] Add pattern overlays to progress bars at critical thresholds
+- [x] Add shape indicators to burn rate badge
+
+**Phase 3: Reduced Motion & High Contrast**
+- [x] Implement reduced motion support
+- [x] Fix yellow warning color contrast (WCAG AA compliance)
+- [x] Add high contrast mode support
+
+**Phase 4: Accessibility Tests & Documentation**
+- [x] Add accessibility unit tests (28 new tests)
+- [x] Update accessibility documentation
+
+---
+
 ## Version History
 
 | SLC | Name | Version | Tests | Status |
@@ -475,3 +454,4 @@ All tasks completed with 402 passing tests.
 | 4 | Distribution Ready | 1.3.0 | 369 | COMPLETE |
 | 5 | Internationalization | 1.4.0 | 402 | COMPLETE |
 | 6 | Advanced Accessibility | 1.5.0 | 489 | COMPLETE |
+| 7 | Community Ready | 1.6.0 | 489+ | PLANNED |
