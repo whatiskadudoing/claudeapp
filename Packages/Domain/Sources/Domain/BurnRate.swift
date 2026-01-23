@@ -20,6 +20,17 @@ public enum BurnRateLevel: String, Sendable, CaseIterable, Equatable, Codable {
         case .veryHigh: return "red"
         }
     }
+
+    /// Key suffix for localization lookup.
+    /// Used with "burnRate." prefix for display and "accessibility.burnRate." for VoiceOver.
+    public var localizationKey: String {
+        switch self {
+        case .low: return "low"
+        case .medium: return "medium"
+        case .high: return "high"
+        case .veryHigh: return "veryHigh"
+        }
+    }
 }
 
 // MARK: - BurnRate

@@ -51,13 +51,14 @@ public struct UsageProgressBar: View {
             if resetsAt != nil || shouldShowTimeToExhaustion {
                 HStack(spacing: 0) {
                     if let resetsAt {
+                        // Use system-provided relative date formatting (automatically localized)
                         Text("Resets \(resetsAt, style: .relative)")
                     }
                     if resetsAt != nil, shouldShowTimeToExhaustion {
                         Text(" \u{00B7} ")
                     }
                     if shouldShowTimeToExhaustion {
-                        Text("~\(formattedTimeToExhaustion) until limit")
+                        Text(timeToExhaustionText)
                     }
                 }
                 .font(.caption2)
@@ -153,5 +154,13 @@ public struct UsageProgressBar: View {
         } else {
             return "<1min"
         }
+    }
+
+    /// Localized text for time-to-exhaustion display.
+    /// Uses Bundle.main to access the app's String Catalog.
+    private var timeToExhaustionText: String {
+        let key = "usage.timeToExhaustion.untilLimit %@"
+        let format = Bundle.main.localizedString(forKey: key, value: "~%@ until limit", table: nil)
+        return String(format: format, formattedTimeToExhaustion)
     }
 }

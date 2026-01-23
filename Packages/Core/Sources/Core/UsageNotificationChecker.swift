@@ -132,30 +132,35 @@ public final class UsageNotificationChecker {
     private func buildNamedWindows(current: UsageData, previous: UsageData?) -> [NamedWindow] {
         [
             NamedWindow(
-                name: "Current session",
+                name: localizedString("usageWindow.session", fallback: "Current session"),
                 identifier: "session",
                 current: current.fiveHour,
                 previous: previous?.fiveHour
             ),
             NamedWindow(
-                name: "Weekly (all models)",
+                name: localizedString("usageWindow.weekly", fallback: "Weekly (all models)"),
                 identifier: "weekly",
                 current: current.sevenDay,
                 previous: previous?.sevenDay
             ),
             NamedWindow(
-                name: "Weekly (Opus)",
+                name: localizedString("usageWindow.opus", fallback: "Weekly (Opus)"),
                 identifier: "opus",
                 current: current.sevenDayOpus,
                 previous: previous?.sevenDayOpus
             ),
             NamedWindow(
-                name: "Weekly (Sonnet)",
+                name: localizedString("usageWindow.sonnet", fallback: "Weekly (Sonnet)"),
                 identifier: "sonnet",
                 current: current.sevenDaySonnet,
                 previous: previous?.sevenDaySonnet
             )
         ]
+    }
+
+    /// Gets localized string from the app's String Catalog.
+    private func localizedString(_ key: String, fallback: String) -> String {
+        Bundle.main.localizedString(forKey: key, value: fallback, table: nil)
     }
 
     /// Checks if the warning threshold was crossed and sends notification if needed.
@@ -184,7 +189,7 @@ public final class UsageNotificationChecker {
             )
 
             await notificationManager.send(
-                title: "Claude Usage Warning",
+                title: localizedString("notification.warning.title", fallback: "Claude Usage Warning"),
                 body: body,
                 identifier: notificationId
             )
@@ -217,7 +222,7 @@ public final class UsageNotificationChecker {
             let body = buildCapacityFullBody(windowName: name, resetsAt: resetsAt)
 
             await notificationManager.send(
-                title: "Claude Capacity Full",
+                title: localizedString("notification.capacityFull.title", fallback: "Claude Capacity Full"),
                 body: body,
                 identifier: notificationId
             )
@@ -245,8 +250,8 @@ public final class UsageNotificationChecker {
 
         if wasHigh && isLow {
             await notificationManager.send(
-                title: "Usage Reset Complete",
-                body: "Your weekly limit has reset. Full capacity available.",
+                title: localizedString("notification.resetComplete.title", fallback: "Usage Reset Complete"),
+                body: localizedString("notification.resetComplete.body", fallback: "Your weekly limit has reset. Full capacity available."),
                 identifier: notificationId
             )
 

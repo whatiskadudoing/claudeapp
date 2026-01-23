@@ -41,8 +41,10 @@ struct ClaudeApp: App {
     init() {
         _container = State(initialValue: AppContainer())
 
-        // Set up notification delegate
-        UNUserNotificationCenter.current().delegate = notificationDelegate
+        // Set up notification delegate (only when running in a proper app bundle)
+        if Bundle.main.bundleIdentifier != nil {
+            UNUserNotificationCenter.current().delegate = notificationDelegate
+        }
     }
 
     var body: some Scene {
@@ -99,14 +101,14 @@ struct MenuBarLabel: View {
                 }
             } else {
                 if settings.showPercentage {
-                    Text("--")
+                    Text("usage.noPercentage")
                         .font(.system(size: 12, weight: .medium))
                 }
             }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
-        .accessibilityHint("Click to view usage details")
+        .accessibilityHint(String(localized: "accessibility.menuBar.hint"))
     }
 
     /// Accessibility label combining all menu bar element information for VoiceOver
@@ -114,19 +116,19 @@ struct MenuBarLabel: View {
         var label = "ClaudeApp"
 
         if usageManager.isLoading && usageManager.usageData == nil {
-            label += ", loading"
+            label += String(localized: "accessibility.menuBar.loading")
         } else if let data = usageManager.usageData {
             let percentage = Int(data.utilization(for: settings.percentageSource))
-            label += ", usage at \(percentage) percent"
+            label += String(localized: "accessibility.menuBar.usage \(percentage)")
 
             // Add warning state for high usage
             if percentage >= 100 {
-                label += ", warning: usage limit reached"
+                label += String(localized: "accessibility.menuBar.limitReached")
             } else if percentage >= 90 {
-                label += ", warning: approaching limit"
+                label += String(localized: "accessibility.menuBar.approachingLimit")
             }
         } else {
-            label += ", no data available"
+            label += String(localized: "accessibility.menuBar.noData")
         }
 
         return label
@@ -140,7 +142,7 @@ struct MenuBarLabel: View {
 /// For now, this displays a placeholder badge.
 struct PlanBadgeLabel: View {
     var body: some View {
-        Text("Pro")
+        Text("usage.planBadge.pro")
             .font(.system(size: 9, weight: .medium))
             .padding(.horizontal, 4)
             .padding(.vertical, 1)
@@ -187,7 +189,7 @@ struct DropdownView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
-                Text("Claude Usage")
+                Text("usage.header.title")
                     .font(.headline)
                 Spacer()
                 // Show burn rate badge when available
@@ -235,26 +237,26 @@ struct DropdownView: View {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.caption2)
                             .foregroundStyle(.orange)
-                        Text("Data may be stale")
+                        Text("usage.staleData")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Warning: data may be stale")
+                    .accessibilityLabel(String(localized: "accessibility.staleWarning"))
                 } else if let lastUpdated = usageManager.lastUpdated {
                     Text("Updated \(lastUpdated, style: .relative) ago")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
                 Spacer()
-                Button("Quit") {
+                Button("button.quit") {
                     NSApplication.shared.terminate(nil)
                 }
                 .buttonStyle(.plain)
                 .font(.caption)
                 .keyboardShortcut("q", modifiers: .command)
                 .focused($focusedElement, equals: .quit)
-                .accessibilityLabel("Quit ClaudeApp")
+                .accessibilityLabel(String(localized: "accessibility.quitApp"))
             }
         }
         .padding(16)
@@ -286,7 +288,7 @@ struct SettingsButton: View {
         }
         .buttonStyle(.plain)
         .keyboardShortcut(",", modifiers: .command)
-        .accessibilityLabel("Open settings")
+        .accessibilityLabel(String(localized: "accessibility.openSettings"))
     }
 }
 
@@ -345,13 +347,13 @@ struct RefreshButton: View {
     private var refreshAccessibilityLabel: String {
         switch usageManager.refreshState {
         case .idle:
-            "Refresh usage data"
+            String(localized: "accessibility.refresh")
         case .loading:
-            "Refreshing, please wait"
+            String(localized: "accessibility.refreshing")
         case .success:
-            "Refresh complete"
+            String(localized: "accessibility.refreshComplete")
         case .error:
-            "Refresh failed, try again"
+            String(localized: "accessibility.refreshFailed")
         }
     }
 }
@@ -369,7 +371,7 @@ struct UsageContent: View {
         VStack(alignment: .leading, spacing: 12) {
             UsageProgressBar(
                 value: data.fiveHour.utilization,
-                label: "Current Session (5h)",
+                label: String(localized: "usage.progressBar.session"),
                 resetsAt: data.fiveHour.resetsAt,
                 timeToExhaustion: data.fiveHour.timeToExhaustion
             )
@@ -378,7 +380,7 @@ struct UsageContent: View {
 
             UsageProgressBar(
                 value: data.sevenDay.utilization,
-                label: "Weekly (All Models)",
+                label: String(localized: "usage.progressBar.weekly"),
                 resetsAt: data.sevenDay.resetsAt,
                 timeToExhaustion: data.sevenDay.timeToExhaustion
             )
@@ -388,7 +390,7 @@ struct UsageContent: View {
             if let opus = data.sevenDayOpus {
                 UsageProgressBar(
                     value: opus.utilization,
-                    label: "Weekly (Opus)",
+                    label: String(localized: "usage.progressBar.opus"),
                     resetsAt: opus.resetsAt,
                     timeToExhaustion: opus.timeToExhaustion
                 )
@@ -399,7 +401,7 @@ struct UsageContent: View {
             if let sonnet = data.sevenDaySonnet {
                 UsageProgressBar(
                     value: sonnet.utilization,
-                    label: "Weekly (Sonnet)",
+                    label: String(localized: "usage.progressBar.sonnet"),
                     resetsAt: sonnet.resetsAt,
                     timeToExhaustion: sonnet.timeToExhaustion
                 )
@@ -426,7 +428,7 @@ struct StaleDataBanner: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Unable to refresh")
+                Text("error.unableToRefresh")
                     .font(.caption)
                     .fontWeight(.medium)
                 Text(errorReason)
@@ -436,33 +438,33 @@ struct StaleDataBanner: View {
 
             Spacer()
 
-            Button("Retry", action: retryAction)
+            Button("button.retry", action: retryAction)
                 .buttonStyle(.bordered)
                 .controlSize(.mini)
-                .accessibilityLabel("Retry refresh")
+                .accessibilityLabel(String(localized: "accessibility.retryRefresh"))
         }
         .padding(8)
         .background(Color.orange.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .padding(.bottom, 4)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Warning: Unable to refresh, \(errorReason)")
+        .accessibilityLabel(String(localized: "accessibility.unableToRefresh \(errorReason)"))
     }
 
     private var errorReason: String {
         switch error {
         case .networkError:
-            "Connection issue"
+            String(localized: "error.connectionIssue")
         case .rateLimited(let retryAfter):
-            "Rate limited (\(retryAfter)s)"
+            String(localized: "error.rateLimited.reason \(retryAfter)")
         case .apiError(let statusCode, _):
-            "Server error (\(statusCode))"
+            String(localized: "error.serverError \(statusCode)")
         case .notAuthenticated:
-            "Authentication required"
+            String(localized: "error.authRequired")
         case .keychainError:
-            "Keychain error"
+            String(localized: "error.keychainError")
         case .decodingError:
-            "Data format error"
+            String(localized: "error.dataFormatError")
         }
     }
 }
@@ -476,7 +478,7 @@ struct LoadingView: View {
             Spacer()
             VStack(spacing: 8) {
                 ProgressView()
-                Text("Loading usage data...")
+                Text("usage.loading")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -484,7 +486,7 @@ struct LoadingView: View {
         }
         .padding(.vertical, 20)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Loading usage data, please wait")
+        .accessibilityLabel(String(localized: "accessibility.loading"))
     }
 }
 
@@ -511,16 +513,16 @@ struct ErrorView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
-            Button("Try Again", action: retryAction)
+            Button("button.tryAgain", action: retryAction)
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .padding(.top, 4)
-                .accessibilityLabel("Try again to load usage data")
+                .accessibilityLabel(String(localized: "accessibility.retryLoad"))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Error: \(errorTitle), \(errorMessage)")
+        .accessibilityLabel(String(localized: "accessibility.error \(errorTitle) \(errorMessage)"))
     }
 
     private var errorIcon: String {
@@ -535,26 +537,26 @@ struct ErrorView: View {
     private var errorTitle: String {
         switch error {
         case .notAuthenticated:
-            "Claude Code not found"
+            String(localized: "error.notAuthenticated.title")
         case .networkError:
-            "Connection Error"
+            String(localized: "error.connectionError")
         case .rateLimited:
-            "Rate Limited"
+            String(localized: "error.rateLimited")
         default:
-            "Unable to load data"
+            String(localized: "error.unableToLoad")
         }
     }
 
     private var errorMessage: String {
         switch error {
         case .notAuthenticated:
-            "Run `claude login` in terminal to connect"
+            String(localized: "error.notAuthenticated.message")
         case .networkError(let message):
             message
         case .rateLimited(let retryAfter):
-            "Please wait \(retryAfter) seconds"
+            String(localized: "error.rateLimited.wait \(retryAfter)")
         case .apiError(let statusCode, _):
-            "Server error (\(statusCode))"
+            String(localized: "error.serverError \(statusCode)")
         case .keychainError(let message):
             message
         case .decodingError(let message):
@@ -576,20 +578,20 @@ struct EmptyStateView: View {
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
 
-            Text("No usage data")
+            Text("usage.noData")
                 .font(.caption)
                 .fontWeight(.medium)
 
-            Button("Refresh", action: refreshAction)
+            Button("button.refresh", action: refreshAction)
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .padding(.top, 4)
-                .accessibilityLabel("Refresh usage data")
+                .accessibilityLabel(String(localized: "accessibility.refresh"))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("No usage data available")
+        .accessibilityLabel(String(localized: "accessibility.noUsageData"))
     }
 }
 
@@ -608,7 +610,7 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("Settings")
+                Text("settings.title")
                     .font(.headline)
                 Spacer()
                 Button {
@@ -619,7 +621,7 @@ struct SettingsView: View {
                         .font(.title3)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Close settings")
+                .accessibilityLabel(String(localized: "accessibility.closeSettings"))
             }
             .padding(16)
 
@@ -652,27 +654,27 @@ struct DisplaySection: View {
         @Bindable var settings = settings
 
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Display")
+            SectionHeader(title: String(localized: "settings.display"))
 
             SettingsToggle(
-                title: "Show Plan Badge",
+                title: String(localized: "settings.display.showPlanBadge"),
                 isOn: $settings.showPlanBadge,
-                subtitle: "Display Pro, Max 5x, or Max 20x"
+                subtitle: String(localized: "settings.display.showPlanBadge.subtitle")
             )
 
             SettingsToggle(
-                title: "Show Percentage",
+                title: String(localized: "settings.display.showPercentage"),
                 isOn: $settings.showPercentage
             )
 
             if settings.showPercentage {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Percentage Source")
+                    Text("settings.display.percentageSource")
                         .font(.body)
 
                     Picker("", selection: $settings.percentageSource) {
                         ForEach(PercentageSource.allCases, id: \.self) { source in
-                            Text(source.rawValue).tag(source)
+                            Text(source.localizedName).tag(source)
                         }
                     }
                     .pickerStyle(.menu)
@@ -693,13 +695,13 @@ struct RefreshSection: View {
         @Bindable var settings = settings
 
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Refresh")
+            SectionHeader(title: String(localized: "settings.refresh"))
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Refresh Interval")
+                    Text("settings.refresh.interval")
                     Spacer()
-                    Text("\(settings.refreshInterval) min")
+                    Text("settings.refresh.interval.value \(settings.refreshInterval)")
                         .foregroundStyle(.secondary)
                         .font(.body.monospacedDigit())
                 }
@@ -715,11 +717,11 @@ struct RefreshSection: View {
                 .controlSize(.small)
 
                 HStack {
-                    Text("1 min")
+                    Text("settings.refresh.interval.min")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                     Spacer()
-                    Text("30 min")
+                    Text("settings.refresh.interval.max")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
@@ -740,7 +742,7 @@ struct NotificationsSection: View {
         @Bindable var settings = settings
 
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Notifications")
+            SectionHeader(title: String(localized: "settings.notifications"))
 
             // Enable toggle with permission request
             Toggle(isOn: Binding(
@@ -755,7 +757,7 @@ struct NotificationsSection: View {
                     }
                 }
             )) {
-                Text("Enable Notifications")
+                Text("settings.notifications.enable")
                     .font(.body)
             }
             .toggleStyle(.switch)
@@ -771,7 +773,7 @@ struct NotificationsSection: View {
                 if permissionManager.canSendNotifications {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Warning Threshold")
+                            Text("settings.notifications.warningThreshold")
                             Spacer()
                             Text("\(settings.warningThreshold)%")
                                 .foregroundStyle(.secondary)
@@ -802,21 +804,21 @@ struct NotificationsSection: View {
                     Divider()
 
                     SettingsToggle(
-                        title: "Usage Warnings",
+                        title: String(localized: "settings.notifications.usageWarnings"),
                         isOn: $settings.warningEnabled,
-                        subtitle: "When usage crosses threshold"
+                        subtitle: String(localized: "settings.notifications.usageWarnings.subtitle")
                     )
 
                     SettingsToggle(
-                        title: "Capacity Full",
+                        title: String(localized: "settings.notifications.capacityFull"),
                         isOn: $settings.capacityFullEnabled,
-                        subtitle: "When usage reaches 100%"
+                        subtitle: String(localized: "settings.notifications.capacityFull.subtitle")
                     )
 
                     SettingsToggle(
-                        title: "Reset Complete",
+                        title: String(localized: "settings.notifications.resetComplete"),
                         isOn: $settings.resetCompleteEnabled,
-                        subtitle: "When limits reset"
+                        subtitle: String(localized: "settings.notifications.resetComplete.subtitle")
                     )
                 }
             }
@@ -841,19 +843,19 @@ struct PermissionDeniedBanner: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
                     .font(.caption)
-                Text("Notifications Disabled")
+                Text("settings.notifications.disabled.title")
                     .font(.caption)
                     .fontWeight(.medium)
             }
 
-            Text("Enable in System Settings > Notifications > ClaudeApp")
+            Text("settings.notifications.disabled.instructions")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
             Button {
                 openNotificationSettings()
             } label: {
-                Text("Open System Settings")
+                Text("button.openSystemSettings")
                     .font(.caption)
             }
             .buttonStyle(.borderedProminent)
@@ -886,11 +888,11 @@ struct GeneralSection: View {
         @Bindable var settings = settings
 
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "General")
+            SectionHeader(title: String(localized: "settings.general"))
 
             VStack(alignment: .leading, spacing: 4) {
                 Toggle(isOn: $launchAtLogin.isEnabled) {
-                    Text("Launch at Login")
+                    Text("settings.general.launchAtLogin")
                         .font(.body)
                 }
                 .toggleStyle(.switch)
@@ -903,7 +905,7 @@ struct GeneralSection: View {
                         HStack(spacing: 4) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.caption2)
-                            Text("Requires approval in System Settings")
+                            Text("settings.general.requiresApproval")
                                 .font(.caption)
                         }
                         .foregroundStyle(.orange)
@@ -919,9 +921,9 @@ struct GeneralSection: View {
             }
 
             SettingsToggle(
-                title: "Check for Updates",
+                title: String(localized: "settings.general.checkForUpdates"),
                 isOn: $settings.checkForUpdates,
-                subtitle: "Automatically check on launch"
+                subtitle: String(localized: "settings.general.checkForUpdates.subtitle")
             )
         }
     }
@@ -948,7 +950,7 @@ struct AboutSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "About")
+            SectionHeader(title: String(localized: "settings.about"))
 
             VStack(spacing: 12) {
                 // App icon
@@ -956,10 +958,10 @@ struct AboutSection: View {
                     .font(.system(size: 40))
                     .foregroundStyle(Theme.Colors.primary)
 
-                Text("ClaudeApp")
+                Text("settings.about.appName")
                     .font(.headline)
 
-                Text("v\(appVersion)")
+                Text("settings.about.version \(appVersion)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -969,11 +971,11 @@ struct AboutSection: View {
                 // Links
                 HStack(spacing: 8) {
                     if let githubURL = URL(string: "https://github.com/anthropics/claude-code") {
-                        Link("GitHub", destination: githubURL)
+                        Link(String(localized: "settings.about.github"), destination: githubURL)
                     }
                     Text("•")
                         .foregroundStyle(.tertiary)
-                    Text("Monitor your Claude usage")
+                    Text("settings.about.description")
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -992,14 +994,14 @@ struct AboutSection: View {
             HStack(spacing: 6) {
                 ProgressView()
                     .controlSize(.small)
-                Text("Checking...")
+                Text("update.checking")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
         case (false, nil):
             // Default state: show button
-            Button("Check for Updates") {
+            Button("button.checkForUpdates") {
                 checkForUpdates()
             }
             .buttonStyle(.bordered)
@@ -1010,18 +1012,18 @@ struct AboutSection: View {
             HStack(spacing: 4) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
-                Text("You're up to date")
+                Text("update.upToDate")
             }
             .font(.caption)
 
         case (false, .updateAvailable(let info)):
             // Update available state
             VStack(spacing: 8) {
-                Text("Version \(info.version) available")
+                Text("update.versionAvailable \(info.version)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Button("Download") {
+                Button("button.download") {
                     NSWorkspace.shared.open(info.downloadURL)
                 }
                 .buttonStyle(.borderedProminent)
@@ -1033,7 +1035,7 @@ struct AboutSection: View {
             HStack(spacing: 4) {
                 Image(systemName: "clock.fill")
                     .foregroundStyle(.secondary)
-                Text("Try again later")
+                Text("update.tryAgainLater")
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -1044,12 +1046,12 @@ struct AboutSection: View {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.circle.fill")
                         .foregroundStyle(.red)
-                    Text("Unable to check")
+                    Text("update.unableToCheck")
                 }
                 .font(.caption)
 
                 // Show brief error, allow retry
-                Button("Retry") {
+                Button("button.retry") {
                     checkForUpdates()
                 }
                 .buttonStyle(.bordered)

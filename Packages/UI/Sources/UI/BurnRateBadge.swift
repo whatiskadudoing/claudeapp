@@ -14,7 +14,7 @@ public struct BurnRateBadge: View {
     }
 
     public var body: some View {
-        Text(level.rawValue)
+        Text(localizedLevelName)
             .font(.system(size: 10, weight: .medium))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
@@ -22,6 +22,12 @@ public struct BurnRateBadge: View {
             .foregroundStyle(badgeColor)
             .clipShape(Capsule())
             .accessibilityLabel(accessibilityLabel)
+    }
+
+    /// Localized level name for display
+    private var localizedLevelName: String {
+        let key = "burnRate.\(level.localizationKey)"
+        return Bundle.main.localizedString(forKey: key, value: level.rawValue, table: nil)
     }
 
     private var badgeColor: Color {
@@ -39,15 +45,18 @@ public struct BurnRateBadge: View {
 
     /// Accessibility label describing the burn rate level for VoiceOver
     private var accessibilityLabel: String {
+        let key = "accessibility.burnRate.\(level.localizationKey)"
+        let defaultValue: String
         switch level {
         case .low:
-            "Consumption rate: low, sustainable pace"
+            defaultValue = "Consumption rate: low, sustainable pace"
         case .medium:
-            "Consumption rate: medium, moderate usage"
+            defaultValue = "Consumption rate: medium, moderate usage"
         case .high:
-            "Consumption rate: high, heavy usage"
+            defaultValue = "Consumption rate: high, heavy usage"
         case .veryHigh:
-            "Consumption rate: very high, will exhaust quickly"
+            defaultValue = "Consumption rate: very high, will exhaust quickly"
         }
+        return Bundle.main.localizedString(forKey: key, value: defaultValue, table: nil)
     }
 }

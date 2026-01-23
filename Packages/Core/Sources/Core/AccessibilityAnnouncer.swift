@@ -62,27 +62,52 @@ public final class AccessibilityAnnouncer: AccessibilityAnnouncerProtocol, @unch
 // MARK: - Announcement Messages
 
 /// Predefined announcement messages for consistency.
+/// Uses Bundle.main to access the app's String Catalog.
 public enum AccessibilityAnnouncementMessages {
     /// Announcement after successful refresh
-    public static let refreshComplete = "Usage data updated"
+    public static var refreshComplete: String {
+        Bundle.main.localizedString(forKey: "accessibility.usageUpdated", value: "Usage data updated", table: nil)
+    }
 
     /// Announcement when refresh fails
-    public static let refreshFailed = "Unable to refresh usage data"
+    public static var refreshFailed: String {
+        Bundle.main.localizedString(
+            forKey: "accessibility.refreshFailed",
+            value: "Unable to refresh usage data",
+            table: nil
+        )
+    }
 
     /// Announcement for warning threshold crossed
     /// - Parameter percentage: The current usage percentage
     /// - Returns: Formatted announcement string
     public static func warningThreshold(percentage: Int) -> String {
-        "Warning: usage at \(percentage) percent"
+        let format = Bundle.main.localizedString(
+            forKey: "accessibility.warningThreshold %lld",
+            value: "Warning: usage at %lld percent",
+            table: nil
+        )
+        return String(format: format, percentage)
     }
 
     /// Announcement for capacity full (100%)
     /// - Parameter windowName: The name of the usage window (e.g., "Current session")
     /// - Returns: Formatted announcement string
     public static func capacityFull(windowName: String) -> String {
-        "\(windowName) limit reached"
+        let format = Bundle.main.localizedString(
+            forKey: "accessibility.capacityFull %@",
+            value: "%@ limit reached",
+            table: nil
+        )
+        return String(format: format, windowName)
     }
 
     /// Announcement for usage reset
-    public static let resetComplete = "Usage limit has reset. Full capacity available."
+    public static var resetComplete: String {
+        Bundle.main.localizedString(
+            forKey: "accessibility.resetComplete",
+            value: "Usage limit has reset. Full capacity available.",
+            table: nil
+        )
+    }
 }

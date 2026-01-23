@@ -22,7 +22,10 @@ let package = Package(
                 "Core",
                 "UI"
             ],
-            path: "App"
+            path: "App",
+            resources: [
+                .process("Localizable.xcstrings")
+            ]
         ),
 
         // Domain package - Core business models (LEAF - no internal deps)
