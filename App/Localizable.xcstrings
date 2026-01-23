@@ -8,6 +8,12 @@
             "state" : "translated",
             "value" : "Consumption rate: high, heavy usage"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taxa de consumo: alta, uso intenso"
+          }
         }
       }
     },
@@ -17,6 +23,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Consumption rate: low, sustainable pace"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taxa de consumo: baixa, ritmo sustentável"
           }
         }
       }
@@ -28,6 +40,12 @@
             "state" : "translated",
             "value" : "Consumption rate: medium, moderate usage"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taxa de consumo: média, uso moderado"
+          }
         }
       }
     },
@@ -37,6 +55,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Consumption rate: very high, will exhaust quickly"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taxa de consumo: muito alta, vai esgotar rapidamente"
           }
         }
       }
@@ -48,6 +72,12 @@
             "state" : "translated",
             "value" : "%@ limit reached"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limite de %@ atingido"
+          }
         }
       }
     },
@@ -57,6 +87,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Close settings"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fechar configurações"
           }
         }
       }
@@ -68,6 +104,12 @@
             "state" : "translated",
             "value" : "Error: %@, %@"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erro: %@, %@"
+          }
         }
       }
     },
@@ -77,6 +119,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading usage data, please wait"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carregando dados de uso, aguarde"
           }
         }
       }
@@ -88,6 +136,12 @@
             "state" : "translated",
             "value" : ", warning: approaching limit"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", aviso: aproximando do limite"
+          }
         }
       }
     },
@@ -97,6 +151,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Click to view usage details"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clique para ver detalhes de uso"
           }
         }
       }
@@ -108,6 +168,12 @@
             "state" : "translated",
             "value" : ", warning: usage limit reached"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", aviso: limite de uso atingido"
+          }
         }
       }
     },
@@ -117,6 +183,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : ", loading"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", carregando"
           }
         }
       }
@@ -128,6 +200,12 @@
             "state" : "translated",
             "value" : ", no data available"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", sem dados disponíveis"
+          }
         }
       }
     },
@@ -137,6 +215,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : ", usage at %lld percent"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", uso em %lld por cento"
           }
         }
       }
@@ -148,6 +232,12 @@
             "state" : "translated",
             "value" : "No usage data available"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum dado de uso disponível"
+          }
         }
       }
     },
@@ -157,6 +247,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open settings"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir configurações"
           }
         }
       }
@@ -168,6 +264,12 @@
             "state" : "translated",
             "value" : "resets %@"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "reinicia %@"
+          }
         }
       }
     },
@@ -177,6 +279,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "approximately %@ until limit"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "aproximadamente %@ até o limite"
           }
         }
       }
@@ -188,6 +296,12 @@
             "state" : "translated",
             "value" : "%lld percent"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld por cento"
+          }
         }
       }
     },
@@ -197,6 +311,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quit ClaudeApp"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encerrar ClaudeApp"
           }
         }
       }
@@ -208,6 +328,12 @@
             "state" : "translated",
             "value" : "Refresh usage data"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualizar dados de uso"
+          }
         }
       }
     },
@@ -217,6 +343,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Refresh complete"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualização concluída"
           }
         }
       }
@@ -228,6 +360,12 @@
             "state" : "translated",
             "value" : "Refresh failed, try again"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falha na atualização, tente novamente"
+          }
         }
       }
     },
@@ -237,6 +375,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Refreshing, please wait"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualizando, aguarde"
           }
         }
       }
@@ -248,6 +392,12 @@
             "state" : "translated",
             "value" : "Usage limit has reset. Full capacity available."
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limite de uso reiniciado. Capacidade total disponível."
+          }
         }
       }
     },
@@ -257,6 +407,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Try again to load usage data"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentar novamente carregar dados de uso"
           }
         }
       }
@@ -268,6 +424,12 @@
             "state" : "translated",
             "value" : "Retry refresh"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentar atualizar novamente"
+          }
         }
       }
     },
@@ -277,6 +439,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Warning: data may be stale"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aviso: dados podem estar desatualizados"
           }
         }
       }
@@ -288,6 +456,12 @@
             "state" : "translated",
             "value" : "Warning: Unable to refresh, %@"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aviso: Não foi possível atualizar, %@"
+          }
         }
       }
     },
@@ -297,6 +471,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usage data updated"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dados de uso atualizados"
           }
         }
       }
@@ -308,6 +488,12 @@
             "state" : "translated",
             "value" : "Warning: usage at %lld percent"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aviso: uso em %lld por cento"
+          }
         }
       }
     },
@@ -317,6 +503,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Check for Updates"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificar Atualizações"
           }
         }
       }
@@ -328,6 +520,12 @@
             "state" : "translated",
             "value" : "Download"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baixar"
+          }
         }
       }
     },
@@ -337,6 +535,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open System Settings"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ajustes do Sistema"
           }
         }
       }
@@ -348,6 +552,12 @@
             "state" : "translated",
             "value" : "Quit"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encerrar"
+          }
         }
       }
     },
@@ -357,6 +567,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Refresh"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualizar"
           }
         }
       }
@@ -368,6 +584,12 @@
             "state" : "translated",
             "value" : "Retry"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentar Novamente"
+          }
         }
       }
     },
@@ -377,6 +599,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Try Again"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentar Novamente"
           }
         }
       }
@@ -388,6 +616,12 @@
             "state" : "translated",
             "value" : "High"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alto"
+          }
         }
       }
     },
@@ -397,6 +631,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Low"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baixo"
           }
         }
       }
@@ -408,6 +648,12 @@
             "state" : "translated",
             "value" : "Med"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Méd"
+          }
         }
       }
     },
@@ -417,6 +663,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "V.High"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "M.Alto"
           }
         }
       }
@@ -428,6 +680,12 @@
             "state" : "translated",
             "value" : "Authentication required"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autenticação necessária"
+          }
         }
       }
     },
@@ -437,6 +695,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connection Error"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erro de Conexão"
           }
         }
       }
@@ -448,6 +712,12 @@
             "state" : "translated",
             "value" : "Connection issue"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Problema de conexão"
+          }
         }
       }
     },
@@ -457,6 +727,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Data format error"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erro no formato dos dados"
           }
         }
       }
@@ -468,6 +744,12 @@
             "state" : "translated",
             "value" : "Keychain error"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erro nas Chaves"
+          }
         }
       }
     },
@@ -477,6 +759,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Run `claude login` in terminal to connect"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Execute `claude login` no terminal para conectar"
           }
         }
       }
@@ -488,6 +776,12 @@
             "state" : "translated",
             "value" : "Claude Code not found"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude Code não encontrado"
+          }
         }
       }
     },
@@ -497,6 +791,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rate Limited"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limite de Requisições"
           }
         }
       }
@@ -508,6 +808,12 @@
             "state" : "translated",
             "value" : "Rate limited (%llds)"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limite de requisições (%llds)"
+          }
         }
       }
     },
@@ -517,6 +823,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Please wait %lld seconds"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aguarde %lld segundos"
           }
         }
       }
@@ -528,6 +840,12 @@
             "state" : "translated",
             "value" : "Server error (%lld)"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erro do servidor (%lld)"
+          }
         }
       }
     },
@@ -537,6 +855,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unable to load data"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível carregar os dados"
           }
         }
       }
@@ -548,6 +872,12 @@
             "state" : "translated",
             "value" : "Unable to refresh"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível atualizar"
+          }
         }
       }
     },
@@ -557,6 +887,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ limit reached"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limite de %@ atingido"
           }
         }
       }
@@ -568,6 +904,12 @@
             "state" : "translated",
             "value" : "Claude Capacity Full"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capacidade do Claude Esgotada"
+          }
         }
       }
     },
@@ -577,6 +919,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your weekly limit has reset. Full capacity available."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu limite semanal foi reiniciado. Capacidade total disponível."
           }
         }
       }
@@ -588,6 +936,12 @@
             "state" : "translated",
             "value" : "Usage Reset Complete"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reinício de Uso Concluído"
+          }
         }
       }
     },
@@ -597,6 +951,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ at %lld%%"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ em %lld%%"
           }
         }
       }
@@ -608,6 +968,12 @@
             "state" : "translated",
             "value" : "Claude Usage Warning"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aviso de Uso do Claude"
+          }
         }
       }
     },
@@ -617,6 +983,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Highest %"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maior %"
           }
         }
       }
@@ -628,6 +1000,12 @@
             "state" : "translated",
             "value" : "Weekly (Opus)"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semanal (Opus)"
+          }
         }
       }
     },
@@ -637,6 +1015,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Current Session"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessão Atual"
           }
         }
       }
@@ -648,6 +1032,12 @@
             "state" : "translated",
             "value" : "Weekly (Sonnet)"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semanal (Sonnet)"
+          }
         }
       }
     },
@@ -657,6 +1047,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Weekly (All Models)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semanal (Todos os Modelos)"
           }
         }
       }
@@ -668,12 +1064,24 @@
             "state" : "translated",
             "value" : "About"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sobre"
+          }
         }
       }
     },
     "settings.about.appName" : {
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ClaudeApp"
+          }
+        },
+        "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ClaudeApp"
@@ -688,12 +1096,24 @@
             "state" : "translated",
             "value" : "Monitor your Claude usage"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monitore seu uso do Claude"
+          }
         }
       }
     },
     "settings.about.github" : {
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub"
+          }
+        },
+        "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "GitHub"
@@ -708,6 +1128,12 @@
             "state" : "translated",
             "value" : "v%@"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%@"
+          }
         }
       }
     },
@@ -717,6 +1143,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Display"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exibição"
           }
         }
       }
@@ -728,6 +1160,12 @@
             "state" : "translated",
             "value" : "Percentage Source"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Origem da Porcentagem"
+          }
         }
       }
     },
@@ -737,6 +1175,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show Percentage"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar Porcentagem"
           }
         }
       }
@@ -748,6 +1192,12 @@
             "state" : "translated",
             "value" : "Show Plan Badge"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar Selo do Plano"
+          }
         }
       }
     },
@@ -757,6 +1207,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Display Pro, Max 5x, or Max 20x"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exibir Pro, Max 5x ou Max 20x"
           }
         }
       }
@@ -768,6 +1224,12 @@
             "state" : "translated",
             "value" : "General"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geral"
+          }
         }
       }
     },
@@ -777,6 +1239,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Check for Updates"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificar Atualizações"
           }
         }
       }
@@ -788,6 +1256,12 @@
             "state" : "translated",
             "value" : "Automatically check on launch"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificar automaticamente ao iniciar"
+          }
         }
       }
     },
@@ -797,6 +1271,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Launch at Login"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir ao Iniciar"
           }
         }
       }
@@ -808,6 +1288,12 @@
             "state" : "translated",
             "value" : "Requires approval in System Settings"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requer aprovação nos Ajustes do Sistema"
+          }
         }
       }
     },
@@ -817,6 +1303,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notifications"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notificações"
           }
         }
       }
@@ -828,6 +1320,12 @@
             "state" : "translated",
             "value" : "Capacity Full"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capacidade Esgotada"
+          }
         }
       }
     },
@@ -837,6 +1335,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "When usage reaches 100%"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando o uso chegar a 100%"
           }
         }
       }
@@ -848,6 +1352,12 @@
             "state" : "translated",
             "value" : "Enable in System Settings > Notifications > ClaudeApp"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ative em Ajustes do Sistema > Notificações > ClaudeApp"
+          }
         }
       }
     },
@@ -857,6 +1367,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notifications Disabled"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notificações Desativadas"
           }
         }
       }
@@ -868,6 +1384,12 @@
             "state" : "translated",
             "value" : "Enable Notifications"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ativar Notificações"
+          }
         }
       }
     },
@@ -877,6 +1399,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reset Complete"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reinício Concluído"
           }
         }
       }
@@ -888,6 +1416,12 @@
             "state" : "translated",
             "value" : "When limits reset"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando os limites reiniciarem"
+          }
         }
       }
     },
@@ -897,6 +1431,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usage Warnings"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avisos de Uso"
           }
         }
       }
@@ -908,6 +1448,12 @@
             "state" : "translated",
             "value" : "When usage crosses threshold"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando o uso ultrapassar o limite"
+          }
         }
       }
     },
@@ -917,6 +1463,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Warning Threshold"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limite de Aviso"
           }
         }
       }
@@ -928,6 +1480,12 @@
             "state" : "translated",
             "value" : "Refresh"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualização"
+          }
         }
       }
     },
@@ -938,12 +1496,24 @@
             "state" : "translated",
             "value" : "Refresh Interval"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intervalo de Atualização"
+          }
         }
       }
     },
     "settings.refresh.interval.max" : {
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 min"
+          }
+        },
+        "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "30 min"
@@ -958,12 +1528,24 @@
             "state" : "translated",
             "value" : "1 min"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 min"
+          }
         }
       }
     },
     "settings.refresh.interval.value %lld" : {
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld min"
+          }
+        },
+        "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld min"
@@ -978,6 +1560,12 @@
             "state" : "translated",
             "value" : "Settings"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurações"
+          }
         }
       }
     },
@@ -987,6 +1575,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1 hour"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 hora"
           }
         }
       }
@@ -998,6 +1592,12 @@
             "state" : "translated",
             "value" : "%lld hours"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld horas"
+          }
         }
       }
     },
@@ -1007,6 +1607,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "less than 1 minute"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "menos de 1 minuto"
           }
         }
       }
@@ -1018,6 +1624,12 @@
             "state" : "translated",
             "value" : "1 minute"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 minuto"
+          }
         }
       }
     },
@@ -1027,6 +1639,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld minutes"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minutos"
           }
         }
       }
@@ -1038,6 +1656,12 @@
             "state" : "translated",
             "value" : "Checking..."
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificando..."
+          }
         }
       }
     },
@@ -1047,6 +1671,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Try again later"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tente novamente mais tarde"
           }
         }
       }
@@ -1058,6 +1688,12 @@
             "state" : "translated",
             "value" : "Unable to check"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível verificar"
+          }
         }
       }
     },
@@ -1067,6 +1703,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You're up to date"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você está atualizado"
           }
         }
       }
@@ -1078,6 +1720,12 @@
             "state" : "translated",
             "value" : "Version %@ available"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versão %@ disponível"
+          }
         }
       }
     },
@@ -1087,6 +1735,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Claude Usage"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uso do Claude"
           }
         }
       }
@@ -1098,6 +1752,12 @@
             "state" : "translated",
             "value" : "Loading usage data..."
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carregando dados de uso..."
+          }
         }
       }
     },
@@ -1108,12 +1768,24 @@
             "state" : "translated",
             "value" : "No usage data"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem dados de uso"
+          }
         }
       }
     },
     "usage.noPercentage" : {
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "--"
+          }
+        },
+        "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "--"
@@ -1128,6 +1800,12 @@
             "state" : "translated",
             "value" : "Pro"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
         }
       }
     },
@@ -1137,6 +1815,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Weekly (Opus)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semanal (Opus)"
           }
         }
       }
@@ -1148,6 +1832,12 @@
             "state" : "translated",
             "value" : "Current Session (5h)"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessão Atual (5h)"
+          }
         }
       }
     },
@@ -1157,6 +1847,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Weekly (Sonnet)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semanal (Sonnet)"
           }
         }
       }
@@ -1168,6 +1864,12 @@
             "state" : "translated",
             "value" : "Weekly (All Models)"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semanal (Todos os Modelos)"
+          }
         }
       }
     },
@@ -1178,12 +1880,24 @@
             "state" : "translated",
             "value" : "Data may be stale"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dados podem estar desatualizados"
+          }
         }
       }
     },
     "usage.timeToExhaustion.format.hours %lld" : {
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldh"
+          }
+        },
+        "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lldh"
@@ -1198,12 +1912,24 @@
             "state" : "translated",
             "value" : "<1min"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "<1min"
+          }
         }
       }
     },
     "usage.timeToExhaustion.format.minutes %lld" : {
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldmin"
+          }
+        },
+        "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lldmin"
@@ -1218,6 +1944,12 @@
             "state" : "translated",
             "value" : "~%@ until limit"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "~%@ até o limite"
+          }
         }
       }
     },
@@ -1227,6 +1959,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Updated %@ ago"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualizado há %@"
           }
         }
       }
@@ -1238,6 +1976,12 @@
             "state" : "translated",
             "value" : "Weekly (Opus)"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semanal (Opus)"
+          }
         }
       }
     },
@@ -1247,6 +1991,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Current session"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessão atual"
           }
         }
       }
@@ -1258,6 +2008,12 @@
             "state" : "translated",
             "value" : "Weekly (Sonnet)"
           }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semanal (Sonnet)"
+          }
         }
       }
     },
@@ -1267,6 +2023,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Weekly (all models)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semanal (todos os modelos)"
           }
         }
       }

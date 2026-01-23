@@ -28,6 +28,42 @@ extension UNUserNotificationCenter: NotificationService {
     }
 }
 
+// MARK: - Stub Service for Non-Bundle Contexts
+
+/// A no-op notification service used when running outside an app bundle.
+/// UNUserNotificationCenter.current() crashes without a valid bundle,
+/// so this stub allows the app to run for development/testing.
+private final class StubNotificationService: NotificationService {
+    func requestAuthorization(options _: UNAuthorizationOptions) async throws -> Bool {
+        false
+    }
+
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        .notDetermined
+    }
+
+    func add(_: UNNotificationRequest) async throws {
+        // No-op: notifications not available outside bundle
+    }
+
+    func removeDeliveredNotifications(withIdentifiers _: [String]) {
+        // No-op
+    }
+}
+
+// MARK: - Safe Notification Center Access
+
+/// Safely get the notification center, returning nil if not in a bundle context.
+/// This prevents crashes when running the bare executable from SPM.
+private func safeNotificationCenter() -> NotificationService {
+    // Check if we have a valid bundle with an identifier
+    // UNUserNotificationCenter.current() crashes without this
+    guard Bundle.main.bundleIdentifier != nil else {
+        return StubNotificationService()
+    }
+    return UNUserNotificationCenter.current()
+}
+
 // MARK: - NotificationManager
 
 /// Manager for handling system notifications.
@@ -56,8 +92,9 @@ public actor NotificationManager {
     // MARK: - Initialization
 
     /// Creates a new NotificationManager with the default UNUserNotificationCenter.
+    /// Falls back to a stub service when running outside an app bundle (e.g., SPM debug builds).
     public init() {
-        self.notificationCenter = UNUserNotificationCenter.current()
+        self.notificationCenter = safeNotificationCenter()
     }
 
     /// Creates a new NotificationManager with a custom service (for testing).
