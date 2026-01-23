@@ -23,12 +23,12 @@ public actor ClaudeAPIClient: UsageRepository {
     ///   - baseURL: Base URL for the Anthropic API. Defaults to production URL.
     ///   - session: URL session for network requests. Defaults to shared session.
     ///   - credentialsRepository: Repository for retrieving OAuth credentials.
-    ///   - userAgent: User agent string for API requests. Defaults to "ClaudeApp/1.0.0".
+    ///   - userAgent: User agent string for API requests. Defaults to "ClaudeApp/1.2.0".
     public init(
         baseURL: URL = URL(string: "https://api.anthropic.com")!,
         session: URLSession = .shared,
         credentialsRepository: CredentialsRepository,
-        userAgent: String = "ClaudeApp/1.0.0"
+        userAgent: String = "ClaudeApp/1.2.0"
     ) {
         self.baseURL = baseURL
         self.session = session

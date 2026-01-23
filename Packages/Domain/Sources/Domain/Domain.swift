@@ -11,5 +11,5 @@
 // - CredentialsRepository.swift: Protocol for accessing credentials
 
 public enum Domain {
-    public static let version = "1.0.0"
+    public static let version = "1.2.0"
 }

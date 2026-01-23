@@ -237,14 +237,49 @@ Clean up and prepare for release.
   - **Note:** No snapshot testing library available; implemented comprehensive Swift Testing behavioral tests
   - ✅ Completed: 39 new tests added covering all burn rate display scenarios (320 total tests passing)
 
-- [ ] **Update documentation and version** [file: various]
+- [x] **Update documentation and version** [file: various]
   - Update README with burn rate feature description
   - Update version to 1.2.0 (or appropriate SLC 3 version)
   - Update IMPLEMENTATION_PLAN.md to mark SLC 3 complete
   - Add changelog entry for new features
+  - ✅ Completed: Created root README.md, CHANGELOG.md, updated version to 1.2.0 across all 4 packages and tests (320 tests passing)
 
 ---
 <!-- CHECKPOINT: Phase 5 completes SLC 3. The app now predicts usage exhaustion, shows consumption velocity, and checks for updates. Code is better organized. -->
+
+## SLC 3: Predictive Insights ✅ COMPLETE
+
+All tasks completed with 320 passing tests.
+
+**Phase 1: Burn Rate Domain Models** ✅
+- [x] Implement BurnRate and BurnRateLevel domain models
+- [x] Extend UsageWindow with burn rate properties
+- [x] Extend UsageData with highestBurnRate computed property
+
+**Phase 2: Burn Rate Calculator** ✅
+- [x] Create UsageSnapshot model for history tracking
+- [x] Implement BurnRateCalculator
+- [x] Integrate burn rate calculation into UsageManager
+- [x] Add comprehensive tests for BurnRateCalculator
+
+**Phase 3: Burn Rate UI** ✅
+- [x] Create BurnRateBadge component
+- [x] Add time-to-exhaustion display to UsageProgressBar
+- [x] Integrate burn rate into dropdown header
+- [x] Update UsageProgressBar instances with time-to-exhaustion
+
+**Phase 4: Update Checking** ✅
+- [x] Create UpdateChecker actor
+- [x] Create GitHub API models
+- [x] Integrate update checking into app lifecycle
+- [x] Implement update UI in Settings About section
+
+**Phase 5: Polish & Code Organization** ✅
+- [x] Refactor UI components into UI package
+- [x] Add UI tests for burn rate display
+- [x] Update documentation and version
+
+---
 
 ## Future Work (Outside Current Scope)
 
