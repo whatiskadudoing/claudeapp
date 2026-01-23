@@ -59,7 +59,7 @@ struct ClaudeApp: App {
 
         // Settings window
         Window("Settings", id: "settings") {
-            SettingsView()
+            SettingsView(updateChecker: container.updateChecker)
                 .environment(container.settingsManager)
                 .environment(container.launchAtLoginManager)
                 .environment(container.notificationPermissionManager)
@@ -651,6 +651,8 @@ struct SettingsView: View {
     @Environment(LaunchAtLoginManager.self) private var launchAtLogin
     @Environment(\.dismiss) private var dismiss
 
+    let updateChecker: UpdateChecker
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -678,7 +680,7 @@ struct SettingsView: View {
                     RefreshSection()
                     NotificationsSection()
                     GeneralSection()
-                    AboutSection()
+                    AboutSection(updateChecker: updateChecker)
                 }
                 .padding(16)
             }
@@ -1021,8 +1023,13 @@ struct GeneralSection: View {
 
 // MARK: - About Section
 
-/// About section showing app info and links.
+/// About section showing app info, version checking, and links.
 struct AboutSection: View {
+    let updateChecker: UpdateChecker
+
+    @State private var checkResult: CheckResult?
+    @State private var isChecking = false
+
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
     }
@@ -1044,13 +1051,8 @@ struct AboutSection: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                // Check for Updates button (placeholder for SLC 3)
-                Button("Check for Updates") {
-                    // Will be implemented in SLC 3
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .disabled(true) // Disabled until SLC 3
+                // Update check UI
+                updateStatusView
 
                 // Links
                 HStack(spacing: 8) {
@@ -1066,6 +1068,117 @@ struct AboutSection: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
+        }
+    }
+
+    /// View showing update check status (button, checking spinner, or result)
+    @ViewBuilder
+    private var updateStatusView: some View {
+        switch (isChecking, checkResult) {
+        case (true, _):
+            // Loading state
+            HStack(spacing: 6) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Checking...")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+        case (false, nil):
+            // Default state: show button
+            Button("Check for Updates") {
+                checkForUpdates()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+
+        case (false, .upToDate):
+            // Up to date state
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                Text("You're up to date")
+            }
+            .font(.caption)
+
+        case (false, .updateAvailable(let info)):
+            // Update available state
+            VStack(spacing: 8) {
+                Text("Version \(info.version) available")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Button("Download") {
+                    NSWorkspace.shared.open(info.downloadURL)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
+
+        case (false, .rateLimited):
+            // Rate limited state (try again later)
+            HStack(spacing: 4) {
+                Image(systemName: "clock.fill")
+                    .foregroundStyle(.secondary)
+                Text("Try again later")
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+        case (false, .error):
+            // Error state
+            VStack(spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .foregroundStyle(.red)
+                    Text("Unable to check")
+                }
+                .font(.caption)
+
+                // Show brief error, allow retry
+                Button("Retry") {
+                    checkForUpdates()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+            }
+        }
+    }
+
+    /// Initiates an update check
+    private func checkForUpdates() {
+        isChecking = true
+        checkResult = nil
+
+        Task {
+            let result = await updateChecker.check()
+
+            await MainActor.run {
+                isChecking = false
+                checkResult = result
+            }
+
+            // Auto-dismiss "up to date" message after 3 seconds
+            if case .upToDate = result {
+                try? await Task.sleep(for: .seconds(3))
+                await MainActor.run {
+                    // Only reset if still showing upToDate
+                    if case .upToDate = checkResult {
+                        checkResult = nil
+                    }
+                }
+            }
+
+            // Auto-dismiss rate limited and error after 5 seconds
+            if case .rateLimited = result {
+                try? await Task.sleep(for: .seconds(5))
+                await MainActor.run {
+                    if case .rateLimited = checkResult {
+                        checkResult = nil
+                    }
+                }
+            }
         }
     }
 }

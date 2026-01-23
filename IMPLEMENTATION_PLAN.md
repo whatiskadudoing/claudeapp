@@ -200,7 +200,7 @@ Implement version checking via GitHub Releases API.
   - **Note:** Respect 24-hour rate limit for auto-checks
   - ✅ Completed: UpdateChecker added to AppContainer, background check on launch with 5s delay, notification sent when update found (271 tests passing)
 
-- [ ] **Implement update UI in Settings About section** [file: App/ClaudeApp.swift]
+- [x] **Implement update UI in Settings About section** [file: App/ClaudeApp.swift]
   - Enable the currently-disabled "Check for Updates" button
   - Add state: `checkResult: UpdateChecker.CheckResult?`, `isChecking: Bool`
   - Show loading spinner while checking
@@ -209,6 +209,7 @@ Implement version checking via GitHub Releases API.
   - Download button opens browser to release/download URL
   - Show error state briefly if check fails
   - **Research:** `specs/features/updates.md` lines 229-304 for UI implementation
+  - ✅ Completed: Full update UI implemented with all states (checking, upToDate, updateAvailable, rateLimited, error), auto-dismiss for transient states, retry button for errors (271 tests passing)
 
 ---
 <!-- CHECKPOINT: Phase 4 delivers update checking. Test: click "Check for Updates", verify correct state display, verify download button opens correct URL. -->
