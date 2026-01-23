@@ -124,18 +124,24 @@ Key research documents for this implementation:
 
 **Purpose:** Add standard open-source community files that enable and guide contributions.
 
-- [ ] **Create CONTRIBUTING.md with development guide** [spec: user-documentation.md] [file: CONTRIBUTING.md]
-  - Code of Conduct reference
-  - Ways to contribute (bugs, features, code)
-  - Development setup (`make setup`, `make run`)
-  - Pull request process and checklist
-  - Code style (SwiftFormat, SwiftLint)
-  - Commit conventions
-  - Architecture reference (link to specs/)
-  - Testing requirements
-  - Localization contribution guide
-  - **Research:** `specs/user-documentation.md#CONTRIBUTING.md`, `specs/toolchain.md`
-  - **Test:** New contributor can follow guide to set up and make first PR
+- [x] **Create CONTRIBUTING.md with development guide** [spec: user-documentation.md] [file: CONTRIBUTING.md]
+  - Code of Conduct reference (links to CODE_OF_CONDUCT.md)
+  - Ways to contribute: Bug reports, Feature requests, Code contributions
+  - Development setup: Prerequisites, optional tools, `make setup`, `make run`
+  - Available commands: Building, Testing, Code Quality, Cleaning, Release
+  - Project architecture: Package structure with dependency flow diagram
+  - Code style: SwiftFormat (4-space indent, 120 char), SwiftLint rules
+  - Concurrency guidelines: async/await, actor, @MainActor, Sendable
+  - Testing: Swift Testing framework with example code
+  - Commit guidelines: Focus on "why", pre-commit hook info
+  - Pull request process: Checklist, review process
+  - Testing requirements: Coverage goals by package
+  - Localization contribution guide: Adding new languages
+  - Documentation references: Links to specs/ and docs/
+  - Release process: For maintainers
+  - Getting help: Links to Discussions, Issues, Security
+  - **Research:** `specs/user-documentation.md#CONTRIBUTING.md`, `specs/toolchain.md`, codebase exploration
+  - **Test:** Guide verified against actual Makefile commands and project structure
 
 - [ ] **Create CODE_OF_CONDUCT.md and SECURITY.md** [spec: user-documentation.md] [file: CODE_OF_CONDUCT.md, SECURITY.md]
   - `CODE_OF_CONDUCT.md`: Use Contributor Covenant v2.1 (industry standard)
