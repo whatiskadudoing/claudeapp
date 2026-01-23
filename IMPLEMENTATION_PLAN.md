@@ -230,11 +230,12 @@ Clean up and prepare for release.
   - **Note:** Keep views that depend on specific Environment objects in App
   - ✅ Completed: Theme.swift, UsageProgressBar.swift, BurnRateBadge.swift, SettingsComponents.swift created. 10 new tests added (281 total tests passing)
 
-- [ ] **Add UI tests for burn rate display** [file: Tests/UITests/]
-  - Snapshot test: BurnRateBadge at each level (Low/Medium/High/Very High)
-  - Snapshot test: UsageProgressBar with and without time-to-exhaustion
-  - Verify colors match design system
-  - **Note:** Use Swift snapshot testing library if available, or manual verification
+- [x] **Add UI tests for burn rate display** [file: Packages/UI/Tests/UITests/UITests.swift]
+  - Tests for BurnRateBadge: text display and color mapping for all levels (Low/Medium/High/Very High)
+  - Tests for UsageProgressBar: initialization, time-to-exhaustion formatting, visibility logic, color thresholds
+  - Verified colors match design system via BurnRateLevel.color property tests
+  - **Note:** No snapshot testing library available; implemented comprehensive Swift Testing behavioral tests
+  - ✅ Completed: 39 new tests added covering all burn rate display scenarios (320 total tests passing)
 
 - [ ] **Update documentation and version** [file: various]
   - Update README with burn rate feature description
