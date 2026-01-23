@@ -15,7 +15,7 @@ public struct BurnRateBadge: View {
 
     public var body: some View {
         Text(localizedLevelName)
-            .font(.system(size: 10, weight: .medium))
+            .font(Theme.Typography.badge)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(badgeColor.opacity(0.15))

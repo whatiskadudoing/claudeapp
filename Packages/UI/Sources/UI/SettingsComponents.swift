@@ -12,7 +12,7 @@ public struct SectionHeader: View {
 
     public var body: some View {
         Text(title)
-            .font(.caption)
+            .font(Theme.Typography.sectionHeader)
             .fontWeight(.medium)
             .foregroundStyle(.secondary)
             .textCase(.uppercase)
@@ -37,10 +37,10 @@ public struct SettingsToggle: View {
         Toggle(isOn: $isOn) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.body)
+                    .font(Theme.Typography.body)
                 if let subtitle {
                     Text(subtitle)
-                        .font(.caption)
+                        .font(Theme.Typography.label)
                         .foregroundStyle(.secondary)
                 }
             }

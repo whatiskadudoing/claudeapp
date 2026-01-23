@@ -100,7 +100,7 @@ struct MenuBarLabel: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "sparkle")
-                .font(.system(size: 14))
+                .font(Theme.Typography.iconMedium)
 
             if usageManager.isLoading && usageManager.usageData == nil {
                 ProgressView()
@@ -108,7 +108,8 @@ struct MenuBarLabel: View {
             } else if let data = usageManager.usageData {
                 if settings.showPercentage {
                     Text("\(Int(data.utilization(for: settings.percentageSource)))%")
-                        .font(.system(size: 12, weight: .medium).monospacedDigit())
+                        .font(Theme.Typography.menuBar)
+                        .fontWeight(.medium)
                 }
 
                 if settings.showPlanBadge {
@@ -117,7 +118,8 @@ struct MenuBarLabel: View {
             } else {
                 if settings.showPercentage {
                     Text(L("usage.noPercentage"))
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Theme.Typography.menuBar)
+                        .fontWeight(.medium)
                 }
             }
         }
@@ -158,7 +160,7 @@ struct MenuBarLabel: View {
 struct PlanBadgeLabel: View {
     var body: some View {
         Text(L("usage.planBadge.pro"))
-            .font(.system(size: 9, weight: .medium))
+            .font(Theme.Typography.badge)
             .padding(.horizontal, 4)
             .padding(.vertical, 1)
             .background(Theme.Colors.primary.opacity(0.2))
@@ -205,7 +207,7 @@ struct DropdownView: View {
             // Header
             HStack {
                 Text(L("usage.header.title"))
-                    .font(.headline)
+                    .font(Theme.Typography.title)
                 Spacer()
                 // Show burn rate badge when available
                 if let burnRateLevel = usageManager.usageData?.highestBurnRate?.level {
@@ -250,17 +252,17 @@ struct DropdownView: View {
                     // Show stale warning when we have error with cached data
                     HStack(spacing: 4) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.caption2)
+                            .font(Theme.Typography.metadata)
                             .foregroundStyle(.orange)
                         Text(L("usage.staleData"))
-                            .font(.caption2)
+                            .font(Theme.Typography.metadata)
                             .foregroundStyle(.secondary)
                     }
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel(L("accessibility.staleWarning"))
                 } else if let lastUpdated = usageManager.lastUpdated {
                     Text(updatedAgoText(for: lastUpdated))
-                        .font(.caption2)
+                        .font(Theme.Typography.metadata)
                         .foregroundStyle(.tertiary)
                 }
                 Spacer()
@@ -268,7 +270,7 @@ struct DropdownView: View {
                     NSApplication.shared.terminate(nil)
                 }
                 .buttonStyle(.plain)
-                .font(.caption)
+                .font(Theme.Typography.label)
                 .keyboardShortcut("q", modifiers: .command)
                 .focused($focusedElement, equals: .quit)
                 .accessibilityLabel(L("accessibility.quitApp"))
@@ -450,16 +452,16 @@ struct StaleDataBanner: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.caption)
+                .font(Theme.Typography.label)
                 .foregroundStyle(.orange)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(L("error.unableToRefresh"))
-                    .font(.caption)
+                    .font(Theme.Typography.label)
                     .fontWeight(.medium)
                 Text(errorReason)
-                    .font(.caption2)
+                    .font(Theme.Typography.metadata)
                     .foregroundStyle(.secondary)
             }
 
@@ -506,7 +508,7 @@ struct LoadingView: View {
             VStack(spacing: 8) {
                 ProgressView()
                 Text(L("usage.loading"))
-                    .font(.caption)
+                    .font(Theme.Typography.label)
                     .foregroundStyle(.secondary)
             }
             Spacer()
@@ -527,16 +529,16 @@ struct ErrorView: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: errorIcon)
-                .font(.title2)
+                .font(Theme.Typography.iconLarge)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
 
             Text(errorTitle)
-                .font(.caption)
+                .font(Theme.Typography.label)
                 .fontWeight(.medium)
 
             Text(errorMessage)
-                .font(.caption2)
+                .font(Theme.Typography.metadata)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
@@ -601,12 +603,12 @@ struct EmptyStateView: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: "chart.bar")
-                .font(.title2)
+                .font(Theme.Typography.iconLarge)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
 
             Text(L("usage.noData"))
-                .font(.caption)
+                .font(Theme.Typography.label)
                 .fontWeight(.medium)
 
             Button(L("button.refresh"), action: refreshAction)
@@ -638,14 +640,14 @@ struct SettingsView: View {
             // Header
             HStack {
                 Text(L("settings.title"))
-                    .font(.headline)
+                    .font(Theme.Typography.title)
                 Spacer()
                 Button {
                     dismiss()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
-                        .font(.title3)
+                        .font(Theme.Typography.iconMedium)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(L("accessibility.closeSettings"))
@@ -697,7 +699,7 @@ struct DisplaySection: View {
             if settings.showPercentage {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(L("settings.display.percentageSource"))
-                        .font(.body)
+                        .font(Theme.Typography.body)
 
                     Picker("", selection: $settings.percentageSource) {
                         ForEach(PercentageSource.allCases, id: \.self) { source in
@@ -727,10 +729,11 @@ struct RefreshSection: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text(L("settings.refresh.interval"))
+                        .font(Theme.Typography.body)
                     Spacer()
                     Text(L("settings.refresh.interval.value", settings.refreshInterval))
                         .foregroundStyle(.secondary)
-                        .font(.body.monospacedDigit())
+                        .font(Theme.Typography.percentage)
                 }
 
                 Slider(
@@ -745,11 +748,11 @@ struct RefreshSection: View {
 
                 HStack {
                     Text(L("settings.refresh.interval.min"))
-                        .font(.caption2)
+                        .font(Theme.Typography.tiny)
                         .foregroundStyle(.tertiary)
                     Spacer()
                     Text(L("settings.refresh.interval.max"))
-                        .font(.caption2)
+                        .font(Theme.Typography.tiny)
                         .foregroundStyle(.tertiary)
                 }
             }
@@ -785,7 +788,7 @@ struct NotificationsSection: View {
                 }
             )) {
                 Text(L("settings.notifications.enable"))
-                    .font(.body)
+                    .font(Theme.Typography.body)
             }
             .toggleStyle(.switch)
             .controlSize(.small)
@@ -801,10 +804,11 @@ struct NotificationsSection: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text(L("settings.notifications.warningThreshold"))
+                                .font(Theme.Typography.body)
                             Spacer()
                             Text("\(settings.warningThreshold)%")
                                 .foregroundStyle(.secondary)
-                                .font(.body.monospacedDigit())
+                                .font(Theme.Typography.percentage)
                         }
 
                         Slider(
@@ -819,11 +823,11 @@ struct NotificationsSection: View {
 
                         HStack {
                             Text("50%")
-                                .font(.caption2)
+                                .font(Theme.Typography.tiny)
                                 .foregroundStyle(.tertiary)
                             Spacer()
                             Text("99%")
-                                .font(.caption2)
+                                .font(Theme.Typography.tiny)
                                 .foregroundStyle(.tertiary)
                         }
                     }
@@ -869,21 +873,21 @@ struct PermissionDeniedBanner: View {
             HStack(spacing: 6) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                    .font(.caption)
+                    .font(Theme.Typography.label)
                 Text(L("settings.notifications.disabled.title"))
-                    .font(.caption)
+                    .font(Theme.Typography.label)
                     .fontWeight(.medium)
             }
 
             Text(L("settings.notifications.disabled.instructions"))
-                .font(.caption)
+                .font(Theme.Typography.label)
                 .foregroundStyle(.secondary)
 
             Button {
                 openNotificationSettings()
             } label: {
                 Text(L("button.openSystemSettings"))
-                    .font(.caption)
+                    .font(Theme.Typography.label)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
@@ -920,7 +924,7 @@ struct GeneralSection: View {
             VStack(alignment: .leading, spacing: 4) {
                 Toggle(isOn: $launchAtLogin.isEnabled) {
                     Text(L("settings.general.launchAtLogin"))
-                        .font(.body)
+                        .font(Theme.Typography.body)
                 }
                 .toggleStyle(.switch)
                 .controlSize(.small)
@@ -931,9 +935,9 @@ struct GeneralSection: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.caption2)
+                                .font(Theme.Typography.metadata)
                             Text(L("settings.general.requiresApproval"))
-                                .font(.caption)
+                                .font(Theme.Typography.label)
                         }
                         .foregroundStyle(.orange)
                     }
@@ -942,7 +946,7 @@ struct GeneralSection: View {
 
                 if let error = launchAtLogin.lastError {
                     Text(error)
-                        .font(.caption)
+                        .font(Theme.Typography.label)
                         .foregroundStyle(.red)
                 }
             }
@@ -982,14 +986,14 @@ struct AboutSection: View {
             VStack(spacing: 12) {
                 // App icon
                 Image(systemName: "sparkle")
-                    .font(.system(size: 40))
+                    .font(.largeTitle)
                     .foregroundStyle(Theme.Colors.primary)
 
                 Text(L("settings.about.appName"))
-                    .font(.headline)
+                    .font(Theme.Typography.title)
 
                 Text(L("settings.about.version", appVersion))
-                    .font(.caption)
+                    .font(Theme.Typography.label)
                     .foregroundStyle(.secondary)
 
                 // Update check UI
@@ -1004,7 +1008,7 @@ struct AboutSection: View {
                         .foregroundStyle(.tertiary)
                     Text(L("settings.about.description"))
                 }
-                .font(.caption)
+                .font(Theme.Typography.label)
                 .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
@@ -1022,7 +1026,7 @@ struct AboutSection: View {
                 ProgressView()
                     .controlSize(.small)
                 Text(L("update.checking"))
-                    .font(.caption)
+                    .font(Theme.Typography.label)
                     .foregroundStyle(.secondary)
             }
 
@@ -1041,13 +1045,13 @@ struct AboutSection: View {
                     .foregroundStyle(.green)
                 Text(L("update.upToDate"))
             }
-            .font(.caption)
+            .font(Theme.Typography.label)
 
         case (false, .updateAvailable(let info)):
             // Update available state
             VStack(spacing: 8) {
                 Text(L("update.versionAvailable", info.version))
-                    .font(.caption)
+                    .font(Theme.Typography.label)
                     .foregroundStyle(.secondary)
 
                 Button(L("button.download")) {
@@ -1064,7 +1068,7 @@ struct AboutSection: View {
                     .foregroundStyle(.secondary)
                 Text(L("update.tryAgainLater"))
             }
-            .font(.caption)
+            .font(Theme.Typography.label)
             .foregroundStyle(.secondary)
 
         case (false, .error):
@@ -1075,7 +1079,7 @@ struct AboutSection: View {
                         .foregroundStyle(.red)
                     Text(L("update.unableToCheck"))
                 }
-                .font(.caption)
+                .font(Theme.Typography.label)
 
                 // Show brief error, allow retry
                 Button(L("button.retry")) {

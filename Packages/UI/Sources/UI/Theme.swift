@@ -49,4 +49,44 @@ public enum Theme {
         public static let lg: CGFloat = 12
         public static let full: CGFloat = 9999
     }
+
+    // MARK: - Typography
+
+    /// Semantic font styles that scale with Dynamic Type.
+    /// All styles use system fonts that automatically adapt to user accessibility settings.
+    public enum Typography {
+        /// Main dropdown/window title - scales with .headline
+        public static let title: Font = .headline
+
+        /// Section headers in settings - scales with .caption
+        public static let sectionHeader: Font = .caption
+
+        /// Primary content text - scales with .body
+        public static let body: Font = .body
+
+        /// Progress bar labels - scales with .caption
+        public static let label: Font = .caption
+
+        /// Progress bar percentage with monospaced digits - scales with .body
+        public static let percentage: Font = .body.monospacedDigit()
+
+        /// Secondary/metadata text - scales with .caption2
+        public static let metadata: Font = .caption2
+
+        /// Badge text (burn rate, plan) - scales with .caption2
+        public static let badge: Font = .caption2.weight(.medium)
+
+        /// Menu bar percentage - fixed size for menu bar constraints
+        /// Note: Menu bar has limited space, but we use a reasonable default
+        public static let menuBar: Font = .body.monospacedDigit()
+
+        /// Small UI elements like slider labels - scales with .caption2
+        public static let tiny: Font = .caption2
+
+        /// Icon/symbol sizes that scale with text
+        /// These are relative sizes for SF Symbols to match adjacent text
+        public static let iconSmall: Font = .caption2
+        public static let iconMedium: Font = .body
+        public static let iconLarge: Font = .title2
+    }
 }

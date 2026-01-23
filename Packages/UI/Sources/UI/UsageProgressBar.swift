@@ -27,11 +27,12 @@ public struct UsageProgressBar: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
             HStack {
                 Text(label)
-                    .font(.caption)
+                    .font(Theme.Typography.label)
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text("\(Int(value))%")
-                    .font(.system(size: 13, weight: .medium).monospacedDigit())
+                    .font(Theme.Typography.percentage)
+                    .fontWeight(.medium)
             }
 
             GeometryReader { geometry in
@@ -61,7 +62,7 @@ public struct UsageProgressBar: View {
                         Text(timeToExhaustionText)
                     }
                 }
-                .font(.caption2)
+                .font(Theme.Typography.metadata)
                 .foregroundStyle(.tertiary)
             }
         }

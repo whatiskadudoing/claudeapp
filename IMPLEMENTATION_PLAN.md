@@ -67,7 +67,7 @@ Key research documents for this implementation:
 
 **Purpose:** Enable the app to scale text appropriately for users who need larger (or smaller) text sizes.
 
-- [ ] **Implement adaptive text scaling throughout UI** [spec: accessibility.md#dynamic-type] [file: App/ClaudeApp.swift, Packages/UI/Sources/UI/*.swift]
+- [x] **Implement adaptive text scaling throughout UI** [spec: accessibility.md#dynamic-type] [file: App/ClaudeApp.swift, Packages/UI/Sources/UI/*.swift]
   - Replace fixed font sizes with `.font(.body)`, `.font(.headline)`, `.font(.caption)` semantic styles
   - Use `@ScaledMetric` for custom sizes that must scale (icons, spacing tied to text)
   - Test with all size categories: xSmall through AX5 (Accessibility sizes)
@@ -80,6 +80,7 @@ Key research documents for this implementation:
     - Error states and buttons
   - **Research:** `specs/accessibility.md` lines 341-410 for size category table
   - **Test:** Build succeeds, all tests pass, UI readable at AX5
+  - **COMPLETED:** Added `Theme.Typography` enum with semantic font styles (title, sectionHeader, body, label, percentage, metadata, badge, menuBar, tiny, iconSmall/Medium/Large). Updated all SwiftUI views to use these semantic styles instead of fixed font sizes. All 402 tests pass.
 
 - [ ] **Add layout adaptations for extreme text sizes** [spec: accessibility.md#dynamic-type] [file: App/ClaudeApp.swift]
   - Increase dropdown width at accessibility sizes (280px → 340px for AX1+)
