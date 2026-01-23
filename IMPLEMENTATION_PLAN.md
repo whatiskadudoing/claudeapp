@@ -60,24 +60,27 @@ Key research documents for this implementation:
 
 **Purpose:** Create the docs/ folder with user-facing documentation that enables self-service installation and troubleshooting.
 
-- [ ] **Create docs/ folder with installation and usage guides** [spec: user-documentation.md] [file: docs/installation.md, docs/usage.md]
-  - Create `docs/installation.md` with:
+- [x] **Create docs/ folder with installation and usage guides** [spec: user-documentation.md] [file: docs/installation.md, docs/usage.md]
+  - Created `docs/installation.md` with:
     - System requirements (macOS 14+, Claude Code CLI)
     - Homebrew installation (with note about "coming soon" until tap is ready)
     - Direct download from GitHub Releases
-    - Bypassing Gatekeeper instructions
+    - Bypassing Gatekeeper instructions (both right-click and System Settings methods)
     - Build from source instructions
     - Post-installation setup (claude login)
-  - Create `docs/usage.md` with:
-    - Menu bar display explanation
-    - Dropdown view breakdown (all usage windows)
-    - Progress bar colors meaning
-    - Burn rate and time-to-exhaustion explanations
-    - Settings documentation (all sections)
-    - Keyboard shortcuts reference
-  - Follow templates in `specs/user-documentation.md`
-  - **Research:** `specs/user-documentation.md` for exact content structure
-  - **Test:** Documentation accurate against current app behavior
+    - Uninstallation instructions for all methods
+  - Created `docs/usage.md` with:
+    - Menu bar display explanation with percentage source options
+    - Dropdown view breakdown with ASCII diagram
+    - Progress bar colors meaning (green/yellow/red thresholds)
+    - Burn rate levels and their thresholds (<10%, 10-25%, 25-50%, >50%/hr)
+    - Time-to-exhaustion display and calculation rules
+    - Complete Settings documentation (all 4 sections)
+    - Keyboard shortcuts reference (Cmd+R, Cmd+,, Cmd+Q, Tab)
+    - Notification behavior with hysteresis details
+    - Accessibility features summary
+    - Supported languages list
+  - **Test:** Documentation verified against codebase exploration ✅
 
 - [ ] **Create troubleshooting and FAQ documentation** [spec: user-documentation.md] [file: docs/troubleshooting.md, docs/faq.md]
   - Create `docs/troubleshooting.md` with:
