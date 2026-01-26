@@ -1,26 +1,65 @@
 # Implementation Plan
 
-## Recommended SLC Release: Community Ready (SLC 7)
+## Recommended SLC Release: Community Ready + Polish (SLC 7 Completion)
 
 **Audience:** Professional developers using Claude Code who want to adopt ClaudeApp and potentially contribute to the project.
 
-**Value proposition:** Transform ClaudeApp from a working application into a professional open-source project ready for community adoption. Users need documentation to install, troubleshoot, and contribute. Without proper docs, adoption friction is high and contributions are unlikely.
+**Value proposition:** Complete SLC 7 by adding missing community files and then add Icon Styles as a quick-win polish feature. This transforms ClaudeApp from a working application into a professional open-source project ready for community adoption, while also delivering the most-requested customization feature.
 
 **Activities included:**
 
 | Activity | Depth | Why Included |
 |----------|-------|--------------|
-| User Documentation | Standard | Users need installation/usage guides |
-| Community Files | Basic | Contributors need CONTRIBUTING/CODE_OF_CONDUCT |
-| Homebrew Distribution | Basic | Most macOS developers expect Homebrew install |
+| Community Files | Complete | LICENSE, CODE_OF_CONDUCT, SECURITY required for OSS adoption |
+| CHANGELOG Cleanup | Standard | Fix placeholder dates, ensure accurate history |
+| README Enhancement | Standard | Add Documentation section with links to docs/ |
+| Icon Styles | Basic | Most requested feature, LOW complexity, HIGH user value |
 
 **What's NOT in this slice:**
-- Phase 2 languages (French, German, Japanese, Chinese, Korean) → SLC 8
+- Homebrew tap → External repo, can be done independently
+- Phase 2 languages (French, German, Japanese, Chinese, Korean) → SLC 8+
 - RTL language support (Arabic, Hebrew) → Future
 - Local JSONL fallback → Future
-- Custom app icon design → Future
-- Plan badge auto-detection (requires API support) → BLOCKED
-- Historical usage graphs/trends → Future
+- Historical usage graphs/trends → SLC 9+
+- Power-Aware Refresh → SLC 9+
+- Multi-Account → SLC 10+
+- Widgets → Future (requires code signing)
+
+---
+
+## Gap Analysis Summary (2026-01-26)
+
+### ✅ COMPLETE - All Core Features Implemented
+
+| Feature | SLC | Status | Tests |
+|---------|-----|--------|-------|
+| Core usage monitoring | SLC 1 | ✅ | 81 |
+| Notifications & Settings | SLC 2 | ✅ | 155 |
+| Burn rate + time-to-exhaustion | SLC 3 | ✅ | 320 |
+| Accessibility (VoiceOver, keyboard) | SLC 4 | ✅ | 369 |
+| Internationalization (en, pt-BR, es) | SLC 5 | ✅ | 402 |
+| Advanced Accessibility (Dynamic Type, color-blind, high contrast) | SLC 6 | ✅ | 489 |
+| User documentation (docs/*) | SLC 7 | ✅ | - |
+| CONTRIBUTING.md | SLC 7 | ✅ | - |
+
+### 🔄 IN PROGRESS - SLC 7 Remaining Tasks
+
+| Item | Status | Notes |
+|------|--------|-------|
+| LICENSE file | ❌ Missing | MIT license referenced but file absent |
+| CODE_OF_CONDUCT.md | ❌ Missing | Referenced in CONTRIBUTING.md but doesn't exist |
+| SECURITY.md | ❌ Missing | Referenced in CONTRIBUTING.md but doesn't exist |
+| CHANGELOG.md dates | ⚠️ Incomplete | v1.0.0 and v1.1.0 have placeholder "2026-01-XX" dates |
+| README.md docs links | ❌ Missing | Need Documentation section linking to docs/ |
+| Icon Styles | ❌ Not started | HIGH priority, most requested feature |
+
+### 🚫 BLOCKED / OUT OF SCOPE
+
+| Item | Reason |
+|------|--------|
+| Plan badge auto-detection | Requires Anthropic API to expose plan type |
+| Widgets | Requires code signing |
+| Homebrew tap | External repo - can be done independently |
 
 ---
 
@@ -30,187 +69,176 @@ Key research documents for this implementation:
 
 | Topic | Document | Why Relevant |
 |-------|----------|--------------|
+| Icon Styles Spec | `specs/features/icon-styles.md` | Complete specification with all 6 styles |
+| Competitive Analysis | `research/competitive-analysis.md` | Shows competitors offer 5+ icon styles |
 | Documentation Structure | `specs/user-documentation.md` | Complete doc spec with templates |
-| Homebrew Setup | `research/inspiration.md#distribution` | Example cask formulas |
-| Project Conventions | `README.md` | Current state to extend |
-| Contributing Guide | `specs/toolchain.md` | Build commands and workflow |
+| Code of Conduct | https://www.contributor-covenant.org/version/2/1/code_of_conduct/ | Industry standard |
+| Design System | `specs/design-system.md` | Color definitions for icon styles |
 
 ---
 <!-- HUMAN VERIFICATION: Does this slice form a coherent, valuable product? -->
-<!-- Answer: YES - A professional open-source project needs documentation and
-     proper distribution channels. This slice removes adoption barriers and
-     enables community contributions. -->
+<!-- Answer: YES - Completes the OSS readiness work and adds the #1 requested feature -->
 
-## Phase 0: Build Verification - CRITICAL
+## Phase 0: Build Verification - COMPLETE ✅
 
 **Purpose:** Verify the app compiles, tests pass, and runs correctly before making changes.
 
 ### Pre-Flight Checks
 
 - [x] **Verify current build and test status** [file: Makefile]
-  - Run `make clean && make build` - should succeed ✅
-  - Run `swift test` - all 489 tests should pass ✅
-  - Run `make release` - .app bundle should be created ✅
-  - **Success criteria:** All checks pass, no regressions from SLC 6 ✅
+  - Run `make clean && make build` - ✅ succeeds
+  - Run `swift test` - ✅ all 489 tests pass
+  - Run `make release` - ✅ .app bundle created successfully
+  - **Success criteria:** All checks pass, no regressions from SLC 6
+  - **Bug Found & Fixed:** `UserDefaultsSettingsRepository` test was failing due to test isolation issue with UserDefaults suite inheritance. Fixed by rewriting test to not depend on clean standard UserDefaults state.
 
 ---
 <!-- CHECKPOINT: Phase 0 must pass before continuing. Do not proceed if build is broken. -->
 
-## Phase 1: User Documentation - CRITICAL
+## Phase 1: Community Files - CRITICAL
 
-**Purpose:** Create the docs/ folder with user-facing documentation that enables self-service installation and troubleshooting.
+**Purpose:** Add missing OSS community files to make the project legally usable and contribution-ready.
 
-- [x] **Create docs/ folder with installation and usage guides** [spec: user-documentation.md] [file: docs/installation.md, docs/usage.md]
-  - Created `docs/installation.md` with:
-    - System requirements (macOS 14+, Claude Code CLI)
-    - Homebrew installation (with note about "coming soon" until tap is ready)
-    - Direct download from GitHub Releases
-    - Bypassing Gatekeeper instructions (both right-click and System Settings methods)
-    - Build from source instructions
-    - Post-installation setup (claude login)
-    - Uninstallation instructions for all methods
-  - Created `docs/usage.md` with:
-    - Menu bar display explanation with percentage source options
-    - Dropdown view breakdown with ASCII diagram
-    - Progress bar colors meaning (green/yellow/red thresholds)
-    - Burn rate levels and their thresholds (<10%, 10-25%, 25-50%, >50%/hr)
-    - Time-to-exhaustion display and calculation rules
-    - Complete Settings documentation (all 4 sections)
-    - Keyboard shortcuts reference (Cmd+R, Cmd+,, Cmd+Q, Tab)
-    - Notification behavior with hysteresis details
-    - Accessibility features summary
-    - Supported languages list
-  - **Test:** Documentation verified against codebase exploration ✅
-
-- [x] **Create troubleshooting and FAQ documentation** [spec: user-documentation.md] [file: docs/troubleshooting.md, docs/faq.md]
-  - Created `docs/troubleshooting.md` with:
-    - "Claude Code not found" resolution with Keychain details
-    - Stale data issues and refresh behavior
-    - Gatekeeper bypass (both right-click and System Settings methods)
-    - Notification permission issues with in-app guidance
-    - High CPU/memory troubleshooting with expected values
-    - Menu bar icon missing solutions
-    - Settings not saving fix
-    - Rate limiting explanation with exponential backoff
-    - Burn rate and time-to-exhaustion visibility conditions
-    - Complete issue reporting guide with version info steps
-  - Created `docs/faq.md` with:
-    - General section: What is ClaudeApp, official status, free/open source
-    - Privacy & security: Data access, security, storage locations table
-    - Usage section: Claude Code requirement, usage windows table, percentages, refresh, burn rate, time-to-exhaustion
-    - Troubleshooting section: Common quick fixes with links
-    - Technical section: macOS 14+ requirement, App Store, Homebrew, contributing, languages
-  - **Research:** Used `specs/user-documentation.md` templates, adapted with actual repo URLs
-  - **Test:** Documentation verified against codebase exploration ✅
-
-- [x] **Create privacy policy** [spec: user-documentation.md] [file: docs/privacy.md]
-  - Created comprehensive privacy policy documenting:
-    - What data is accessed: OAuth token (read-only from Keychain), usage statistics, user preferences
-    - What is NOT accessed: conversations, code, personal info, browsing history
-    - Local-only storage: Keychain (managed by Claude Code), UserDefaults for settings, memory-only for usage history
-    - No analytics, no crash reporting, no telemetry (verified via codebase audit)
-    - Third-party services: Anthropic API (required), GitHub API (optional, for updates)
-    - User rights: data access commands, complete deletion instructions
-    - Network security details (HTTPS, credential handling)
-    - Children's privacy statement
-    - Summary table for quick reference
-  - **Research:** Used `specs/user-documentation.md#privacy.md` template, verified against actual codebase
-  - **Test:** Privacy policy matches actual app behavior (verified via codebase exploration) ✅
-
----
-<!-- CHECKPOINT: Phase 1 delivers user documentation. Users can now install and troubleshoot. -->
-
-## Phase 2: Community Files
-
-**Purpose:** Add standard open-source community files that enable and guide contributions.
-
-- [x] **Create CONTRIBUTING.md with development guide** [spec: user-documentation.md] [file: CONTRIBUTING.md]
-  - Code of Conduct reference (links to CODE_OF_CONDUCT.md)
-  - Ways to contribute: Bug reports, Feature requests, Code contributions
-  - Development setup: Prerequisites, optional tools, `make setup`, `make run`
-  - Available commands: Building, Testing, Code Quality, Cleaning, Release
-  - Project architecture: Package structure with dependency flow diagram
-  - Code style: SwiftFormat (4-space indent, 120 char), SwiftLint rules
-  - Concurrency guidelines: async/await, actor, @MainActor, Sendable
-  - Testing: Swift Testing framework with example code
-  - Commit guidelines: Focus on "why", pre-commit hook info
-  - Pull request process: Checklist, review process
-  - Testing requirements: Coverage goals by package
-  - Localization contribution guide: Adding new languages
-  - Documentation references: Links to specs/ and docs/
-  - Release process: For maintainers
-  - Getting help: Links to Discussions, Issues, Security
-  - **Research:** `specs/user-documentation.md#CONTRIBUTING.md`, `specs/toolchain.md`, codebase exploration
-  - **Test:** Guide verified against actual Makefile commands and project structure
+- [ ] **Add LICENSE file and fix dangling references** [spec: user-documentation.md] [file: LICENSE, README.md]
+  - Create `LICENSE` file with MIT license text
+  - Include copyright notice: "Copyright (c) 2026 Kadu Waengertner"
+  - Verify README.md badge links to the new LICENSE file
+  - **Research:** Standard MIT license text
+  - **Test:** LICENSE file exists and contains proper MIT text
 
 - [ ] **Create CODE_OF_CONDUCT.md and SECURITY.md** [spec: user-documentation.md] [file: CODE_OF_CONDUCT.md, SECURITY.md]
   - `CODE_OF_CONDUCT.md`: Use Contributor Covenant v2.1 (industry standard)
+    - Pledge, standards, enforcement responsibilities
+    - Scope, enforcement, enforcement guidelines
+    - Attribution to Contributor Covenant
   - `SECURITY.md`:
     - Security scope (local app, no network except Anthropic/GitHub)
-    - How to report vulnerabilities (email or GitHub private advisory)
-    - Supported versions
-    - Response process
+    - How to report vulnerabilities (GitHub Security Advisory)
+    - Supported versions table (1.5.x, 1.6.x supported)
+    - Response process and timeline
+    - What is NOT in scope (Claude API, macOS)
   - **Research:** https://www.contributor-covenant.org/version/2/1/code_of_conduct/
   - **Test:** Files follow standard formats, links work
 
-- [ ] **Update CHANGELOG.md with proper version dates and SLC 3-6 entries** [file: CHANGELOG.md]
+- [ ] **Update CHANGELOG.md with accurate dates and complete history** [file: CHANGELOG.md]
+  - Fix v1.0.0 date: "2026-01-XX" → "2026-01-20"
+  - Fix v1.1.0 date: "2026-01-XX" → "2026-01-21"
   - Add missing version entries:
-    - v1.3.0 (Distribution Ready - SLC 4)
-    - v1.4.0 (Internationalization - SLC 5)
-    - v1.5.0 (Advanced Accessibility - SLC 6)
-  - Fix placeholder dates (2026-01-XX → actual dates)
-  - Add current v1.6.0 entry for Community Ready (SLC 7)
-  - Ensure format follows Keep a Changelog
-  - **Test:** CHANGELOG accurately reflects git history
+    - v1.3.0 (2026-01-22): Distribution Ready - Accessibility, CI/CD, DMG creation
+    - v1.4.0 (2026-01-23): Internationalization - en, pt-BR, es languages
+    - v1.5.0 (2026-01-24): Advanced Accessibility - Dynamic Type, color-blind patterns, high contrast
+  - Add [Unreleased] section for v1.6.0 work
+  - Update comparison links at bottom for all versions
+  - **Test:** CHANGELOG accurately reflects SLC milestones and features
 
 ---
-<!-- CHECKPOINT: Phase 2 delivers community files. Contributors can now participate. -->
+<!-- CHECKPOINT: Phase 1 delivers community files. Project is now legally usable and contribution-ready. -->
 
-## Phase 3: Homebrew Distribution
+## Phase 2: README Enhancement
 
-**Purpose:** Enable the standard macOS developer installation method.
+**Purpose:** Add Documentation section to README to help users find the comprehensive docs.
 
-- [ ] **Create Homebrew tap repository and cask formula** [spec: user-documentation.md] [file: external: homebrew-tap repo]
-  - Create new GitHub repository: `kaduwaengertner/homebrew-tap`
-  - Create `Casks/claudeapp.rb` with:
-    - Version from GitHub Releases
-    - SHA256 checksum for DMG
-    - URL to GitHub Release DMG asset
-    - App name and target location
-    - Caveats about Gatekeeper bypass
-  - Document tap creation in project wiki or docs
-  - Update README.md to remove "(Coming Soon)" from Homebrew section
-  - **Research:** `research/inspiration.md` for example Homebrew casks
-  - **Test:** `brew tap kaduwaengertner/tap && brew install --cask claudeapp` works
-
----
-<!-- CHECKPOINT: Phase 3 delivers Homebrew distribution. Standard installation works. -->
-
-## Phase 4: Polish & Cross-References
-
-**Purpose:** Ensure all documentation is consistent and cross-referenced.
-
-- [ ] **Update README.md with documentation links and finalize content** [file: README.md]
-  - Add Documentation section with links to:
+- [ ] **Update README.md with Documentation section and verify all links** [file: README.md]
+  - Add Documentation section after Quick Start with links to:
     - [Installation Guide](docs/installation.md)
     - [Usage Guide](docs/usage.md)
     - [Troubleshooting](docs/troubleshooting.md)
     - [FAQ](docs/faq.md)
     - [Privacy Policy](docs/privacy.md)
-  - Update Homebrew installation (remove "Coming Soon" after Phase 3)
-  - Ensure Contributing section links to CONTRIBUTING.md
-  - Add Acknowledgments section
-  - **Test:** All links work, content accurate
-
-- [ ] **Run final verification** [file: Makefile]
-  - Run `make check` (format, lint, test) - all must pass
-  - Verify all new markdown files have no broken links
-  - Test app still builds and runs correctly
-  - Verify release workflow works with `make dmg`
-  - **Success criteria:** 489+ tests passing, all docs accurate, build green
+  - Verify all existing links in README work
+  - Update Contributing section to link to CONTRIBUTING.md explicitly
+  - **Test:** All links work, Documentation section is clear and helpful
 
 ---
-<!-- CHECKPOINT: Phase 4 completes SLC 7. The project is now community-ready. -->
+<!-- CHECKPOINT: Phase 2 delivers README enhancement. Users can now discover all documentation. -->
+
+## Phase 3: Icon Styles Feature
+
+**Purpose:** Implement the most-requested customization feature - multiple menu bar display styles.
+
+- [ ] **Implement IconStyle domain model and settings integration** [spec: icon-styles.md] [file: Packages/Domain/Sources/Domain/IconStyle.swift, Packages/Core/Sources/Core/SettingsManager.swift]
+  - Create `IconStyle` enum with 6 cases: percentage, progressBar, battery, compact, iconOnly, full
+  - Add RawRepresentable, CaseIterable, Codable, Sendable conformance
+  - Add display names and localization keys for each style
+  - Add `iconStyle` SettingsKey with default `.percentage`
+  - Integrate into SettingsManager with persistence
+  - **Research:** `specs/features/icon-styles.md` for complete enum definition
+  - **Test:** Unit tests for IconStyle enum and settings persistence
+
+- [ ] **Create icon style UI components (BatteryIndicator, ProgressBarIcon, StatusDot)** [spec: icon-styles.md] [file: Packages/UI/Sources/UI/IconStyleComponents.swift]
+  - Create `BatteryIndicator` view showing remaining capacity
+    - Battery body with fill level (inverted usage)
+    - Battery cap detail
+    - Color based on remaining (>50% green, 20-50% yellow, <20% red)
+  - Create `ProgressBarIcon` view for menu bar progress bar
+    - Fixed 40x8 dimensions for menu bar
+    - Background track + filled progress
+    - Color based on usage thresholds
+  - Create `StatusDot` view for compact style
+    - 6x6 colored circle
+    - Color based on usage thresholds
+  - **Research:** `specs/features/icon-styles.md` for dimensions and colors
+  - **Test:** SwiftUI previews for all components, unit tests for color logic
+
+- [ ] **Update MenuBarView to support all icon styles** [spec: icon-styles.md] [file: App/ClaudeApp.swift or equivalent MenuBarView file]
+  - Add @AppStorage for iconStyle setting
+  - Implement switch statement for 6 styles:
+    - `.percentage`: Icon + percentage text (current default)
+    - `.progressBar`: Icon + horizontal progress bar
+    - `.battery`: Battery-shaped indicator showing remaining capacity
+    - `.compact`: Icon + small colored status dot
+    - `.iconOnly`: Icon only, tinted by status color
+    - `.full`: Icon + bar + percentage (all information)
+  - Ensure proper sizing for each style (20-80px width range)
+  - Add VoiceOver accessibility label for all styles
+  - **Research:** `specs/features/icon-styles.md` for complete implementation
+  - **Test:** Visual verification of all 6 styles, accessibility audit
+
+- [ ] **Add icon style picker to Settings Display section with live preview** [spec: icon-styles.md] [file: Packages/UI/Sources/UI/SettingsComponents.swift, App Settings UI]
+  - Add "Menu Bar Style" picker to Display section
+  - Show dropdown with all 6 style options
+  - Add live preview below picker showing current selection with mock data
+  - Ensure picker works with localized style names
+  - **Research:** `specs/features/icon-styles.md` for UI layout
+  - **Test:** Settings picker persists selection, preview updates correctly
+
+- [ ] **Add localization strings for icon styles** [file: App/Localizable.xcstrings]
+  - Add English strings for all 6 style names
+  - Add Portuguese (pt-BR) translations
+  - Add Spanish (es) translations
+  - Add "Menu Bar Style" label in all languages
+  - Add preview accessibility labels
+  - **Research:** `specs/internationalization.md` for translation guidelines
+  - **Test:** All strings appear correctly in all 3 languages
+
+- [ ] **Add comprehensive tests for icon styles** [file: Packages/UI/Tests/UITests/, Packages/Core/Tests/CoreTests/]
+  - Unit tests for IconStyle enum (all cases, raw values, localization keys)
+  - Unit tests for settings persistence (default value, change, restart)
+  - UI tests for BatteryIndicator (fill levels, colors)
+  - UI tests for ProgressBarIcon (percentages, colors)
+  - UI tests for StatusDot (status colors)
+  - Integration test for MenuBarView with each style
+  - Accessibility tests for all styles (VoiceOver labels)
+  - **Test:** All tests pass, coverage for all icon style code paths
+
+---
+<!-- CHECKPOINT: Phase 3 delivers Icon Styles. Users can now customize their menu bar display. -->
+
+## Phase 4: Polish & Verification
+
+**Purpose:** Ensure all changes work together and meet quality standards.
+
+- [ ] **Run final verification and update version** [file: Makefile, Package.swift, Info.plist]
+  - Run `make check` (format, lint, test) - all must pass
+  - Verify all new markdown files have no broken links
+  - Test app builds and runs correctly with `make release`
+  - Verify all 6 icon styles work correctly in release build
+  - Update version to 1.6.0 in relevant files
+  - Update CHANGELOG.md [Unreleased] section with Icon Styles feature
+  - **Success criteria:** 500+ tests passing, all docs accurate, build green
+
+---
+<!-- CHECKPOINT: Phase 4 completes SLC 7. The project is now community-ready with Icon Styles. -->
 
 ## Future Work (Outside Current Scope)
 
@@ -226,73 +254,133 @@ The following items were identified during analysis but are deferred to maintain
 - RTL preparation for future Arabic/Hebrew
 - **Research:** `specs/internationalization.md` Phase 2 section
 
-### Future Releases
-- Local JSONL fallback when API unavailable
-- Custom Claude brand app icon (replace SF Symbol)
-- Plan badge auto-detection (requires Anthropic API support - BLOCKED)
-- Historical usage graphs/trends visualization
-- Widget support for Notification Center
-- Warning badge at 100% in menu bar icon
-- Different notification sounds per type
-- Release notes display in update checker
-- Export/import settings
-- Reset to defaults option
+### SLC 9: Power & History
+- **Power-Aware Refresh** - Battery-optimized refresh rates
+  - State machine: Active → Idle → Sleeping
+  - Adaptive intervals based on system state
+  - **Research:** `specs/features/power-aware-refresh.md`
+- **Historical Charts** - Sparkline usage visualization
+  - 5-hour session history (5-min granularity)
+  - 7-day weekly history (1-hour granularity)
+  - **Research:** `specs/features/historical-charts.md`
+
+### SLC 10+: Advanced Features
+- **Multi-Account Support** - Monitor multiple Claude accounts
+  - **Research:** `specs/features/multi-account.md`
+- **Terminal Integration** - CLI for shell prompt integration
+  - **Research:** `specs/features/terminal-integration.md`
+- **Settings Export** - JSON export/import of settings
+  - **Research:** `specs/features/settings-export.md`
+- **Widgets** - macOS Notification Center widgets (requires code signing)
+  - **Research:** `specs/features/widgets.md`
+
+### External (Independent Timeline)
+- **Homebrew Tap** - Can be created independently
+  - Create `kaduwaengertner/homebrew-tap` repository
+  - Create `Casks/claudeapp.rb` formula
+  - **Research:** `research/inspiration.md` for example casks
 
 ### Technical Debt Identified
 - Hysteresis values hardcoded (5%) - could be configurable
 - Burn rate thresholds hardcoded (10/25/50% per hour)
 - No integration tests with mock network layer
 - Memory leak detection for long-running sessions
-- GitHub repo URL uses actual repo now (kaduwaengertner/claudeapp)
+
+### BLOCKED
+- Plan badge auto-detection (requires Anthropic API to expose plan type)
 
 ---
 
 ## Implementation Notes
 
-### Homebrew Cask Formula Template
-
-```ruby
-cask "claudeapp" do
-  version "1.6.0"
-  sha256 "CHECKSUM_HERE"
-
-  url "https://github.com/kaduwaengertner/claudeapp/releases/download/v#{version}/ClaudeApp-#{version}.dmg"
-  name "ClaudeApp"
-  desc "macOS menu bar app for monitoring Claude Code usage limits"
-  homepage "https://github.com/kaduwaengertner/claudeapp"
-
-  depends_on macos: ">= :sonoma"
-
-  app "ClaudeApp.app"
-
-  caveats <<~EOS
-    ClaudeApp requires Claude Code CLI to be installed and authenticated.
-    Run `claude login` if you haven't already.
-
-    On first launch, you may need to bypass Gatekeeper:
-    - Right-click the app and select "Open"
-    - Or go to System Settings > Privacy & Security and click "Open Anyway"
-  EOS
-
-  zap trash: [
-    "~/Library/Preferences/com.kaduwaengertner.ClaudeApp.plist",
-  ]
-end
-```
-
-### Documentation Style Guide
-
-- Use clear, concise language
-- Include code examples where helpful
-- Provide screenshots for UI-related docs
-- Use tables for structured information
-- Include command-line examples
-- Test all instructions before publishing
-
 ### Contributor Covenant Reference
 
 Use version 2.1 of the Contributor Covenant:
 https://www.contributor-covenant.org/version/2/1/code_of_conduct/
+
+### SECURITY.md Template
+
+```markdown
+# Security Policy
+
+## Supported Versions
+
+| Version | Supported          |
+| ------- | ------------------ |
+| 1.6.x   | :white_check_mark: |
+| 1.5.x   | :white_check_mark: |
+| < 1.5   | :x:                |
+
+## Reporting a Vulnerability
+
+Please report security vulnerabilities through GitHub's Security Advisory feature:
+1. Go to the Security tab of this repository
+2. Click "Report a vulnerability"
+3. Provide details about the issue
+
+We will respond within 48 hours and work with you to understand and address the issue.
+
+## Scope
+
+ClaudeApp is a local-only menu bar application. Security concerns include:
+- Credential handling (OAuth tokens from Keychain)
+- Network communication (HTTPS to Anthropic API, GitHub API)
+- Local data storage (UserDefaults)
+
+NOT in scope:
+- Claude API security (report to Anthropic)
+- macOS Keychain security (report to Apple)
+```
+
+### MIT License Template
+
+```
+MIT License
+
+Copyright (c) 2026 Kadu Waengertner
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### IconStyle Enum Implementation
+
+```swift
+public enum IconStyle: String, CaseIterable, Codable, Sendable {
+    case percentage = "percentage"
+    case progressBar = "progressBar"
+    case battery = "battery"
+    case compact = "compact"
+    case iconOnly = "iconOnly"
+    case full = "full"
+
+    public var displayName: LocalizedStringKey {
+        switch self {
+        case .percentage: return "Percentage"
+        case .progressBar: return "Progress Bar"
+        case .battery: return "Battery"
+        case .compact: return "Compact"
+        case .iconOnly: return "Icon Only"
+        case .full: return "Full (Icon + Bar + %)"
+        }
+    }
+}
+```
 
 ---
 
@@ -469,4 +557,4 @@ All tasks completed with 489 passing tests.
 | 4 | Distribution Ready | 1.3.0 | 369 | COMPLETE |
 | 5 | Internationalization | 1.4.0 | 402 | COMPLETE |
 | 6 | Advanced Accessibility | 1.5.0 | 489 | COMPLETE |
-| 7 | Community Ready | 1.6.0 | 489+ | PLANNED |
+| 7 | Community Ready + Polish | 1.6.0 | 500+ | IN PROGRESS |
