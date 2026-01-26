@@ -7,7 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [1.2.0] - 2026-01-23
+### Added
+- LICENSE file with MIT license
+- CODE_OF_CONDUCT.md referencing Contributor Covenant v2.1
+- SECURITY.md with vulnerability reporting process
+
+### Changed
+- CHANGELOG.md now has accurate dates and complete version history
+
+## [1.5.0] - 2026-01-24
+
+### Added
+- **Dynamic Type Support**: Adaptive text scaling with semantic typography system
+- **Color-Blind Safe Patterns**: Diagonal stripe overlays on progress bars at critical thresholds
+- **Shape Indicators**: Geometric shapes on burn rate badges for accessibility
+- **Reduced Motion Support**: Respects system "Reduce Motion" preference
+- **High Contrast Mode**: Enhanced visibility for users with visual impairments
+- Comprehensive accessibility unit tests (28 new tests)
+
+### Fixed
+- Yellow warning color updated from #EAB308 (2.1:1) to #B8860B goldenrod (3.5:1) for WCAG AA compliance
+
+### Technical
+- Total test count: 489 tests passing
+
+## [1.4.0] - 2026-01-23
+
+### Added
+- **Internationalization Infrastructure**: String Catalog with centralized localization
+- **Portuguese (pt-BR)**: Full Brazilian Portuguese translation
+- **Spanish (es-LATAM)**: Full Latin American Spanish translation
+- Locale-aware date and number formatting
+- Localization unit tests (33 new tests)
+
+### Changed
+- All UI strings now use LocalizedStringKey for proper localization
+- Date displays use system RelativeDateTimeFormatter for localized output
+
+### Technical
+- Total test count: 402 tests passing
+
+## [1.3.0] - 2026-01-22
+
+### Added
+- **VoiceOver Support**: Full accessibility labels for menu bar and dropdown
+- **Keyboard Navigation**: Complete keyboard control throughout the app
+- **VoiceOver Announcements**: State change announcements for screen reader users
+- **GitHub Actions CI/CD**: Automated build and test workflows
+- **Release Automation**: GitHub Actions release workflow
+- **App Bundle Generation**: macOS .app bundle creation script
+- Accessibility tests (18 new tests)
+
+### Technical
+- Total test count: 369 tests passing
+
+## [1.2.0] - 2026-01-21
 
 ### Added
 - **Burn Rate Indicator**: New badge in dropdown header showing consumption velocity (Low/Medium/High/Very High)
@@ -30,7 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Created `UpdateChecker` actor with 24-hour rate limiting and shouldNotify deduplication
 - Total test count: 320 tests passing
 
-## [1.1.0] - 2026-01-XX
+## [1.1.0] - 2026-01-21
 
 ### Added
 - **Settings Window**: Full settings panel with display, refresh, notifications, and general sections
@@ -48,7 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Technical
 - Total test count: 155 tests passing
 
-## [1.0.0] - 2026-01-XX
+## [1.0.0] - 2026-01-20
 
 ### Added
 - Initial release
@@ -65,7 +119,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - macOS 14 (Sonoma) required
 - 81 tests passing
 
-[Unreleased]: https://github.com/kaduwaengertner/claudeapp/compare/v1.2.0...HEAD
-[1.2.0]: https://github.com/kaduwaengertner/claudeapp/releases/tag/v1.2.0
-[1.1.0]: https://github.com/kaduwaengertner/claudeapp/releases/tag/v1.1.0
+[Unreleased]: https://github.com/kaduwaengertner/claudeapp/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/kaduwaengertner/claudeapp/releases/tag/v1.0.0
