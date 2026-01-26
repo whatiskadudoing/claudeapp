@@ -99,12 +99,13 @@ Key research documents for this implementation:
 
 **Purpose:** Add missing OSS community files to make the project legally usable and contribution-ready.
 
-- [ ] **Add LICENSE file and fix dangling references** [spec: user-documentation.md] [file: LICENSE, README.md]
+- [x] **Add LICENSE file and fix dangling references** [spec: user-documentation.md] [file: LICENSE, README.md]
   - Create `LICENSE` file with MIT license text
   - Include copyright notice: "Copyright (c) 2026 Kadu Waengertner"
   - Verify README.md badge links to the new LICENSE file
   - **Research:** Standard MIT license text
   - **Test:** LICENSE file exists and contains proper MIT text
+  - **Completed:** 2026-01-26 - LICENSE file created with standard MIT text, README.md already had correct references to LICENSE (badge on line 7 and text link on line 218)
 
 - [ ] **Create CODE_OF_CONDUCT.md and SECURITY.md** [spec: user-documentation.md] [file: CODE_OF_CONDUCT.md, SECURITY.md]
   - `CODE_OF_CONDUCT.md`: Use Contributor Covenant v2.1 (industry standard)
