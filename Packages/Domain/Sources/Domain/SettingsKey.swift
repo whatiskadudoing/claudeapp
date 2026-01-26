@@ -50,3 +50,11 @@ public extension SettingsKey where Value == PercentageSource {
         defaultValue: .highest
     )
 }
+
+public extension SettingsKey where Value == PlanType {
+    // Display Settings
+    static let planType = SettingsKey<PlanType>(
+        key: "planType",
+        defaultValue: .pro
+    )
+}

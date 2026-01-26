@@ -64,27 +64,17 @@ struct ClaudeApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            DropdownView()
+            DropdownView(updateChecker: container.updateChecker)
                 .environment(container.usageManager)
                 .environment(container.settingsManager)
                 .environment(container.launchAtLoginManager)
+                .environment(container.notificationPermissionManager)
         } label: {
-            MenuBarLabel()
+            MenuBarLabel(detectedPlanType: container.detectedPlanType)
                 .environment(container.usageManager)
                 .environment(container.settingsManager)
         }
         .menuBarExtraStyle(.window)
-
-        // Settings window
-        Window("Settings", id: "settings") {
-            SettingsView(updateChecker: container.updateChecker)
-                .environment(container.settingsManager)
-                .environment(container.launchAtLoginManager)
-                .environment(container.notificationPermissionManager)
-        }
-        .windowStyle(.hiddenTitleBar)
-        .windowResizability(.contentSize)
-        .defaultPosition(.center)
     }
 }
 
@@ -94,27 +84,23 @@ struct ClaudeApp: App {
 /// Shows Claude icon + percentage or loading/error state.
 /// Respects display settings: showPercentage, percentageSource, showPlanBadge.
 struct MenuBarLabel: View {
+    let detectedPlanType: PlanType
+
     @Environment(UsageManager.self) private var usageManager
     @Environment(SettingsManager.self) private var settings
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: "sparkle")
-                .font(Theme.Typography.iconMedium)
+            ClaudeIconImage(size: 10, color: Theme.Colors.brand)
 
             if usageManager.isLoading && usageManager.usageData == nil {
                 ProgressView()
                     .controlSize(.small)
             } else if let data = usageManager.usageData {
-                if settings.showPercentage {
-                    Text("\(Int(data.utilization(for: settings.percentageSource)))%")
-                        .font(Theme.Typography.menuBar)
-                        .fontWeight(.medium)
-                }
-
-                if settings.showPlanBadge {
-                    PlanBadgeLabel()
-                }
+                // Combine percentage and badge into single Text (MenuBarExtra only supports 2 Text views)
+                Text(menuBarText(for: data))
+                    .font(Theme.Typography.menuBar)
+                    .fontWeight(.medium)
             } else {
                 if settings.showPercentage {
                     Text(L("usage.noPercentage"))
@@ -126,6 +112,27 @@ struct MenuBarLabel: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(L("accessibility.menuBar.hint"))
+    }
+
+    /// Constructs the menu bar text combining percentage and optional badge
+    private func menuBarText(for data: UsageData) -> String {
+        var text = ""
+
+        if settings.showPercentage {
+            let percentage = Int(data.utilization(for: settings.percentageSource))
+            text = "\(percentage)%"
+        }
+
+        if settings.showPlanBadge {
+            let badge = detectedPlanType.badgeText
+            if text.isEmpty {
+                text = badge
+            } else {
+                text += " \(badge)"
+            }
+        }
+
+        return text.isEmpty ? "—" : text
     }
 
     /// Accessibility label combining all menu bar element information for VoiceOver
@@ -157,30 +164,12 @@ struct MenuBarLabel: View {
 /// A small label showing the user's plan type in the menu bar.
 /// Note: Plan type detection is not yet implemented (would require API support).
 /// For now, this displays a placeholder badge.
-/// Supports high contrast mode with visible border when "Increase Contrast" is enabled.
+/// Uses simple text styling that works reliably in macOS menu bar context.
 struct PlanBadgeLabel: View {
-    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
-
-    /// Whether high contrast mode is enabled
-    private var isHighContrast: Bool {
-        colorSchemeContrast == .increased
-    }
-
     var body: some View {
         Text(L("usage.planBadge.pro"))
-            .font(Theme.Typography.badge)
-            .padding(.horizontal, 4)
-            .padding(.vertical, 1)
-            .background(Theme.Colors.primary.opacity(0.2))
-            .foregroundStyle(Theme.Colors.primary)
-            .clipShape(RoundedRectangle(cornerRadius: 3))
-            .overlay(
-                RoundedRectangle(cornerRadius: 3)
-                    .strokeBorder(
-                        Theme.Colors.primary.opacity(isHighContrast ? 0.6 : 0),
-                        lineWidth: isHighContrast ? 1 : 0
-                    )
-            )
+            .font(.system(size: 9, weight: .medium))
+            .foregroundStyle(Theme.Colors.brand)
     }
 }
 
@@ -198,13 +187,17 @@ enum FocusableElement: Hashable {
 // MARK: - Dropdown View
 
 /// The dropdown content that appears when clicking the menu bar item.
-/// Shows detailed usage information with progress bars.
+/// Shows detailed usage information with progress bars, or settings when toggled.
 /// Supports keyboard navigation via Tab key and keyboard shortcuts.
 /// Adapts layout for accessibility text sizes.
 struct DropdownView: View {
+    let updateChecker: UpdateChecker
+
     @Environment(UsageManager.self) private var usageManager
-    @Environment(\.openWindow) private var openWindow
     @Environment(\.sizeCategory) private var sizeCategory
+
+    /// Whether to show settings instead of usage
+    @State private var showingSettings = false
 
     /// Focus state for keyboard navigation
     @FocusState private var focusedElement: FocusableElement?
@@ -232,43 +225,33 @@ struct DropdownView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header - adapts to accessibility sizes
-            if isAccessibilitySize {
-                // Stack vertically for accessibility sizes
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text(L("usage.header.title"))
-                            .font(Theme.Typography.title)
-                        Spacer()
-                        // Show burn rate badge when available
-                        if let burnRateLevel = usageManager.usageData?.highestBurnRate?.level {
-                            BurnRateBadge(level: burnRateLevel)
+            // Header
+            HStack {
+                if showingSettings {
+                    Button {
+                        showingSettings = false
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 12, weight: .semibold))
+                            Text(L("settings.title"))
+                                .font(Theme.Typography.title)
                         }
                     }
-                    HStack {
-                        Spacer()
-                        SettingsButton {
-                            openWindow(id: "settings")
-                        }
-                        .focused($focusedElement, equals: .settings)
-                        .frame(minWidth: 44, minHeight: 44)
-                        RefreshButton()
-                            .focused($focusedElement, equals: .refresh)
-                            .frame(minWidth: 44, minHeight: 44)
-                    }
-                }
-            } else {
-                // Standard horizontal layout
-                HStack {
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.primary)
+                } else {
                     Text(L("usage.header.title"))
                         .font(Theme.Typography.title)
-                    Spacer()
+                }
+                Spacer()
+                if !showingSettings {
                     // Show burn rate badge when available
                     if let burnRateLevel = usageManager.usageData?.highestBurnRate?.level {
                         BurnRateBadge(level: burnRateLevel)
                     }
                     SettingsButton {
-                        openWindow(id: "settings")
+                        showingSettings = true
                     }
                     .focused($focusedElement, equals: .settings)
                     RefreshButton()
@@ -278,68 +261,35 @@ struct DropdownView: View {
 
             Divider()
 
-            // Content
-            if let data = usageManager.usageData {
-                // Show error banner if we have cached data but encountered an error
-                if hasErrorWithCachedData, let error = usageManager.lastError {
-                    StaleDataBanner(error: error) {
+            // Content - either settings or usage
+            if showingSettings {
+                SettingsContent(updateChecker: updateChecker)
+            } else {
+                // Usage content
+                if let data = usageManager.usageData {
+                    if hasErrorWithCachedData, let error = usageManager.lastError {
+                        StaleDataBanner(error: error) {
+                            Task { await usageManager.refresh() }
+                        }
+                    }
+                    UsageContent(data: data, focusedElement: $focusedElement)
+                } else if usageManager.isLoading {
+                    LoadingView()
+                } else if let error = usageManager.lastError {
+                    ErrorView(error: error) {
+                        Task { await usageManager.refresh() }
+                    }
+                } else {
+                    EmptyStateView {
                         Task { await usageManager.refresh() }
                     }
                 }
-                UsageContent(data: data, focusedElement: $focusedElement)
-            } else if usageManager.isLoading {
-                LoadingView()
-            } else if let error = usageManager.lastError {
-                ErrorView(error: error) {
-                    Task { await usageManager.refresh() }
-                }
-            } else {
-                EmptyStateView {
-                    Task { await usageManager.refresh() }
-                }
-            }
 
-            Divider()
+                Divider()
 
-            // Footer - adapts to accessibility sizes
-            if isAccessibilitySize {
-                // Stack vertically for accessibility sizes
-                VStack(alignment: .leading, spacing: 8) {
-                    if hasErrorWithCachedData {
-                        // Show stale warning when we have error with cached data
-                        HStack(spacing: 4) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(Theme.Typography.metadata)
-                                .foregroundStyle(.orange)
-                            Text(L("usage.staleData"))
-                                .font(Theme.Typography.metadata)
-                                .foregroundStyle(.secondary)
-                        }
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel(L("accessibility.staleWarning"))
-                    } else if let lastUpdated = usageManager.lastUpdated {
-                        Text(updatedAgoText(for: lastUpdated))
-                            .font(Theme.Typography.metadata)
-                            .foregroundStyle(.tertiary)
-                    }
-                    HStack {
-                        Spacer()
-                        Button(L("button.quit")) {
-                            NSApplication.shared.terminate(nil)
-                        }
-                        .buttonStyle(.plain)
-                        .font(Theme.Typography.label)
-                        .keyboardShortcut("q", modifiers: .command)
-                        .focused($focusedElement, equals: .quit)
-                        .accessibilityLabel(L("accessibility.quitApp"))
-                        .frame(minWidth: 44, minHeight: 44)
-                    }
-                }
-            } else {
-                // Standard horizontal layout
+                // Footer
                 HStack {
                     if hasErrorWithCachedData {
-                        // Show stale warning when we have error with cached data
                         HStack(spacing: 4) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(Theme.Typography.metadata)
@@ -348,8 +298,6 @@ struct DropdownView: View {
                                 .font(Theme.Typography.metadata)
                                 .foregroundStyle(.secondary)
                         }
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel(L("accessibility.staleWarning"))
                     } else if let lastUpdated = usageManager.lastUpdated {
                         Text(updatedAgoText(for: lastUpdated))
                             .font(Theme.Typography.metadata)
@@ -362,8 +310,6 @@ struct DropdownView: View {
                     .buttonStyle(.plain)
                     .font(Theme.Typography.label)
                     .keyboardShortcut("q", modifiers: .command)
-                    .focused($focusedElement, equals: .quit)
-                    .accessibilityLabel(L("accessibility.quitApp"))
                 }
             }
         }
@@ -508,6 +454,7 @@ struct UsageContent: View {
                 timeToExhaustion: data.fiveHour.timeToExhaustion
             )
             .focusable()
+            .focusEffectDisabled()
             .focused(focusedElement, equals: .progressBar(0))
 
             UsageProgressBar(
@@ -517,6 +464,7 @@ struct UsageContent: View {
                 timeToExhaustion: data.sevenDay.timeToExhaustion
             )
             .focusable()
+            .focusEffectDisabled()
             .focused(focusedElement, equals: .progressBar(1))
 
             if let opus = data.sevenDayOpus {
@@ -527,6 +475,7 @@ struct UsageContent: View {
                     timeToExhaustion: opus.timeToExhaustion
                 )
                 .focusable()
+                .focusEffectDisabled()
                 .focused(focusedElement, equals: .progressBar(2))
             }
 
@@ -538,6 +487,7 @@ struct UsageContent: View {
                     timeToExhaustion: sonnet.timeToExhaustion
                 )
                 .focusable()
+                .focusEffectDisabled()
                 .focused(focusedElement, equals: .progressBar(3))
             }
         }
@@ -739,7 +689,52 @@ struct EmptyStateView: View {
     }
 }
 
-// MARK: - Settings View
+// MARK: - Settings Content (Inline)
+
+/// Settings content for inline display in the dropdown.
+/// Shows all settings sections in a scrollable view.
+struct SettingsContent: View {
+    let updateChecker: UpdateChecker
+
+    var body: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 20) {
+                DisplaySection()
+
+                Divider()
+
+                RefreshSection()
+
+                Divider()
+
+                NotificationsSection()
+
+                Divider()
+
+                GeneralSection()
+
+                Divider()
+
+                AboutSection(updateChecker: updateChecker)
+
+                Divider()
+
+                // Quit button
+                Button {
+                    NSApplication.shared.terminate(nil)
+                } label: {
+                    Text(L("button.quit"))
+                        .font(.system(size: 13))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.red)
+            }
+        }
+        .frame(maxHeight: 400)
+    }
+}
+
+// MARK: - Settings View (Legacy Window)
 
 /// The main settings window showing all app configuration options.
 /// Organized into sections: Display, Refresh, Notifications, General, About.
@@ -830,17 +825,13 @@ struct DisplaySection: View {
             )
 
             if settings.showPercentage {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(L("settings.display.percentageSource"))
-                        .font(Theme.Typography.body)
-
-                    Picker("", selection: $settings.percentageSource) {
-                        ForEach(PercentageSource.allCases, id: \.self) { source in
-                            Text(source.localizedName).tag(source)
-                        }
+                SettingsPickerRow(
+                    title: L("settings.display.percentageSource"),
+                    selection: $settings.percentageSource
+                ) {
+                    ForEach(PercentageSource.allCases, id: \.self) { source in
+                        Text(source.localizedName).tag(source)
                     }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
                 }
             }
         }
@@ -859,35 +850,18 @@ struct RefreshSection: View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: L("settings.refresh"))
 
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(L("settings.refresh.interval"))
-                        .font(Theme.Typography.body)
-                    Spacer()
-                    Text(L("settings.refresh.interval.value", settings.refreshInterval))
-                        .foregroundStyle(.secondary)
-                        .font(Theme.Typography.percentage)
-                }
-
-                Slider(
-                    value: Binding(
-                        get: { Double(settings.refreshInterval) },
-                        set: { settings.refreshInterval = Int($0) }
-                    ),
-                    in: 1...30,
-                    step: 1
-                )
-                .controlSize(.small)
-
-                HStack {
-                    Text(L("settings.refresh.interval.min"))
-                        .font(Theme.Typography.tiny)
-                        .foregroundStyle(.tertiary)
-                    Spacer()
-                    Text(L("settings.refresh.interval.max"))
-                        .font(Theme.Typography.tiny)
-                        .foregroundStyle(.tertiary)
-                }
+            SettingsSliderRow(
+                title: L("settings.refresh.interval"),
+                value: Binding(
+                    get: { Double(settings.refreshInterval) },
+                    set: { settings.refreshInterval = Int($0) }
+                ),
+                in: 1...30,
+                step: 1,
+                minLabel: L("settings.refresh.interval.min"),
+                maxLabel: L("settings.refresh.interval.max")
+            ) { value in
+                L("settings.refresh.interval.value %lld", Int(value))
             }
         }
     }
@@ -907,65 +881,45 @@ struct NotificationsSection: View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: L("settings.notifications"))
 
-            // Enable toggle with permission request
-            Toggle(isOn: Binding(
-                get: { settings.notificationsEnabled },
-                set: { newValue in
-                    settings.notificationsEnabled = newValue
-                    if newValue {
-                        // Request permission when enabling notifications
-                        Task {
-                            await permissionManager.requestPermission()
+            HStack {
+                Text(L("settings.notifications.enable"))
+                    .font(.system(size: 13))
+                Spacer(minLength: 16)
+                Toggle("", isOn: Binding(
+                    get: { settings.notificationsEnabled },
+                    set: { newValue in
+                        settings.notificationsEnabled = newValue
+                        if newValue {
+                            Task {
+                                await permissionManager.requestPermission()
+                            }
                         }
                     }
-                }
-            )) {
-                Text(L("settings.notifications.enable"))
-                    .font(Theme.Typography.body)
+                ))
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .labelsHidden()
             }
-            .toggleStyle(.switch)
-            .controlSize(.small)
 
             if settings.notificationsEnabled {
-                // Permission denied warning banner
                 if permissionManager.isPermissionDenied {
                     PermissionDeniedBanner()
                 }
 
-                // Only show settings when permission allows
                 if permissionManager.canSendNotifications {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text(L("settings.notifications.warningThreshold"))
-                                .font(Theme.Typography.body)
-                            Spacer()
-                            Text("\(settings.warningThreshold)%")
-                                .foregroundStyle(.secondary)
-                                .font(Theme.Typography.percentage)
-                        }
-
-                        Slider(
-                            value: Binding(
-                                get: { Double(settings.warningThreshold) },
-                                set: { settings.warningThreshold = Int($0) }
-                            ),
-                            in: 50...99,
-                            step: 1
-                        )
-                        .controlSize(.small)
-
-                        HStack {
-                            Text("50%")
-                                .font(Theme.Typography.tiny)
-                                .foregroundStyle(.tertiary)
-                            Spacer()
-                            Text("99%")
-                                .font(Theme.Typography.tiny)
-                                .foregroundStyle(.tertiary)
-                        }
+                    SettingsSliderRow(
+                        title: L("settings.notifications.warningThreshold"),
+                        value: Binding(
+                            get: { Double(settings.warningThreshold) },
+                            set: { settings.warningThreshold = Int($0) }
+                        ),
+                        in: 50...99,
+                        step: 1,
+                        minLabel: "50%",
+                        maxLabel: "99%"
+                    ) { value in
+                        "\(Int(value))%"
                     }
-
-                    Divider()
 
                     SettingsToggle(
                         title: L("settings.notifications.usageWarnings"),
@@ -988,7 +942,6 @@ struct NotificationsSection: View {
             }
         }
         .onAppear {
-            // Re-check permission status when settings view opens
             Task {
                 await permissionManager.refreshPermissionStatus()
             }
@@ -1067,12 +1020,15 @@ struct GeneralSection: View {
             SectionHeader(title: L("settings.general"))
 
             VStack(alignment: .leading, spacing: 4) {
-                Toggle(isOn: $launchAtLogin.isEnabled) {
+                HStack {
                     Text(L("settings.general.launchAtLogin"))
-                        .font(Theme.Typography.body)
+                        .font(.system(size: 13))
+                    Spacer(minLength: 16)
+                    Toggle("", isOn: $launchAtLogin.isEnabled)
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                        .labelsHidden()
                 }
-                .toggleStyle(.switch)
-                .controlSize(.small)
 
                 if launchAtLogin.requiresUserApproval {
                     Button {
@@ -1080,9 +1036,9 @@ struct GeneralSection: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .font(Theme.Typography.metadata)
+                                .font(.system(size: 10))
                             Text(L("settings.general.requiresApproval"))
-                                .font(Theme.Typography.label)
+                                .font(.system(size: 11))
                         }
                         .foregroundStyle(.orange)
                     }
@@ -1091,7 +1047,7 @@ struct GeneralSection: View {
 
                 if let error = launchAtLogin.lastError {
                     Text(error)
-                        .font(Theme.Typography.label)
+                        .font(.system(size: 11))
                         .foregroundStyle(.red)
                 }
             }
@@ -1125,19 +1081,17 @@ struct AboutSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             SectionHeader(title: L("settings.about"))
 
-            VStack(spacing: 12) {
+            VStack(spacing: 16) {
                 // App icon
-                Image(systemName: "sparkle")
-                    .font(.largeTitle)
-                    .foregroundStyle(Theme.Colors.primary)
+                ClaudeIcon(size: 48)
 
                 Text(L("settings.about.appName"))
                     .font(Theme.Typography.title)
 
-                Text(L("settings.about.version", appVersion))
+                Text(L("settings.about.version %@", appVersion))
                     .font(Theme.Typography.label)
                     .foregroundStyle(.secondary)
 

@@ -102,7 +102,9 @@ public actor KeychainCredentialsRepository: CredentialsRepository {
         return Credentials(
             accessToken: oauth.accessToken,
             refreshToken: oauth.refreshToken,
-            expiresAt: oauth.expiresAt.map { Date(timeIntervalSince1970: $0 / 1000) }
+            expiresAt: oauth.expiresAt.map { Date(timeIntervalSince1970: $0 / 1000) },
+            subscriptionType: oauth.subscriptionType,
+            rateLimitTier: oauth.rateLimitTier
         )
     }
 }
@@ -123,10 +125,14 @@ struct OAuthCredentials: Decodable {
     let accessToken: String
     let refreshToken: String?
     let expiresAt: Double? // Unix timestamp in milliseconds
+    let subscriptionType: String?
+    let rateLimitTier: String?
 
     enum CodingKeys: String, CodingKey {
         case accessToken
         case refreshToken
         case expiresAt
+        case subscriptionType
+        case rateLimitTier
     }
 }

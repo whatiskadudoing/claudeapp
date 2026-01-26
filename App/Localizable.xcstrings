@@ -1673,6 +1673,28 @@
         }
       }
     },
+    "settings.display.planType" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Plan"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu Plan"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu Plano"
+          }
+        }
+      }
+    },
     "settings.general" : {
       "localizations" : {
         "en" : {

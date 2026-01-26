@@ -7,29 +7,59 @@ import SwiftUI
 public enum Theme {
     // MARK: - Colors
 
+    /// Native macOS colors that automatically adapt to light/dark mode and system preferences.
     public enum Colors {
-        /// Claude Crail - Primary brand color #C15F3C
-        public static let primary = Color(red: 0.757, green: 0.373, blue: 0.235)
+        // MARK: Brand Colors (Claude identity)
 
-        /// Cloudy - Secondary color #B1ADA1
-        public static let secondary = Color(red: 0.694, green: 0.678, blue: 0.631)
+        /// Claude brand color #D97757 - used only for icon and key brand elements
+        public static let brand = Color(red: 0.851, green: 0.467, blue: 0.341)
 
-        /// Pampas - Light background #F4F3EE
-        public static let background = Color(red: 0.957, green: 0.953, blue: 0.933)
+        /// Legacy alias for brand color
+        public static let primary = brand
 
-        /// Success green #22C55E
-        public static let success = Color(red: 0.133, green: 0.773, blue: 0.369)
+        // MARK: System Semantic Colors (native macOS)
 
-        /// Warning yellow #B8860B (goldenrod)
-        /// Darkened from #EAB308 to meet WCAG AA 3:1 contrast ratio against background (#F4F3EE)
-        /// Original #EAB308 had 2.1:1 contrast; #B8860B achieves 3.5:1
-        public static let warning = Color(red: 0.722, green: 0.525, blue: 0.043)
+        /// Primary label color - adapts to light/dark mode
+        public static var label: Color { Color(nsColor: .labelColor) }
 
-        /// Danger/Error - same as primary #C15F3C
-        public static let danger = primary
+        /// Secondary label color - for less prominent text
+        public static var secondaryLabel: Color { Color(nsColor: .secondaryLabelColor) }
 
-        /// High burn rate orange #F97316
-        public static let orange = Color(red: 0.976, green: 0.451, blue: 0.086)
+        /// Tertiary label color - for metadata, timestamps
+        public static var tertiaryLabel: Color { Color(nsColor: .tertiaryLabelColor) }
+
+        /// Window background - native macOS window color
+        public static var windowBackground: Color { Color(nsColor: .windowBackgroundColor) }
+
+        /// Control background - for controls and inputs
+        public static var controlBackground: Color { Color(nsColor: .controlBackgroundColor) }
+
+        /// Separator color - for dividers and borders
+        public static var separator: Color { Color(nsColor: .separatorColor) }
+
+        /// Selected content background
+        public static var selection: Color { Color(nsColor: .selectedContentBackgroundColor) }
+
+        // MARK: Status Colors (system standard)
+
+        /// Success/positive state - system green
+        public static let success = Color.green
+
+        /// Warning state - system yellow/orange
+        public static let warning = Color.yellow
+
+        /// Danger/error state - system red
+        public static let danger = Color.red
+
+        /// High usage - system orange
+        public static let orange = Color.orange
+
+        // MARK: Legacy Aliases (for compatibility)
+
+        public static var secondary: Color { secondaryLabel }
+        public static var background: Color { windowBackground }
+        public static var surface: Color { controlBackground }
+        public static var text: Color { label }
     }
 
     // MARK: - Spacing
@@ -185,4 +215,35 @@ public extension View {
     func progressBarHighContrast() -> some View {
         modifier(ProgressBarHighContrastModifier())
     }
+
+    /// Adds a small shadow for subtle lift.
+    func shadowSm() -> some View {
+        shadow(color: .black.opacity(0.05), radius: 1, y: 1)
+    }
+
+    /// Adds a medium shadow for cards and buttons.
+    func shadowMd() -> some View {
+        shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+    }
+
+    /// Adds a large shadow for dropdowns and popovers.
+    func shadowLg() -> some View {
+        shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+    }
+}
+
+// MARK: - Animation Constants
+
+public extension Animation {
+    /// Instant animation for micro-interactions and hovers (100ms)
+    static let appInstant = Animation.easeOut(duration: 0.1)
+
+    /// Fast animation for toggles and state changes (200ms)
+    static let appFast = Animation.easeOut(duration: 0.2)
+
+    /// Normal animation for progress bars and larger animations (300ms)
+    static let appNormal = Animation.easeOut(duration: 0.3)
+
+    /// Spring animation for playful interactions
+    static let appSpring = Animation.spring(response: 0.3, dampingFraction: 0.7)
 }

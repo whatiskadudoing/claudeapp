@@ -15,3 +15,4 @@ public enum UI {
 // - UsageProgressBar.swift: Progress bar with utilization display
 // - BurnRateBadge.swift: Burn rate level indicator badge
 // - SettingsComponents.swift: SectionHeader, SettingsToggle
+// - ClaudeIcon.swift: Claude brand icon shape and view

@@ -9,6 +9,7 @@ import UserNotifications
 /// Creates and holds references to all managers and repositories.
 /// Handles app lifecycle including auto-refresh and sleep/wake events.
 @MainActor
+@Observable
 public final class AppContainer {
     // MARK: - Repositories
 
@@ -41,6 +42,9 @@ public final class AppContainer {
     /// Checker for app updates via GitHub Releases
     public let updateChecker: UpdateChecker
 
+    /// The detected subscription plan type from credentials
+    public private(set) var detectedPlanType: PlanType = .pro
+
     // MARK: - Configuration
 
     /// Default auto-refresh interval (5 minutes)
@@ -48,8 +52,8 @@ public final class AppContainer {
 
     // MARK: - Notification Observers
 
-    private var sleepObserver: NSObjectProtocol?
-    private var wakeObserver: NSObjectProtocol?
+    nonisolated(unsafe) private var sleepObserver: NSObjectProtocol?
+    nonisolated(unsafe) private var wakeObserver: NSObjectProtocol?
 
     // MARK: - Initialization
 
@@ -112,6 +116,22 @@ public final class AppContainer {
                 try? await Task.sleep(for: .seconds(5))
                 await checkForUpdatesInBackground(notificationManager: notifManager, updateChecker: self.updateChecker)
             }
+        }
+
+        // Fetch plan type from credentials
+        Task {
+            await self.fetchPlanType()
+        }
+    }
+
+    /// Fetches the plan type from stored credentials.
+    private func fetchPlanType() async {
+        do {
+            let credentials = try await credentialsRepository.getCredentials()
+            self.detectedPlanType = credentials.planType
+        } catch {
+            // Keep default (Pro) if credentials can't be read
+            self.detectedPlanType = .pro
         }
     }
 

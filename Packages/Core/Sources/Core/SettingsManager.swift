@@ -51,6 +51,11 @@ public final class SettingsManager {
         didSet { save(.percentageSource, value: percentageSource) }
     }
 
+    /// The user's subscription plan type (Pro, Max 5x, Max 20x)
+    public var planType: PlanType {
+        didSet { save(.planType, value: planType) }
+    }
+
     // MARK: - Refresh Settings
 
     /// Refresh interval in minutes (1-30)
@@ -130,6 +135,7 @@ public final class SettingsManager {
         showPlanBadge = repository.get(.showPlanBadge)
         showPercentage = repository.get(.showPercentage)
         percentageSource = repository.get(.percentageSource)
+        planType = repository.get(.planType)
         refreshInterval = repository.get(.refreshInterval)
         notificationsEnabled = repository.get(.notificationsEnabled)
         warningThreshold = repository.get(.warningThreshold)
