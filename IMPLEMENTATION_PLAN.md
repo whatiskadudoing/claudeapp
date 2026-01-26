@@ -186,19 +186,21 @@ Key research documents for this implementation:
   - **Test:** SwiftUI previews for all components, unit tests for color logic
   - **Completed:** 2026-01-26 - Created IconStyleComponents.swift with ProgressBarIcon (40x8 bar), BatteryIndicator (battery shape with fill level and cap), StatusDot (6x6 colored dot), plus helper functions (statusColor, remainingColor). Added 51 tests for all components covering initialization, color thresholds, accessibility, and visual rendering. Total: 552 tests passing.
 
-- [ ] **Update MenuBarView to support all icon styles** [spec: icon-styles.md] [file: App/ClaudeApp.swift or equivalent MenuBarView file]
-  - Add @AppStorage for iconStyle setting
-  - Implement switch statement for 6 styles:
+- [x] **Update MenuBarView to support all icon styles** [spec: icon-styles.md] [file: App/ClaudeApp.swift]
+  - Updated MenuBarLabel to use settings.iconStyle for display mode
+  - Implemented switch statement for 6 styles:
     - `.percentage`: Icon + percentage text (current default)
     - `.progressBar`: Icon + horizontal progress bar
     - `.battery`: Battery-shaped indicator showing remaining capacity
     - `.compact`: Icon + small colored status dot
     - `.iconOnly`: Icon only, tinted by status color
     - `.full`: Icon + bar + percentage (all information)
-  - Ensure proper sizing for each style (20-80px width range)
-  - Add VoiceOver accessibility label for all styles
+  - Integrated existing components (ClaudeIconImage, ProgressBarIcon, BatteryIndicator, StatusDot)
+  - Added VoiceOver accessibility labels for all styles including status descriptions for non-text styles
+  - Added localization strings for accessibility status messages (statusSafe, statusWarning, statusCritical)
   - **Research:** `specs/features/icon-styles.md` for complete implementation
-  - **Test:** Visual verification of all 6 styles, accessibility audit
+  - **Test:** All 552 tests passing, visual verification needed
+  - **Completed:** 2026-01-26 - MenuBarLabel now supports all 6 icon styles using existing IconStyleComponents
 
 - [ ] **Add icon style picker to Settings Display section with live preview** [spec: icon-styles.md] [file: Packages/UI/Sources/UI/SettingsComponents.swift, App Settings UI]
   - Add "Menu Bar Style" picker to Display section

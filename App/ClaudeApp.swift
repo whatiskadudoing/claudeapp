@@ -81,27 +81,46 @@ struct ClaudeApp: App {
 // MARK: - Menu Bar Label
 
 /// The label displayed in the macOS menu bar.
-/// Shows Claude icon + percentage or loading/error state.
-/// Respects display settings: showPercentage, percentageSource, showPlanBadge.
+/// Shows Claude icon + usage visualization based on selected icon style.
+/// Supports 6 icon styles: percentage, progressBar, battery, compact, iconOnly, full.
+/// Respects display settings: iconStyle, showPercentage, percentageSource, showPlanBadge.
 struct MenuBarLabel: View {
     let detectedPlanType: PlanType
 
     @Environment(UsageManager.self) private var usageManager
     @Environment(SettingsManager.self) private var settings
 
+    /// Current usage percentage based on settings
+    private var currentUsage: Double {
+        guard let data = usageManager.usageData else { return 0 }
+        return data.utilization(for: settings.percentageSource)
+    }
+
+    /// Color based on usage thresholds for icon tinting
+    private var statusColor: Color {
+        switch currentUsage {
+        case 0..<50:
+            Theme.Colors.success
+        case 50..<90:
+            Theme.Colors.warning
+        default:
+            Theme.Colors.primary
+        }
+    }
+
     var body: some View {
         HStack(spacing: 4) {
-            ClaudeIconImage(size: 10, color: Theme.Colors.brand)
-
             if usageManager.isLoading && usageManager.usageData == nil {
+                // Loading state - show icon with spinner
+                ClaudeIconImage(size: 10, color: Theme.Colors.brand)
                 ProgressView()
                     .controlSize(.small)
-            } else if let data = usageManager.usageData {
-                // Combine percentage and badge into single Text (MenuBarExtra only supports 2 Text views)
-                Text(menuBarText(for: data))
-                    .font(Theme.Typography.menuBar)
-                    .fontWeight(.medium)
+            } else if usageManager.usageData != nil {
+                // Render based on selected icon style
+                iconStyleContent
             } else {
+                // No data state - show icon only
+                ClaudeIconImage(size: 10, color: Theme.Colors.brand)
                 if settings.showPercentage {
                     Text(L("usage.noPercentage"))
                         .font(Theme.Typography.menuBar)
@@ -114,11 +133,55 @@ struct MenuBarLabel: View {
         .accessibilityHint(L("accessibility.menuBar.hint"))
     }
 
+    /// Content based on selected icon style
+    @ViewBuilder
+    private var iconStyleContent: some View {
+        switch settings.iconStyle {
+        case .percentage:
+            // Icon + percentage text (default)
+            ClaudeIconImage(size: 10, color: Theme.Colors.brand)
+            percentageText
+
+        case .progressBar:
+            // Icon + horizontal progress bar
+            ClaudeIconImage(size: 10, color: Theme.Colors.brand)
+            ProgressBarIcon(value: currentUsage)
+
+        case .battery:
+            // Battery-shaped indicator showing remaining capacity
+            BatteryIndicator(usagePercent: currentUsage)
+
+        case .compact:
+            // Icon + small colored status dot
+            ClaudeIconImage(size: 10, color: Theme.Colors.brand)
+            StatusDot(usagePercent: currentUsage)
+
+        case .iconOnly:
+            // Icon only, tinted by status color
+            ClaudeIconImage(size: 10, color: statusColor)
+
+        case .full:
+            // Full display: icon + bar + percentage
+            ClaudeIconImage(size: 10, color: Theme.Colors.brand)
+            ProgressBarIcon(value: currentUsage)
+            percentageText
+        }
+    }
+
+    /// Percentage text view with optional plan badge
+    private var percentageText: some View {
+        Text(menuBarText)
+            .font(Theme.Typography.menuBar)
+            .fontWeight(.medium)
+    }
+
     /// Constructs the menu bar text combining percentage and optional badge
-    private func menuBarText(for data: UsageData) -> String {
+    private var menuBarText: String {
+        guard let data = usageManager.usageData else { return "—" }
+
         var text = ""
 
-        if settings.showPercentage {
+        if settings.showPercentage || settings.iconStyle == .percentage || settings.iconStyle == .full {
             let percentage = Int(data.utilization(for: settings.percentageSource))
             text = "\(percentage)%"
         }
@@ -144,6 +207,21 @@ struct MenuBarLabel: View {
         } else if let data = usageManager.usageData {
             let percentage = Int(data.utilization(for: settings.percentageSource))
             label += L("accessibility.menuBar.usage", percentage)
+
+            // Add status level for non-visual indicator styles
+            switch settings.iconStyle {
+            case .battery, .compact, .iconOnly:
+                // Add status description for styles without visible percentage
+                if percentage < 50 {
+                    label += L("accessibility.menuBar.statusSafe")
+                } else if percentage < 90 {
+                    label += L("accessibility.menuBar.statusWarning")
+                } else {
+                    label += L("accessibility.menuBar.statusCritical")
+                }
+            default:
+                break
+            }
 
             // Add warning state for high usage
             if percentage >= 100 {
