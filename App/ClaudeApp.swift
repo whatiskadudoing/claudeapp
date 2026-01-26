@@ -891,6 +891,22 @@ struct DisplaySection: View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: L("settings.display"))
 
+            // Icon Style picker with live preview
+            VStack(alignment: .leading, spacing: 8) {
+                SettingsPickerRow(
+                    title: L("settings.display.iconStyle"),
+                    selection: $settings.iconStyle
+                ) {
+                    ForEach(IconStyle.allCases, id: \.self) { style in
+                        Text(L(style.localizationKey)).tag(style)
+                    }
+                }
+
+                // Live preview of the selected icon style
+                IconStylePreview(iconStyle: settings.iconStyle, percentage: 72)
+                    .padding(.leading, 4)
+            }
+
             SettingsToggle(
                 title: L("settings.display.showPlanBadge"),
                 isOn: $settings.showPlanBadge,
@@ -912,6 +928,84 @@ struct DisplaySection: View {
                     }
                 }
             }
+        }
+    }
+}
+
+// MARK: - Icon Style Preview
+
+/// Shows a live preview of the selected icon style with mock data.
+/// Displayed in the Display settings section to help users visualize their choice.
+struct IconStylePreview: View {
+    let iconStyle: IconStyle
+    let percentage: Double
+
+    /// Color based on usage thresholds
+    private var statusColor: Color {
+        switch percentage {
+        case 0..<50:
+            Theme.Colors.success
+        case 50..<90:
+            Theme.Colors.warning
+        default:
+            Theme.Colors.primary
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(L("settings.display.preview"))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+
+            // Preview container with menu bar-like background
+            HStack(spacing: 4) {
+                previewContent
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Color(nsColor: .controlBackgroundColor))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(L("settings.display.preview.accessibility", L(iconStyle.localizationKey)))
+    }
+
+    @ViewBuilder
+    private var previewContent: some View {
+        switch iconStyle {
+        case .percentage:
+            // Icon + percentage text (default)
+            ClaudeIconImage(size: 10, color: Theme.Colors.brand)
+            Text("\(Int(percentage))%")
+                .font(Theme.Typography.menuBar)
+                .fontWeight(.medium)
+
+        case .progressBar:
+            // Icon + horizontal progress bar
+            ClaudeIconImage(size: 10, color: Theme.Colors.brand)
+            ProgressBarIcon(value: percentage)
+
+        case .battery:
+            // Battery-shaped indicator showing remaining capacity
+            BatteryIndicator(usagePercent: percentage)
+
+        case .compact:
+            // Icon + small colored status dot
+            ClaudeIconImage(size: 10, color: Theme.Colors.brand)
+            StatusDot(usagePercent: percentage)
+
+        case .iconOnly:
+            // Icon only, tinted by status color
+            ClaudeIconImage(size: 10, color: statusColor)
+
+        case .full:
+            // Full display: icon + bar + percentage
+            ClaudeIconImage(size: 10, color: Theme.Colors.brand)
+            ProgressBarIcon(value: percentage)
+            Text("\(Int(percentage))%")
+                .font(Theme.Typography.menuBar)
+                .fontWeight(.medium)
         }
     }
 }

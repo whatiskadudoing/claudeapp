@@ -202,15 +202,17 @@ Key research documents for this implementation:
   - **Test:** All 552 tests passing, visual verification needed
   - **Completed:** 2026-01-26 - MenuBarLabel now supports all 6 icon styles using existing IconStyleComponents
 
-- [ ] **Add icon style picker to Settings Display section with live preview** [spec: icon-styles.md] [file: Packages/UI/Sources/UI/SettingsComponents.swift, App Settings UI]
+- [x] **Add icon style picker to Settings Display section with live preview** [spec: icon-styles.md] [file: App/ClaudeApp.swift]
   - Add "Menu Bar Style" picker to Display section
   - Show dropdown with all 6 style options
-  - Add live preview below picker showing current selection with mock data
+  - Add live preview below picker showing current selection with mock data (72%)
   - Ensure picker works with localized style names
+  - Created IconStylePreview component showing live preview with menu bar-like styling
   - **Research:** `specs/features/icon-styles.md` for UI layout
   - **Test:** Settings picker persists selection, preview updates correctly
+  - **Completed:** 2026-01-26 - Added SettingsPickerRow with IconStyle.allCases, created IconStylePreview component with all 6 styles
 
-- [ ] **Add localization strings for icon styles** [file: App/Localizable.xcstrings]
+- [x] **Add localization strings for icon styles** [file: App/Localizable.xcstrings]
   - Add English strings for all 6 style names
   - Add Portuguese (pt-BR) translations
   - Add Spanish (es) translations
@@ -218,6 +220,7 @@ Key research documents for this implementation:
   - Add preview accessibility labels
   - **Research:** `specs/internationalization.md` for translation guidelines
   - **Test:** All strings appear correctly in all 3 languages
+  - **Completed:** 2026-01-26 - Added 10 localization strings for icon styles (iconStyle.*, settings.display.iconStyle, settings.display.preview, settings.display.preview.accessibility)
 
 - [ ] **Add comprehensive tests for icon styles** [file: Packages/UI/Tests/UITests/, Packages/Core/Tests/CoreTests/]
   - Unit tests for IconStyle enum (all cases, raw values, localization keys)
