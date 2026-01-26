@@ -58,3 +58,11 @@ public extension SettingsKey where Value == PlanType {
         defaultValue: .pro
     )
 }
+
+public extension SettingsKey where Value == IconStyle {
+    // Display Settings
+    static let iconStyle = SettingsKey<IconStyle>(
+        key: "iconStyle",
+        defaultValue: .percentage
+    )
+}

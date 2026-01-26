@@ -36,6 +36,11 @@ public final class UserDefaultsSettingsRepository: SettingsRepository, @unchecke
 public final class SettingsManager {
     // MARK: - Display Settings
 
+    /// Which icon style to display in the menu bar
+    public var iconStyle: IconStyle {
+        didSet { save(.iconStyle, value: iconStyle) }
+    }
+
     /// Whether to show the plan badge (Pro, Max 5x, Max 20x) in the menu bar
     public var showPlanBadge: Bool {
         didSet { save(.showPlanBadge, value: showPlanBadge) }
@@ -132,6 +137,7 @@ public final class SettingsManager {
         self.repository = repository
 
         // Load all settings from repository
+        iconStyle = repository.get(.iconStyle)
         showPlanBadge = repository.get(.showPlanBadge)
         showPercentage = repository.get(.showPercentage)
         percentageSource = repository.get(.percentageSource)

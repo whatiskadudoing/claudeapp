@@ -947,6 +947,7 @@ struct SettingsManagerTests {
         let manager = SettingsManager(repository: mockRepo)
 
         // Display settings defaults
+        #expect(manager.iconStyle == .percentage)
         #expect(manager.showPlanBadge == false)
         #expect(manager.showPercentage == true)
         #expect(manager.percentageSource == .highest)
@@ -975,11 +976,13 @@ struct SettingsManagerTests {
         let manager = SettingsManager(repository: mockRepo)
 
         // Change settings
+        manager.iconStyle = .battery
         manager.showPlanBadge = true
         manager.showPercentage = false
         manager.percentageSource = .session
 
         // Verify persisted
+        #expect(mockRepo.get(.iconStyle) == .battery)
         #expect(mockRepo.get(.showPlanBadge) == true)
         #expect(mockRepo.get(.showPercentage) == false)
         #expect(mockRepo.get(.percentageSource) == .session)
@@ -1034,6 +1037,7 @@ struct SettingsManagerTests {
         let mockRepo = MockSettingsRepository()
 
         // Pre-populate repository
+        mockRepo.set(.iconStyle, value: IconStyle.compact)
         mockRepo.set(.showPlanBadge, value: true)
         mockRepo.set(.showPercentage, value: false)
         mockRepo.set(.percentageSource, value: PercentageSource.weekly)
@@ -1043,6 +1047,7 @@ struct SettingsManagerTests {
         // Create manager - should load from repository
         let manager = SettingsManager(repository: mockRepo)
 
+        #expect(manager.iconStyle == .compact)
         #expect(manager.showPlanBadge == true)
         #expect(manager.showPercentage == false)
         #expect(manager.percentageSource == .weekly)

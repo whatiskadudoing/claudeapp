@@ -160,7 +160,7 @@ Key research documents for this implementation:
 
 **Purpose:** Implement the most-requested customization feature - multiple menu bar display styles.
 
-- [ ] **Implement IconStyle domain model and settings integration** [spec: icon-styles.md] [file: Packages/Domain/Sources/Domain/IconStyle.swift, Packages/Core/Sources/Core/SettingsManager.swift]
+- [x] **Implement IconStyle domain model and settings integration** [spec: icon-styles.md] [file: Packages/Domain/Sources/Domain/IconStyle.swift, Packages/Core/Sources/Core/SettingsManager.swift]
   - Create `IconStyle` enum with 6 cases: percentage, progressBar, battery, compact, iconOnly, full
   - Add RawRepresentable, CaseIterable, Codable, Sendable conformance
   - Add display names and localization keys for each style
@@ -168,6 +168,7 @@ Key research documents for this implementation:
   - Integrate into SettingsManager with persistence
   - **Research:** `specs/features/icon-styles.md` for complete enum definition
   - **Test:** Unit tests for IconStyle enum and settings persistence
+  - **Completed:** 2026-01-26 - Created IconStyle.swift with enum, localization keys, and display names. Added SettingsKey extension and SettingsManager property. Added 12 tests for IconStyle (raw values, CaseIterable, Equatable, Codable, Sendable, localization keys, display names). Total: 501 tests passing.
 
 - [ ] **Create icon style UI components (BatteryIndicator, ProgressBarIcon, StatusDot)** [spec: icon-styles.md] [file: Packages/UI/Sources/UI/IconStyleComponents.swift]
   - Create `BatteryIndicator` view showing remaining capacity

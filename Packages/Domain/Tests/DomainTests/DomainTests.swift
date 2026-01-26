@@ -664,6 +664,119 @@ struct LocalizationKeyTests {
     }
 }
 
+// MARK: - IconStyle Tests
+
+@Suite("IconStyle Tests")
+struct IconStyleTests {
+    @Test("IconStyle raw values are correct")
+    func rawValues() {
+        #expect(IconStyle.percentage.rawValue == "percentage")
+        #expect(IconStyle.progressBar.rawValue == "progressBar")
+        #expect(IconStyle.battery.rawValue == "battery")
+        #expect(IconStyle.compact.rawValue == "compact")
+        #expect(IconStyle.iconOnly.rawValue == "iconOnly")
+        #expect(IconStyle.full.rawValue == "full")
+    }
+
+    @Test("IconStyle conforms to CaseIterable")
+    func caseIterable() {
+        let allCases = IconStyle.allCases
+        #expect(allCases.count == 6)
+        #expect(allCases.contains(.percentage))
+        #expect(allCases.contains(.progressBar))
+        #expect(allCases.contains(.battery))
+        #expect(allCases.contains(.compact))
+        #expect(allCases.contains(.iconOnly))
+        #expect(allCases.contains(.full))
+    }
+
+    @Test("IconStyle is Equatable")
+    func equatable() {
+        #expect(IconStyle.percentage == IconStyle.percentage)
+        #expect(IconStyle.percentage != IconStyle.battery)
+        #expect(IconStyle.full != IconStyle.compact)
+    }
+
+    @Test("IconStyle is Codable")
+    func codable() throws {
+        let style = IconStyle.progressBar
+        let data = try JSONEncoder().encode(style)
+        let decoded = try JSONDecoder().decode(IconStyle.self, from: data)
+        #expect(decoded == style)
+    }
+
+    @Test("IconStyle is Sendable")
+    func sendable() async {
+        let style = IconStyle.battery
+
+        // Verify it can be passed across actor boundaries
+        let result = await Task.detached {
+            style.rawValue
+        }.value
+
+        #expect(result == "battery")
+    }
+
+    @Test("IconStyle localization keys follow naming convention")
+    func localizationKeys() {
+        #expect(IconStyle.percentage.localizationKey == "iconStyle.percentage")
+        #expect(IconStyle.progressBar.localizationKey == "iconStyle.progressBar")
+        #expect(IconStyle.battery.localizationKey == "iconStyle.battery")
+        #expect(IconStyle.compact.localizationKey == "iconStyle.compact")
+        #expect(IconStyle.iconOnly.localizationKey == "iconStyle.iconOnly")
+        #expect(IconStyle.full.localizationKey == "iconStyle.full")
+    }
+
+    @Test("IconStyle all cases have localization keys")
+    func allCasesHaveKeys() {
+        for style in IconStyle.allCases {
+            #expect(!style.localizationKey.isEmpty)
+            #expect(style.localizationKey.hasPrefix("iconStyle."))
+        }
+    }
+
+    @Test("IconStyle localization keys are unique")
+    func keysAreUnique() {
+        var seenKeys = Set<String>()
+        for style in IconStyle.allCases {
+            let key = style.localizationKey
+            #expect(!seenKeys.contains(key), "Duplicate key found: \(key)")
+            seenKeys.insert(key)
+        }
+    }
+
+    @Test("IconStyle localization keys do not contain spaces")
+    func keysNoSpaces() {
+        for style in IconStyle.allCases {
+            #expect(!style.localizationKey.contains(" "), "Key should not contain spaces: \(style.localizationKey)")
+        }
+    }
+
+    @Test("IconStyle display names are human readable")
+    func displayNames() {
+        #expect(IconStyle.percentage.displayName == "Percentage")
+        #expect(IconStyle.progressBar.displayName == "Progress Bar")
+        #expect(IconStyle.battery.displayName == "Battery")
+        #expect(IconStyle.compact.displayName == "Compact")
+        #expect(IconStyle.iconOnly.displayName == "Icon Only")
+        #expect(IconStyle.full.displayName == "Full (Icon + Bar + %)")
+    }
+
+    @Test("IconStyle all cases have display names")
+    func allCasesHaveDisplayNames() {
+        for style in IconStyle.allCases {
+            #expect(!style.displayName.isEmpty)
+        }
+    }
+
+    @Test("IconStyle default is percentage")
+    func defaultIsPercentage() {
+        // Verify the settings key default matches the spec
+        let defaultStyle = SettingsKey.iconStyle.defaultValue
+        #expect(defaultStyle == .percentage)
+    }
+}
+
 @Suite("AppError Tests")
 struct AppErrorTests {
     @Test("AppError cases are distinct")
