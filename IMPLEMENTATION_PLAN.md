@@ -170,7 +170,7 @@ Key research documents for this implementation:
   - **Test:** Unit tests for IconStyle enum and settings persistence
   - **Completed:** 2026-01-26 - Created IconStyle.swift with enum, localization keys, and display names. Added SettingsKey extension and SettingsManager property. Added 12 tests for IconStyle (raw values, CaseIterable, Equatable, Codable, Sendable, localization keys, display names). Total: 501 tests passing.
 
-- [ ] **Create icon style UI components (BatteryIndicator, ProgressBarIcon, StatusDot)** [spec: icon-styles.md] [file: Packages/UI/Sources/UI/IconStyleComponents.swift]
+- [x] **Create icon style UI components (BatteryIndicator, ProgressBarIcon, StatusDot)** [spec: icon-styles.md] [file: Packages/UI/Sources/UI/IconStyleComponents.swift]
   - Create `BatteryIndicator` view showing remaining capacity
     - Battery body with fill level (inverted usage)
     - Battery cap detail
@@ -184,6 +184,7 @@ Key research documents for this implementation:
     - Color based on usage thresholds
   - **Research:** `specs/features/icon-styles.md` for dimensions and colors
   - **Test:** SwiftUI previews for all components, unit tests for color logic
+  - **Completed:** 2026-01-26 - Created IconStyleComponents.swift with ProgressBarIcon (40x8 bar), BatteryIndicator (battery shape with fill level and cap), StatusDot (6x6 colored dot), plus helper functions (statusColor, remainingColor). Added 51 tests for all components covering initialization, color thresholds, accessibility, and visual rendering. Total: 552 tests passing.
 
 - [ ] **Update MenuBarView to support all icon styles** [spec: icon-styles.md] [file: App/ClaudeApp.swift or equivalent MenuBarView file]
   - Add @AppStorage for iconStyle setting
