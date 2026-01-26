@@ -107,7 +107,7 @@ Key research documents for this implementation:
   - **Test:** LICENSE file exists and contains proper MIT text
   - **Completed:** 2026-01-26 - LICENSE file created with standard MIT text, README.md already had correct references to LICENSE (badge on line 7 and text link on line 218)
 
-- [ ] **Create CODE_OF_CONDUCT.md and SECURITY.md** [spec: user-documentation.md] [file: CODE_OF_CONDUCT.md, SECURITY.md]
+- [x] **Create CODE_OF_CONDUCT.md and SECURITY.md** [spec: user-documentation.md] [file: CODE_OF_CONDUCT.md, SECURITY.md]
   - `CODE_OF_CONDUCT.md`: Use Contributor Covenant v2.1 (industry standard)
     - Pledge, standards, enforcement responsibilities
     - Scope, enforcement, enforcement guidelines
@@ -120,6 +120,7 @@ Key research documents for this implementation:
     - What is NOT in scope (Claude API, macOS)
   - **Research:** https://www.contributor-covenant.org/version/2/1/code_of_conduct/
   - **Test:** Files follow standard formats, links work
+  - **Completed:** 2026-01-26 - Created CODE_OF_CONDUCT.md (simplified version referencing Contributor Covenant v2.1 externally) and SECURITY.md with vulnerability reporting process, supported versions, and security considerations
 
 - [ ] **Update CHANGELOG.md with accurate dates and complete history** [file: CHANGELOG.md]
   - Fix v1.0.0 date: "2026-01-XX" → "2026-01-20"
