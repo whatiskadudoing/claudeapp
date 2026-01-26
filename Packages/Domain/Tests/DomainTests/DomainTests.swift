@@ -6,7 +6,7 @@ import Testing
 struct DomainTests {
     @Test("Domain version is correct")
     func domainVersion() {
-        #expect(Domain.version == "1.2.0")
+        #expect(Domain.version == "1.6.0")
     }
 }
 

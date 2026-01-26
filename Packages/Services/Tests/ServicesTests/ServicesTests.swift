@@ -7,7 +7,7 @@ import Testing
 struct ServicesTests {
     @Test("Services version is correct")
     func servicesVersion() {
-        #expect(Services.version == "1.2.0")
+        #expect(Services.version == "1.6.0")
     }
 }
 

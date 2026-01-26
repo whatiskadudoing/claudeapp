@@ -6,7 +6,7 @@ import Core
 // SwiftUI views, components, and theming
 
 public enum UI {
-    public static let version = "1.2.0"
+    public static let version = "1.6.0"
 }
 
 // Re-export all public UI components

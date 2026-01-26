@@ -8,12 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- (Nothing yet)
+
+## [1.6.0] - 2026-01-26
+
+### Added
+- **Icon Styles**: 6 customizable menu bar display styles (Percentage, Progress Bar, Battery, Compact, Icon Only, Full)
+- Icon style picker in Settings with live preview
+- Localization strings for all icon styles in English, Portuguese (pt-BR), and Spanish
 - LICENSE file with MIT license
 - CODE_OF_CONDUCT.md referencing Contributor Covenant v2.1
 - SECURITY.md with vulnerability reporting process
+- README.md Documentation section with links to all guides
 
 ### Changed
 - CHANGELOG.md now has accurate dates and complete version history
+- MenuBarLabel now supports 6 different display styles based on user preference
+- Settings Display section now includes Menu Bar Style picker
+
+### Technical
+- Added IconStyle enum with RawRepresentable, CaseIterable, Codable, Sendable conformance
+- Added IconStyleComponents (ProgressBarIcon, BatteryIndicator, StatusDot)
+- Total test count: 552 tests passing
 
 ## [1.5.0] - 2026-01-24
 
@@ -119,7 +135,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - macOS 14 (Sonoma) required
 - 81 tests passing
 
-[Unreleased]: https://github.com/kaduwaengertner/claudeapp/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/kaduwaengertner/claudeapp/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.2.0...v1.3.0

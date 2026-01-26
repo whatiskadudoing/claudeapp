@@ -10,7 +10,7 @@ import UserNotifications
 struct CoreTests {
     @Test("Core version is correct")
     func coreVersion() {
-        #expect(Core.version == "1.2.0")
+        #expect(Core.version == "1.6.0")
     }
 }
 

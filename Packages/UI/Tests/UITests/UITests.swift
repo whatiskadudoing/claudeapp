@@ -7,7 +7,7 @@ import Testing
 struct UITests {
     @Test("UI version is correct")
     func uiVersion() {
-        #expect(UI.version == "1.2.0")
+        #expect(UI.version == "1.6.0")
     }
 }
 
