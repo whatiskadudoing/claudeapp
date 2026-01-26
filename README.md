@@ -101,6 +101,20 @@ make install
 3. ClaudeApp appears in your menu bar with usage percentage
 4. Click to see detailed breakdown with burn rate and time-to-exhaustion
 
+## Documentation
+
+Comprehensive documentation is available in the [docs/](docs/) folder:
+
+| Guide | Description |
+|-------|-------------|
+| [Installation Guide](docs/installation.md) | Detailed installation instructions for all methods |
+| [Usage Guide](docs/usage.md) | Complete feature guide and how to use the app |
+| [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
+| [FAQ](docs/faq.md) | Frequently asked questions |
+| [Privacy Policy](docs/privacy.md) | Data handling and privacy information |
+
+For technical specifications, see [specs/](specs/).
+
 ## Architecture
 
 ClaudeApp uses a modular package architecture inspired by Domain-Driven Design:
@@ -179,7 +193,9 @@ defaults delete com.kaduwaengertner.ClaudeApp AppleLanguages
 
 ## Contributing
 
-Contributions are welcome! Please follow these guidelines:
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+Quick summary:
 
 1. **Fork and branch** - Create a feature branch from `main`
 2. **Code quality** - Run `make check` before committing (format, lint, test)
