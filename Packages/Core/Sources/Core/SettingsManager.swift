@@ -76,6 +76,18 @@ public final class SettingsManager {
         }
     }
 
+    /// Whether to enable power-aware refresh (Smart Refresh)
+    /// When enabled, refresh is suspended when screen is off and reduced when idle
+    public var enablePowerAwareRefresh: Bool {
+        didSet { save(.enablePowerAwareRefresh, value: enablePowerAwareRefresh) }
+    }
+
+    /// Whether to reduce refresh frequency when on battery power
+    /// Only takes effect when enablePowerAwareRefresh is true
+    public var reduceRefreshOnBattery: Bool {
+        didSet { save(.reduceRefreshOnBattery, value: reduceRefreshOnBattery) }
+    }
+
     /// Callback when refresh interval changes (for UsageManager to restart auto-refresh)
     public var onRefreshIntervalChanged: ((Int) -> Void)?
 
@@ -143,6 +155,8 @@ public final class SettingsManager {
         percentageSource = repository.get(.percentageSource)
         planType = repository.get(.planType)
         refreshInterval = repository.get(.refreshInterval)
+        enablePowerAwareRefresh = repository.get(.enablePowerAwareRefresh)
+        reduceRefreshOnBattery = repository.get(.reduceRefreshOnBattery)
         notificationsEnabled = repository.get(.notificationsEnabled)
         warningThreshold = repository.get(.warningThreshold)
         warningEnabled = repository.get(.warningEnabled)

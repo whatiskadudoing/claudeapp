@@ -954,6 +954,8 @@ struct SettingsManagerTests {
 
         // Refresh settings defaults
         #expect(manager.refreshInterval == 5)
+        #expect(manager.enablePowerAwareRefresh == true)
+        #expect(manager.reduceRefreshOnBattery == true)
 
         // Notification settings defaults
         #expect(manager.notificationsEnabled == true)
@@ -997,6 +999,37 @@ struct SettingsManagerTests {
         manager.refreshInterval = 15
 
         #expect(mockRepo.get(.refreshInterval) == 15)
+    }
+
+    @Test("Power-aware refresh settings persist when changed")
+    @MainActor
+    func powerAwareRefreshSettingsPersist() {
+        let mockRepo = MockSettingsRepository()
+        let manager = SettingsManager(repository: mockRepo)
+
+        // Change power-aware settings
+        manager.enablePowerAwareRefresh = false
+        manager.reduceRefreshOnBattery = false
+
+        // Verify persisted
+        #expect(mockRepo.get(.enablePowerAwareRefresh) == false)
+        #expect(mockRepo.get(.reduceRefreshOnBattery) == false)
+    }
+
+    @Test("Power-aware refresh settings load from repository")
+    @MainActor
+    func powerAwareRefreshSettingsLoad() {
+        let mockRepo = MockSettingsRepository()
+
+        // Pre-set values in repository
+        mockRepo.set(.enablePowerAwareRefresh, value: false)
+        mockRepo.set(.reduceRefreshOnBattery, value: false)
+
+        // Create manager - should load from repository
+        let manager = SettingsManager(repository: mockRepo)
+
+        #expect(manager.enablePowerAwareRefresh == false)
+        #expect(manager.reduceRefreshOnBattery == false)
     }
 
     @Test("Notification settings persist when changed")

@@ -30,6 +30,10 @@ public extension SettingsKey where Value == Bool {
     static let capacityFullEnabled = SettingsKey<Bool>(key: "capacityFullEnabled", defaultValue: true)
     static let resetCompleteEnabled = SettingsKey<Bool>(key: "resetCompleteEnabled", defaultValue: true)
 
+    // Refresh Settings
+    static let enablePowerAwareRefresh = SettingsKey<Bool>(key: "enablePowerAwareRefresh", defaultValue: true)
+    static let reduceRefreshOnBattery = SettingsKey<Bool>(key: "reduceRefreshOnBattery", defaultValue: true)
+
     // General Settings
     static let launchAtLogin = SettingsKey<Bool>(key: "launchAtLogin", defaultValue: false)
     static let checkForUpdates = SettingsKey<Bool>(key: "checkForUpdates", defaultValue: true)

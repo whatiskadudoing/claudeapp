@@ -777,6 +777,56 @@ struct IconStyleTests {
     }
 }
 
+// MARK: - Power-Aware Refresh SettingsKey Tests
+
+@Suite("Power-Aware Refresh SettingsKey Tests")
+struct PowerAwareRefreshSettingsKeyTests {
+    @Test("enablePowerAwareRefresh default is true")
+    func enablePowerAwareRefreshDefault() {
+        let key = SettingsKey.enablePowerAwareRefresh
+        #expect(key.defaultValue == true)
+        #expect(key.key == "enablePowerAwareRefresh")
+    }
+
+    @Test("reduceRefreshOnBattery default is true")
+    func reduceRefreshOnBatteryDefault() {
+        let key = SettingsKey.reduceRefreshOnBattery
+        #expect(key.defaultValue == true)
+        #expect(key.key == "reduceRefreshOnBattery")
+    }
+
+    @Test("Power-aware refresh keys are distinct")
+    func keysAreDistinct() {
+        #expect(SettingsKey.enablePowerAwareRefresh.key != SettingsKey.reduceRefreshOnBattery.key)
+    }
+
+    @Test("Power-aware refresh keys do not conflict with other keys")
+    func keysDoNotConflict() {
+        let powerAwareKeys = [
+            SettingsKey.enablePowerAwareRefresh.key,
+            SettingsKey.reduceRefreshOnBattery.key
+        ]
+
+        // Check against other boolean keys
+        let otherKeys = [
+            SettingsKey.showPlanBadge.key,
+            SettingsKey.showPercentage.key,
+            SettingsKey.notificationsEnabled.key,
+            SettingsKey.warningEnabled.key,
+            SettingsKey.capacityFullEnabled.key,
+            SettingsKey.resetCompleteEnabled.key,
+            SettingsKey.launchAtLogin.key,
+            SettingsKey.checkForUpdates.key
+        ]
+
+        for powerAwareKey in powerAwareKeys {
+            for otherKey in otherKeys {
+                #expect(powerAwareKey != otherKey, "Key collision: \(powerAwareKey) == \(otherKey)")
+            }
+        }
+    }
+}
+
 @Suite("AppError Tests")
 struct AppErrorTests {
     @Test("AppError cases are distinct")

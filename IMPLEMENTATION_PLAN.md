@@ -106,13 +106,14 @@ Key research documents for this implementation:
   - **Test:** Unit tests for state transitions, notification handling, battery detection
   - **Completed:** 2026-01-28 - 23 new tests added (575 total), includes SystemStateMonitorProtocol and MockSystemStateMonitor for testing
 
-- [ ] **Add SettingsKeys for power-aware refresh** [spec: power-aware-refresh.md] [file: Packages/Domain/Sources/Domain/SettingsKey.swift, Packages/Core/Sources/Core/SettingsManager.swift]
+- [x] **Add SettingsKeys for power-aware refresh** [spec: power-aware-refresh.md] [file: Packages/Domain/Sources/Domain/SettingsKey.swift, Packages/Core/Sources/Core/SettingsManager.swift]
   - Add `SettingsKey.enablePowerAwareRefresh` (Bool, default: true)
   - Add `SettingsKey.reduceRefreshOnBattery` (Bool, default: true)
   - Add corresponding properties to SettingsManager
   - **Research:** `specs/features/power-aware-refresh.md` lines 280-291
   - **Test:** Settings persistence tests
   - **Target:** 4+ new tests
+  - **Completed:** 2026-01-28 - 6 new tests added (581 total), keys in Domain, properties in Core SettingsManager with persistence
 
 ---
 <!-- CHECKPOINT: Phase 1 delivers system state detection. Refresh behavior can now adapt. -->
