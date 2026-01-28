@@ -1035,6 +1035,20 @@ struct RefreshSection: View {
             ) { value in
                 L("settings.refresh.interval.value %lld", Int(value))
             }
+
+            SettingsToggle(
+                title: L("settings.refresh.smartRefresh"),
+                isOn: $settings.enablePowerAwareRefresh,
+                subtitle: L("settings.refresh.smartRefresh.subtitle")
+            )
+
+            if settings.enablePowerAwareRefresh {
+                SettingsToggle(
+                    title: L("settings.refresh.reduceOnBattery"),
+                    isOn: $settings.reduceRefreshOnBattery,
+                    subtitle: L("settings.refresh.reduceOnBattery.subtitle")
+                )
+            }
         }
     }
 }

@@ -158,7 +158,7 @@ Key research documents for this implementation:
 
 **Purpose:** Allow users to control power-aware behavior and see current power state.
 
-- [ ] **Add Smart Refresh toggle to Settings Refresh section** [spec: power-aware-refresh.md] [file: App/ClaudeApp.swift]
+- [x] **Add Smart Refresh toggle to Settings Refresh section** [spec: power-aware-refresh.md] [file: App/ClaudeApp.swift]
   - Add "Smart Refresh" toggle in RefreshSection after refresh interval slider
   - Add subtitle: "Reduce refresh when idle or on battery"
   - Connect to `settings.enablePowerAwareRefresh`
@@ -166,6 +166,7 @@ Key research documents for this implementation:
   - Connect to `settings.reduceRefreshOnBattery`
   - **Research:** `specs/features/power-aware-refresh.md` lines 296-307 for UI layout
   - **Test:** Visual verification, settings persistence
+  - **Completed:** 2026-01-28 - Smart Refresh and Reduce on Battery toggles added to RefreshSection, localization strings added for all 3 languages (en, es, pt-BR), 613 tests passing
 
 - [ ] **Add power state indicator to dropdown footer** [spec: power-aware-refresh.md] [file: App/ClaudeApp.swift]
   - Create `PowerStateIndicator` view component
@@ -179,14 +180,15 @@ Key research documents for this implementation:
   - **Target:** 4+ new tests
 
 - [ ] **Add localization strings for power-aware features** [file: App/Localizable.xcstrings]
-  - Add English strings:
-    - `settings.refresh.smartRefresh` = "Smart Refresh"
-    - `settings.refresh.smartRefresh.subtitle` = "Reduce refresh when idle or on battery"
-    - `settings.refresh.reduceOnBattery` = "Reduce on Battery"
+  - ~~Add English strings:~~
+    - ~~`settings.refresh.smartRefresh` = "Smart Refresh"~~
+    - ~~`settings.refresh.smartRefresh.subtitle` = "Reduce refresh when idle or on battery"~~
+    - ~~`settings.refresh.reduceOnBattery` = "Reduce on Battery"~~
     - `accessibility.powerState.onBattery` = "On battery power"
     - `accessibility.powerState.idle` = "System idle"
-  - Add Portuguese (pt-BR) translations
-  - Add Spanish (es) translations
+  - ~~Add Portuguese (pt-BR) translations~~ (done for settings strings)
+  - ~~Add Spanish (es) translations~~ (done for settings strings)
+  - **Note:** Settings strings completed in previous task; accessibility strings remain for power state indicator
   - **Research:** `specs/internationalization.md` for translation guidelines
   - **Test:** Localization key tests
   - **Target:** 3+ new tests
