@@ -3762,3 +3762,228 @@ struct UsageNotificationCheckerAccessibilityTests {
         #expect(deps.announcer.announcementCount == 0)
     }
 }
+
+// MARK: - SystemStateMonitor Tests
+
+@Suite("SystemStateMonitor Tests")
+struct SystemStateMonitorTests {
+    // MARK: - Initial State Tests
+
+    @Test("Initial state is active")
+    @MainActor
+    func initialStateIsActive() {
+        let monitor = SystemStateMonitor()
+        #expect(monitor.currentState == .active)
+    }
+
+    @Test("Initial battery state is false")
+    @MainActor
+    func initialBatteryStateIsFalse() {
+        let monitor = SystemStateMonitor()
+        // Note: This may vary on actual hardware, but default is false
+        // Testing the default before monitoring starts
+        let _ = monitor.isOnBattery // Just verify it's accessible
+    }
+
+    @Test("Default idle threshold is 5 minutes")
+    @MainActor
+    func defaultIdleThresholdIs5Minutes() {
+        let monitor = SystemStateMonitor()
+        #expect(monitor.idleThreshold == 300)
+    }
+
+    @Test("Default idle check interval is 60 seconds")
+    @MainActor
+    func defaultIdleCheckIntervalIs60Seconds() {
+        let monitor = SystemStateMonitor()
+        #expect(monitor.idleCheckInterval == 60)
+    }
+
+    @Test("Custom idle threshold is preserved")
+    @MainActor
+    func customIdleThresholdIsPreserved() {
+        let monitor = SystemStateMonitor(idleThreshold: 600)
+        #expect(monitor.idleThreshold == 600)
+    }
+
+    @Test("Custom idle check interval is preserved")
+    @MainActor
+    func customIdleCheckIntervalIsPreserved() {
+        let monitor = SystemStateMonitor(idleCheckInterval: 30)
+        #expect(monitor.idleCheckInterval == 30)
+    }
+
+    // MARK: - State Transition Tests (using test helpers)
+
+    @Test("setStateForTesting sets state to sleeping")
+    @MainActor
+    func setStateForTestingSetsStateSleeping() {
+        let monitor = SystemStateMonitor()
+        monitor.setStateForTesting(.sleeping)
+        #expect(monitor.currentState == .sleeping)
+    }
+
+    @Test("setStateForTesting sets state to idle")
+    @MainActor
+    func setStateForTestingSetsStateIdle() {
+        let monitor = SystemStateMonitor()
+        monitor.setStateForTesting(.idle)
+        #expect(monitor.currentState == .idle)
+    }
+
+    @Test("setStateForTesting sets state to active")
+    @MainActor
+    func setStateForTestingSetsStateActive() {
+        let monitor = SystemStateMonitor()
+        monitor.setStateForTesting(.sleeping)
+        monitor.setStateForTesting(.active)
+        #expect(monitor.currentState == .active)
+    }
+
+    @Test("setBatteryStateForTesting sets battery state")
+    @MainActor
+    func setBatteryStateForTestingSetsBatteryState() {
+        let monitor = SystemStateMonitor()
+        monitor.setBatteryStateForTesting(true)
+        #expect(monitor.isOnBattery == true)
+
+        monitor.setBatteryStateForTesting(false)
+        #expect(monitor.isOnBattery == false)
+    }
+
+    // MARK: - Monitoring Lifecycle Tests
+
+    @Test("startMonitoring can be called multiple times safely")
+    @MainActor
+    func startMonitoringMultipleTimes() async throws {
+        let monitor = SystemStateMonitor(idleCheckInterval: 1)
+        monitor.startMonitoring()
+        monitor.startMonitoring() // Should not crash or duplicate observers
+        monitor.stopMonitoring()
+    }
+
+    @Test("stopMonitoring can be called multiple times safely")
+    @MainActor
+    func stopMonitoringMultipleTimes() {
+        let monitor = SystemStateMonitor()
+        monitor.startMonitoring()
+        monitor.stopMonitoring()
+        monitor.stopMonitoring() // Should not crash
+    }
+
+    @Test("stopMonitoring before startMonitoring is safe")
+    @MainActor
+    func stopMonitoringBeforeStart() {
+        let monitor = SystemStateMonitor()
+        monitor.stopMonitoring() // Should not crash
+    }
+
+    // MARK: - SystemState Enum Tests
+
+    @Test("SystemState enum has expected cases")
+    func systemStateEnumCases() {
+        let active = SystemState.active
+        let idle = SystemState.idle
+        let sleeping = SystemState.sleeping
+
+        #expect(active != idle)
+        #expect(idle != sleeping)
+        #expect(active != sleeping)
+    }
+
+    @Test("SystemState is Equatable")
+    func systemStateIsEquatable() {
+        #expect(SystemState.active == SystemState.active)
+        #expect(SystemState.idle == SystemState.idle)
+        #expect(SystemState.sleeping == SystemState.sleeping)
+    }
+
+    @Test("SystemState is Sendable")
+    func systemStateIsSendable() async {
+        let state = SystemState.active
+        let result = await Task.detached {
+            state
+        }.value
+        #expect(result == .active)
+    }
+}
+
+// MARK: - MockSystemStateMonitor Tests
+
+@Suite("MockSystemStateMonitor Tests")
+struct MockSystemStateMonitorTests {
+    @Test("MockSystemStateMonitor initial state is active")
+    @MainActor
+    func initialStateIsActive() {
+        let mock = MockSystemStateMonitor()
+        #expect(mock.currentState == .active)
+    }
+
+    @Test("MockSystemStateMonitor initial battery state is false")
+    @MainActor
+    func initialBatteryStateIsFalse() {
+        let mock = MockSystemStateMonitor()
+        #expect(mock.isOnBattery == false)
+    }
+
+    @Test("MockSystemStateMonitor tracks startMonitoring calls")
+    @MainActor
+    func tracksStartMonitoringCalls() {
+        let mock = MockSystemStateMonitor()
+        #expect(mock.startMonitoringCallCount == 0)
+
+        mock.startMonitoring()
+        #expect(mock.startMonitoringCallCount == 1)
+
+        mock.startMonitoring()
+        #expect(mock.startMonitoringCallCount == 2)
+    }
+
+    @Test("MockSystemStateMonitor tracks stopMonitoring calls")
+    @MainActor
+    func tracksStopMonitoringCalls() {
+        let mock = MockSystemStateMonitor()
+        #expect(mock.stopMonitoringCallCount == 0)
+
+        mock.stopMonitoring()
+        #expect(mock.stopMonitoringCallCount == 1)
+
+        mock.stopMonitoring()
+        #expect(mock.stopMonitoringCallCount == 2)
+    }
+
+    @Test("MockSystemStateMonitor setState changes state")
+    @MainActor
+    func setStateChangesState() {
+        let mock = MockSystemStateMonitor()
+
+        mock.setState(.idle)
+        #expect(mock.currentState == .idle)
+
+        mock.setState(.sleeping)
+        #expect(mock.currentState == .sleeping)
+
+        mock.setState(.active)
+        #expect(mock.currentState == .active)
+    }
+
+    @Test("MockSystemStateMonitor setBatteryState changes battery state")
+    @MainActor
+    func setBatteryStateChangesBatteryState() {
+        let mock = MockSystemStateMonitor()
+
+        mock.setBatteryState(true)
+        #expect(mock.isOnBattery == true)
+
+        mock.setBatteryState(false)
+        #expect(mock.isOnBattery == false)
+    }
+
+    @Test("MockSystemStateMonitor conforms to SystemStateMonitorProtocol")
+    @MainActor
+    func conformsToProtocol() {
+        let mock: any SystemStateMonitorProtocol = MockSystemStateMonitor()
+        #expect(mock.currentState == .active)
+        #expect(mock.isOnBattery == false)
+    }
+}

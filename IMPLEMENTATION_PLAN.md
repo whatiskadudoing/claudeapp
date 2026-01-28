@@ -93,7 +93,7 @@ Key research documents for this implementation:
 
 **Purpose:** Create the foundation for detecting system state changes that affect refresh behavior.
 
-- [ ] **Implement SystemStateMonitor with screen sleep/wake and idle detection** [spec: power-aware-refresh.md] [file: Packages/Core/Sources/Core/SystemStateMonitor.swift]
+- [x] **Implement SystemStateMonitor with screen sleep/wake and idle detection** [spec: power-aware-refresh.md] [file: Packages/Core/Sources/Core/SystemStateMonitor.swift]
   - Create `SystemState` enum: `.active`, `.idle`, `.sleeping`
   - Create `@MainActor @Observable` SystemStateMonitor class
   - Implement screen sleep/wake detection using `NSWorkspace.screensDidSleepNotification` and `NSWorkspace.screensDidWakeNotification`
@@ -104,7 +104,7 @@ Key research documents for this implementation:
   - Add `currentState: SystemState` observable property
   - **Research:** `specs/features/power-aware-refresh.md` lines 64-194 for implementation
   - **Test:** Unit tests for state transitions, notification handling, battery detection
-  - **Target:** 15+ new tests
+  - **Completed:** 2026-01-28 - 23 new tests added (575 total), includes SystemStateMonitorProtocol and MockSystemStateMonitor for testing
 
 - [ ] **Add SettingsKeys for power-aware refresh** [spec: power-aware-refresh.md] [file: Packages/Domain/Sources/Domain/SettingsKey.swift, Packages/Core/Sources/Core/SettingsManager.swift]
   - Add `SettingsKey.enablePowerAwareRefresh` (Bool, default: true)
