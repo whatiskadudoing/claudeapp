@@ -4020,3 +4020,409 @@ struct MockSystemStateMonitorTests {
         #expect(mock.isOnBattery == false)
     }
 }
+
+// MARK: - AdaptiveRefreshManager Tests
+
+@Suite("AdaptiveRefreshManager Tests")
+struct AdaptiveRefreshManagerTests {
+    // Helper to create test dependencies
+    @MainActor
+    private func createTestDependencies(
+        state: SystemState = .active,
+        isOnBattery: Bool = false,
+        enablePowerAware: Bool = true,
+        reduceOnBattery: Bool = true,
+        refreshInterval: Int = 5,
+        usageData: UsageData? = nil
+    ) -> (MockSystemStateMonitor, UsageManager, SettingsManager, AdaptiveRefreshManager) {
+        let mockStateMonitor = MockSystemStateMonitor()
+        mockStateMonitor.setState(state)
+        mockStateMonitor.setBatteryState(isOnBattery)
+
+        let mockSettingsRepo = MockSettingsRepository()
+        mockSettingsRepo.set(.enablePowerAwareRefresh, value: enablePowerAware)
+        mockSettingsRepo.set(.reduceRefreshOnBattery, value: reduceOnBattery)
+        mockSettingsRepo.set(.refreshInterval, value: refreshInterval)
+
+        let settingsManager = SettingsManager(repository: mockSettingsRepo)
+
+        let mockUsageRepo = MockUsageRepository(usageData: usageData)
+        let usageManager = UsageManager(usageRepository: mockUsageRepo)
+
+        let adaptiveManager = AdaptiveRefreshManager(
+            systemStateMonitor: mockStateMonitor,
+            usageManager: usageManager,
+            settingsManager: settingsManager
+        )
+
+        return (mockStateMonitor, usageManager, settingsManager, adaptiveManager)
+    }
+
+    // MARK: - Initialization Tests
+
+    @Test("AdaptiveRefreshManager initializes with correct state")
+    @MainActor
+    func initialization() {
+        let (_, _, _, manager) = createTestDependencies()
+        #expect(manager.isAutoRefreshing == false)
+    }
+
+    // MARK: - Effective Interval Tests - Active State
+
+    @Test("Active state uses base interval when power-aware enabled")
+    @MainActor
+    func activeStateUsesBaseInterval() {
+        let (_, _, _, manager) = createTestDependencies(
+            state: .active,
+            isOnBattery: false,
+            enablePowerAware: true,
+            refreshInterval: 5
+        )
+
+        // 5 minutes = 300 seconds
+        #expect(manager.effectiveRefreshInterval == 300)
+    }
+
+    @Test("Active state uses base interval when power-aware disabled")
+    @MainActor
+    func activeStateUseBaseIntervalWhenDisabled() {
+        let (_, _, _, manager) = createTestDependencies(
+            state: .active,
+            isOnBattery: true,
+            enablePowerAware: false,
+            refreshInterval: 10
+        )
+
+        // Power-aware disabled means always use base interval
+        // 10 minutes = 600 seconds
+        #expect(manager.effectiveRefreshInterval == 600)
+    }
+
+    @Test("Active state doubles interval on battery when reduce enabled")
+    @MainActor
+    func activeStateDoublesOnBattery() {
+        let (_, _, _, manager) = createTestDependencies(
+            state: .active,
+            isOnBattery: true,
+            enablePowerAware: true,
+            reduceOnBattery: true,
+            refreshInterval: 5
+        )
+
+        // 5 minutes * 2 = 600 seconds
+        #expect(manager.effectiveRefreshInterval == 600)
+    }
+
+    @Test("Active state uses base interval on battery when reduce disabled")
+    @MainActor
+    func activeStateBaseIntervalWhenReduceDisabled() {
+        let (_, _, _, manager) = createTestDependencies(
+            state: .active,
+            isOnBattery: true,
+            enablePowerAware: true,
+            reduceOnBattery: false,
+            refreshInterval: 5
+        )
+
+        // Reduce on battery disabled means use base interval
+        #expect(manager.effectiveRefreshInterval == 300)
+    }
+
+    // MARK: - Effective Interval Tests - Sleeping State
+
+    @Test("Sleeping state returns infinity")
+    @MainActor
+    func sleepingStateReturnsInfinity() {
+        let (_, _, _, manager) = createTestDependencies(
+            state: .sleeping,
+            enablePowerAware: true
+        )
+
+        #expect(manager.effectiveRefreshInterval == .infinity)
+    }
+
+    @Test("Sleeping state ignores battery status")
+    @MainActor
+    func sleepingStateIgnoresBattery() {
+        let (_, _, _, manager) = createTestDependencies(
+            state: .sleeping,
+            isOnBattery: true,
+            enablePowerAware: true
+        )
+
+        // Still infinity even on battery
+        #expect(manager.effectiveRefreshInterval == .infinity)
+    }
+
+    @Test("Sleeping state uses base interval when power-aware disabled")
+    @MainActor
+    func sleepingStateUsesBaseWhenDisabled() {
+        let (_, _, _, manager) = createTestDependencies(
+            state: .sleeping,
+            enablePowerAware: false,
+            refreshInterval: 5
+        )
+
+        // Power-aware disabled means normal behavior
+        #expect(manager.effectiveRefreshInterval == 300)
+    }
+
+    // MARK: - Effective Interval Tests - Idle State
+
+    @Test("Idle state on battery doubles interval")
+    @MainActor
+    func idleStateOnBatteryDoubles() {
+        let (_, _, _, manager) = createTestDependencies(
+            state: .idle,
+            isOnBattery: true,
+            enablePowerAware: true,
+            reduceOnBattery: true,
+            refreshInterval: 5
+        )
+
+        // 5 minutes * 2 = 600 seconds
+        #expect(manager.effectiveRefreshInterval == 600)
+    }
+
+    @Test("Idle state on power uses base interval")
+    @MainActor
+    func idleStateOnPowerUsesBase() {
+        let (_, _, _, manager) = createTestDependencies(
+            state: .idle,
+            isOnBattery: false,
+            enablePowerAware: true,
+            refreshInterval: 5
+        )
+
+        // On power: use base interval
+        #expect(manager.effectiveRefreshInterval == 300)
+    }
+
+    @Test("Idle state caps at max interval")
+    @MainActor
+    func idleStateCapsAtMax() {
+        let (_, _, _, manager) = createTestDependencies(
+            state: .idle,
+            isOnBattery: true,
+            enablePowerAware: true,
+            reduceOnBattery: true,
+            refreshInterval: 20  // 20 minutes * 2 = 40 minutes, but max is 30
+        )
+
+        // Should cap at 30 minutes = 1800 seconds
+        #expect(manager.effectiveRefreshInterval == 1800)
+    }
+
+    // MARK: - Critical Usage Tests
+
+    @Test("Critical usage uses minimum interval")
+    @MainActor
+    func criticalUsageUsesMinInterval() async {
+        // Create usage data with 95% utilization (critical)
+        let criticalUsageData = UsageData(
+            fiveHour: UsageWindow(utilization: 95.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 50.0, resetsAt: nil),
+            sevenDayOpus: nil,
+            sevenDaySonnet: nil,
+            fetchedAt: Date()
+        )
+
+        let mockUsageRepo = MockUsageRepository(usageData: criticalUsageData)
+        let mockStateMonitor = MockSystemStateMonitor()
+        mockStateMonitor.setState(.active)
+
+        let mockSettingsRepo = MockSettingsRepository()
+        mockSettingsRepo.set(.enablePowerAwareRefresh, value: true)
+        mockSettingsRepo.set(.refreshInterval, value: 5)
+
+        let settingsManager = SettingsManager(repository: mockSettingsRepo)
+        let usageManager = UsageManager(usageRepository: mockUsageRepo)
+
+        // Perform a refresh to load the usage data
+        await usageManager.refresh()
+
+        let manager = AdaptiveRefreshManager(
+            systemStateMonitor: mockStateMonitor,
+            usageManager: usageManager,
+            settingsManager: settingsManager
+        )
+
+        // Critical usage (>=90%) should use 2-minute interval
+        #expect(manager.effectiveRefreshInterval == 120)
+    }
+
+    @Test("Critical usage prefers user interval if less than 2 minutes")
+    @MainActor
+    func criticalUsagePrefersUserInterval() async {
+        let criticalUsageData = UsageData(
+            fiveHour: UsageWindow(utilization: 92.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 50.0, resetsAt: nil),
+            sevenDayOpus: nil,
+            sevenDaySonnet: nil,
+            fetchedAt: Date()
+        )
+
+        let mockUsageRepo = MockUsageRepository(usageData: criticalUsageData)
+        let mockStateMonitor = MockSystemStateMonitor()
+        mockStateMonitor.setState(.active)
+
+        let mockSettingsRepo = MockSettingsRepository()
+        mockSettingsRepo.set(.enablePowerAwareRefresh, value: true)
+        mockSettingsRepo.set(.refreshInterval, value: 1)  // 1 minute
+
+        let settingsManager = SettingsManager(repository: mockSettingsRepo)
+        let usageManager = UsageManager(usageRepository: mockUsageRepo)
+        await usageManager.refresh()
+
+        let manager = AdaptiveRefreshManager(
+            systemStateMonitor: mockStateMonitor,
+            usageManager: usageManager,
+            settingsManager: settingsManager
+        )
+
+        // User's 1-minute interval is less than 2-minute critical, so use 1 minute
+        #expect(manager.effectiveRefreshInterval == 60)
+    }
+
+    @Test("Non-critical usage uses normal interval")
+    @MainActor
+    func nonCriticalUsageUsesNormalInterval() async {
+        let normalUsageData = UsageData(
+            fiveHour: UsageWindow(utilization: 85.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 50.0, resetsAt: nil),
+            sevenDayOpus: nil,
+            sevenDaySonnet: nil,
+            fetchedAt: Date()
+        )
+
+        let mockUsageRepo = MockUsageRepository(usageData: normalUsageData)
+        let mockStateMonitor = MockSystemStateMonitor()
+        mockStateMonitor.setState(.active)
+
+        let mockSettingsRepo = MockSettingsRepository()
+        mockSettingsRepo.set(.enablePowerAwareRefresh, value: true)
+        mockSettingsRepo.set(.refreshInterval, value: 5)
+
+        let settingsManager = SettingsManager(repository: mockSettingsRepo)
+        let usageManager = UsageManager(usageRepository: mockUsageRepo)
+        await usageManager.refresh()
+
+        let manager = AdaptiveRefreshManager(
+            systemStateMonitor: mockStateMonitor,
+            usageManager: usageManager,
+            settingsManager: settingsManager
+        )
+
+        // 85% is below 90% threshold, so normal 5-minute interval
+        #expect(manager.effectiveRefreshInterval == 300)
+    }
+
+    // MARK: - Auto-Refresh Control Tests
+
+    @Test("startAutoRefresh sets isAutoRefreshing to true")
+    @MainActor
+    func startAutoRefreshSetsFlag() {
+        let (_, _, _, manager) = createTestDependencies()
+
+        #expect(manager.isAutoRefreshing == false)
+        manager.startAutoRefresh()
+        #expect(manager.isAutoRefreshing == true)
+    }
+
+    @Test("stopAutoRefresh sets isAutoRefreshing to false")
+    @MainActor
+    func stopAutoRefreshClearsFlag() {
+        let (_, _, _, manager) = createTestDependencies()
+
+        manager.startAutoRefresh()
+        #expect(manager.isAutoRefreshing == true)
+
+        manager.stopAutoRefresh()
+        #expect(manager.isAutoRefreshing == false)
+    }
+
+    @Test("startAutoRefresh stops existing task first")
+    @MainActor
+    func startAutoRefreshStopsExisting() {
+        let (_, _, _, manager) = createTestDependencies()
+
+        manager.startAutoRefresh()
+        let wasRefreshing = manager.isAutoRefreshing
+
+        // Start again - should stop existing first
+        manager.startAutoRefresh()
+
+        #expect(wasRefreshing == true)
+        #expect(manager.isAutoRefreshing == true)
+    }
+
+    // MARK: - Protocol Conformance Tests
+
+    @Test("AdaptiveRefreshManager conforms to AdaptiveRefreshManagerProtocol")
+    @MainActor
+    func conformsToProtocol() {
+        let (_, _, _, manager) = createTestDependencies()
+        let _: any AdaptiveRefreshManagerProtocol = manager
+        #expect(true) // Compilation succeeds = conformance verified
+    }
+}
+
+// MARK: - MockAdaptiveRefreshManager Tests
+
+@Suite("MockAdaptiveRefreshManager Tests")
+struct MockAdaptiveRefreshManagerTests {
+    @Test("MockAdaptiveRefreshManager initial state")
+    @MainActor
+    func initialState() {
+        let mock = MockAdaptiveRefreshManager()
+
+        #expect(mock.effectiveRefreshInterval == 300)
+        #expect(mock.isAutoRefreshing == false)
+        #expect(mock.startAutoRefreshCallCount == 0)
+        #expect(mock.stopAutoRefreshCallCount == 0)
+    }
+
+    @Test("MockAdaptiveRefreshManager tracks startAutoRefresh calls")
+    @MainActor
+    func tracksStartCalls() {
+        let mock = MockAdaptiveRefreshManager()
+
+        mock.startAutoRefresh()
+        #expect(mock.startAutoRefreshCallCount == 1)
+        #expect(mock.isAutoRefreshing == true)
+
+        mock.startAutoRefresh()
+        #expect(mock.startAutoRefreshCallCount == 2)
+    }
+
+    @Test("MockAdaptiveRefreshManager tracks stopAutoRefresh calls")
+    @MainActor
+    func tracksStopCalls() {
+        let mock = MockAdaptiveRefreshManager()
+
+        mock.startAutoRefresh()
+        mock.stopAutoRefresh()
+
+        #expect(mock.stopAutoRefreshCallCount == 1)
+        #expect(mock.isAutoRefreshing == false)
+    }
+
+    @Test("MockAdaptiveRefreshManager setEffectiveInterval changes interval")
+    @MainActor
+    func setEffectiveInterval() {
+        let mock = MockAdaptiveRefreshManager()
+
+        mock.setEffectiveInterval(600)
+        #expect(mock.effectiveRefreshInterval == 600)
+
+        mock.setEffectiveInterval(.infinity)
+        #expect(mock.effectiveRefreshInterval == .infinity)
+    }
+
+    @Test("MockAdaptiveRefreshManager conforms to AdaptiveRefreshManagerProtocol")
+    @MainActor
+    func conformsToProtocol() {
+        let mock: any AdaptiveRefreshManagerProtocol = MockAdaptiveRefreshManager()
+        #expect(mock.effectiveRefreshInterval == 300)
+    }
+}

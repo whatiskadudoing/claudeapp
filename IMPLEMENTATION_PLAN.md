@@ -122,7 +122,7 @@ Key research documents for this implementation:
 
 **Purpose:** Replace the simple auto-refresh with intelligent, state-aware refresh scheduling.
 
-- [ ] **Implement AdaptiveRefreshManager with state-based interval calculation** [spec: power-aware-refresh.md] [file: Packages/Core/Sources/Core/AdaptiveRefreshManager.swift]
+- [x] **Implement AdaptiveRefreshManager with state-based interval calculation** [spec: power-aware-refresh.md] [file: Packages/Core/Sources/Core/AdaptiveRefreshManager.swift]
   - Create `@MainActor @Observable` AdaptiveRefreshManager class
   - Inject SystemStateMonitor, UsageManager, SettingsManager dependencies
   - Implement `effectiveRefreshInterval: TimeInterval` computed property:
@@ -137,6 +137,7 @@ Key research documents for this implementation:
   - **Research:** `specs/features/power-aware-refresh.md` lines 199-271
   - **Test:** Unit tests for interval calculation, state transitions, edge cases
   - **Target:** 20+ new tests
+  - **Completed:** 2026-01-28 - 23 new tests added for AdaptiveRefreshManager + 6 new tests for MockAdaptiveRefreshManager (604 total)
 
 - [ ] **Integrate AdaptiveRefreshManager into AppContainer** [file: Packages/Core/Sources/Core/AppContainer.swift, App/ClaudeApp.swift]
   - Create SystemStateMonitor instance in AppContainer
