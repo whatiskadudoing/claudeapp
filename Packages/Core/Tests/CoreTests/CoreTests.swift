@@ -799,23 +799,56 @@ struct AppContainerTests {
         #expect(container.usageManager.isAutoRefreshing == false)
     }
 
-    @Test("AppContainer test init can optionally start auto-refresh")
+    @Test("AppContainer test init can optionally start auto-refresh with power-aware disabled")
     @MainActor
-    func testInitCanStartAutoRefresh() {
+    func testInitCanStartAutoRefreshWithPowerAwareDisabled() {
         let mockRepo = MockUsageRepository()
         let mockNotifications = MockNotificationService()
+        let mockSettings = MockSettingsRepository()
+
+        // Disable power-aware refresh to use UsageManager's simple auto-refresh
+        mockSettings.set(.enablePowerAwareRefresh, value: false)
+
         let container = AppContainer(
             credentialsRepository: MockCredentialsRepository(),
             usageRepository: mockRepo,
+            settingsRepository: mockSettings,
             notificationService: mockNotifications,
             startAutoRefresh: true
         )
 
-        // Should start auto-refresh when requested
+        // Should start UsageManager's auto-refresh when power-aware is disabled
         #expect(container.usageManager.isAutoRefreshing == true)
+        #expect(container.adaptiveRefreshManager.isAutoRefreshing == false)
 
         // Clean up
         container.usageManager.stopAutoRefresh()
+    }
+
+    @Test("AppContainer test init can optionally start auto-refresh with power-aware enabled")
+    @MainActor
+    func testInitCanStartAutoRefreshWithPowerAwareEnabled() {
+        let mockRepo = MockUsageRepository()
+        let mockNotifications = MockNotificationService()
+        let mockSettings = MockSettingsRepository()
+
+        // Enable power-aware refresh (this is the default)
+        mockSettings.set(.enablePowerAwareRefresh, value: true)
+
+        let container = AppContainer(
+            credentialsRepository: MockCredentialsRepository(),
+            usageRepository: mockRepo,
+            settingsRepository: mockSettings,
+            notificationService: mockNotifications,
+            startAutoRefresh: true
+        )
+
+        // Should start AdaptiveRefreshManager when power-aware is enabled
+        #expect(container.adaptiveRefreshManager.isAutoRefreshing == true)
+        #expect(container.usageManager.isAutoRefreshing == false)
+
+        // Clean up
+        container.adaptiveRefreshManager.stopAutoRefresh()
     }
 
     @Test("AppContainer wires notification checker to usage manager")
@@ -4424,5 +4457,136 @@ struct MockAdaptiveRefreshManagerTests {
     func conformsToProtocol() {
         let mock: any AdaptiveRefreshManagerProtocol = MockAdaptiveRefreshManager()
         #expect(mock.effectiveRefreshInterval == 300)
+    }
+}
+
+// MARK: - AppContainer Power-Aware Integration Tests
+
+@Suite("AppContainer Power-Aware Integration Tests")
+struct AppContainerPowerAwareTests {
+    // Helper to create test container with mock dependencies
+    @MainActor
+    private func createTestContainer(
+        enablePowerAware: Bool = true,
+        startAutoRefresh: Bool = false
+    ) -> (AppContainer, MockUsageRepository, MockSettingsRepository) {
+        let mockCredentials = MockCredentialsRepository()
+        let mockUsage = MockUsageRepository(usageData: UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        ))
+        let mockSettings = MockSettingsRepository()
+
+        // Configure power-aware setting
+        mockSettings.set(.enablePowerAwareRefresh, value: enablePowerAware)
+
+        let container = AppContainer(
+            credentialsRepository: mockCredentials,
+            usageRepository: mockUsage,
+            settingsRepository: mockSettings,
+            startAutoRefresh: startAutoRefresh
+        )
+
+        return (container, mockUsage, mockSettings)
+    }
+
+    @Test("AppContainer creates SystemStateMonitor")
+    @MainActor
+    func createsSystemStateMonitor() {
+        let (container, _, _) = createTestContainer()
+        #expect(container.systemStateMonitor != nil)
+    }
+
+    @Test("AppContainer creates AdaptiveRefreshManager")
+    @MainActor
+    func createsAdaptiveRefreshManager() {
+        let (container, _, _) = createTestContainer()
+        #expect(container.adaptiveRefreshManager != nil)
+    }
+
+    @Test("AppContainer starts AdaptiveRefreshManager when power-aware enabled")
+    @MainActor
+    func startsAdaptiveRefreshWhenPowerAwareEnabled() async throws {
+        let (container, _, _) = createTestContainer(enablePowerAware: true, startAutoRefresh: true)
+
+        // Give it a moment to start
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(container.adaptiveRefreshManager.isAutoRefreshing == true)
+        // UsageManager should NOT be running its own auto-refresh
+        #expect(container.usageManager.isAutoRefreshing == false)
+
+        // Clean up
+        container.adaptiveRefreshManager.stopAutoRefresh()
+    }
+
+    @Test("AppContainer starts UsageManager auto-refresh when power-aware disabled")
+    @MainActor
+    func startsUsageManagerWhenPowerAwareDisabled() async throws {
+        let (container, _, _) = createTestContainer(enablePowerAware: false, startAutoRefresh: true)
+
+        // Give it a moment to start
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(container.usageManager.isAutoRefreshing == true)
+        // AdaptiveRefreshManager should NOT be running
+        #expect(container.adaptiveRefreshManager.isAutoRefreshing == false)
+
+        // Clean up
+        container.usageManager.stopAutoRefresh()
+    }
+
+    @Test("AppContainer does not start auto-refresh when startAutoRefresh is false")
+    @MainActor
+    func doesNotStartAutoRefreshWhenFalse() {
+        let (container, _, _) = createTestContainer(enablePowerAware: true, startAutoRefresh: false)
+
+        #expect(container.adaptiveRefreshManager.isAutoRefreshing == false)
+        #expect(container.usageManager.isAutoRefreshing == false)
+    }
+
+    @Test("AppContainer exposes SystemStateMonitor publicly")
+    @MainActor
+    func exposesSystemStateMonitorPublicly() {
+        let (container, _, _) = createTestContainer()
+
+        // Verify we can access the monitor's properties
+        let state = container.systemStateMonitor.currentState
+        let isOnBattery = container.systemStateMonitor.isOnBattery
+
+        #expect(state == .active) // Default state
+        // isOnBattery depends on actual hardware, just verify accessible
+        _ = isOnBattery
+    }
+
+    @Test("AppContainer exposes AdaptiveRefreshManager publicly")
+    @MainActor
+    func exposesAdaptiveRefreshManagerPublicly() {
+        let (container, _, _) = createTestContainer()
+
+        // Verify we can access the manager's properties
+        let interval = container.adaptiveRefreshManager.effectiveRefreshInterval
+        let isRefreshing = container.adaptiveRefreshManager.isAutoRefreshing
+
+        #expect(interval > 0) // Should have a positive interval
+        #expect(isRefreshing == false) // Not started yet
+    }
+
+    @Test("AppContainer wires AdaptiveRefreshManager with correct dependencies")
+    @MainActor
+    func wiresAdaptiveRefreshManagerCorrectly() async throws {
+        let (container, mockUsage, _) = createTestContainer(enablePowerAware: true, startAutoRefresh: true)
+
+        // The adaptive manager should be wired to the usage manager
+        // When it refreshes, it should call the usage repository
+        try await Task.sleep(for: .milliseconds(100))
+
+        let callCount = await mockUsage.fetchCallCount
+        // At least one refresh should have occurred
+        #expect(callCount >= 1)
+
+        // Clean up
+        container.adaptiveRefreshManager.stopAutoRefresh()
     }
 }

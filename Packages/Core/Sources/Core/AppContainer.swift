@@ -42,6 +42,12 @@ public final class AppContainer {
     /// Checker for app updates via GitHub Releases
     public let updateChecker: UpdateChecker
 
+    /// Monitor for system state (sleep, idle, battery)
+    public let systemStateMonitor: SystemStateMonitor
+
+    /// Manager for power-aware adaptive refresh scheduling
+    public let adaptiveRefreshManager: AdaptiveRefreshManager
+
     /// The detected subscription plan type from credentials
     public private(set) var detectedPlanType: PlanType = .pro
 
@@ -87,18 +93,48 @@ public final class AppContainer {
         self.updateChecker = UpdateChecker()
 
         // Create usage manager
-        self.usageManager = UsageManager(usageRepository: apiClient)
+        let usageMgr = UsageManager(usageRepository: apiClient)
+        self.usageManager = usageMgr
 
         // Connect notification checker to usage manager
-        usageManager.setNotificationChecker(notificationChecker)
+        usageMgr.setNotificationChecker(notificationChecker)
+
+        // Create system state monitor for power-aware refresh
+        let sysMonitor = SystemStateMonitor()
+        self.systemStateMonitor = sysMonitor
+
+        // Create adaptive refresh manager
+        let adaptiveRefresh = AdaptiveRefreshManager(
+            systemStateMonitor: sysMonitor,
+            usageManager: usageMgr,
+            settingsManager: settings
+        )
+        self.adaptiveRefreshManager = adaptiveRefresh
 
         // Configure settings callback to update refresh interval
+        // When power-aware is enabled, AdaptiveRefreshManager handles intervals automatically
+        // When disabled, restart UsageManager's simple auto-refresh
         settings.onRefreshIntervalChanged = { [weak self] newInterval in
-            self?.usageManager.restartAutoRefresh(interval: TimeInterval(newInterval * 60))
+            guard let self else { return }
+            if self.settingsManager.enablePowerAwareRefresh {
+                // AdaptiveRefreshManager reads interval from settings automatically
+                // Just restart to pick up new interval
+                self.adaptiveRefreshManager.stopAutoRefresh()
+                self.adaptiveRefreshManager.startAutoRefresh()
+            } else {
+                self.usageManager.restartAutoRefresh(interval: TimeInterval(newInterval * 60))
+            }
         }
 
-        // Start auto-refresh using settings interval
-        usageManager.startAutoRefresh(interval: settings.refreshIntervalSeconds)
+        // Start appropriate refresh mechanism based on settings
+        if settings.enablePowerAwareRefresh {
+            // Use adaptive refresh (power-aware)
+            sysMonitor.startMonitoring()
+            adaptiveRefresh.startAutoRefresh()
+        } else {
+            // Use simple auto-refresh
+            usageMgr.startAutoRefresh(interval: settings.refreshIntervalSeconds)
+        }
 
         // Request notification permission if notifications are enabled
         if settings.notificationsEnabled {
@@ -167,6 +203,7 @@ public final class AppContainer {
     ///   - settingsRepository: Custom settings repository (optional)
     ///   - launchAtLoginService: Custom launch at login service (optional)
     ///   - notificationService: Custom notification service (optional)
+    ///   - systemStateMonitor: Custom system state monitor (optional, creates real one if nil)
     ///   - startAutoRefresh: Whether to start auto-refresh (default false for tests)
     public init(
         credentialsRepository: CredentialsRepository,
@@ -174,6 +211,7 @@ public final class AppContainer {
         settingsRepository: SettingsRepository? = nil,
         launchAtLoginService: LaunchAtLoginService? = nil,
         notificationService: NotificationService? = nil,
+        systemStateMonitor: SystemStateMonitor? = nil,
         startAutoRefresh: Bool = false
     ) {
         self.credentialsRepository = credentialsRepository
@@ -194,11 +232,28 @@ public final class AppContainer {
         // Create update checker (uses default settings for tests)
         self.updateChecker = UpdateChecker()
 
-        self.usageManager = UsageManager(usageRepository: usageRepository)
-        usageManager.setNotificationChecker(notificationChecker)
+        let usageMgr = UsageManager(usageRepository: usageRepository)
+        self.usageManager = usageMgr
+        usageMgr.setNotificationChecker(notificationChecker)
+
+        // Create system state monitor for power-aware refresh
+        let sysMonitor = systemStateMonitor ?? SystemStateMonitor()
+        self.systemStateMonitor = sysMonitor
+
+        // Create adaptive refresh manager
+        self.adaptiveRefreshManager = AdaptiveRefreshManager(
+            systemStateMonitor: sysMonitor,
+            usageManager: usageMgr,
+            settingsManager: settings
+        )
 
         if startAutoRefresh {
-            usageManager.startAutoRefresh(interval: Self.defaultRefreshInterval)
+            if settings.enablePowerAwareRefresh {
+                sysMonitor.startMonitoring()
+                adaptiveRefreshManager.startAutoRefresh()
+            } else {
+                usageMgr.startAutoRefresh(interval: Self.defaultRefreshInterval)
+            }
             registerSleepWakeObservers()
         }
     }
@@ -216,6 +271,8 @@ public final class AppContainer {
     // MARK: - System Event Handling
 
     /// Registers observers for system sleep/wake notifications.
+    /// Delegates to AdaptiveRefreshManager when power-aware refresh is enabled,
+    /// otherwise uses UsageManager's simple sleep/wake handling.
     private func registerSleepWakeObservers() {
         // Pause auto-refresh during sleep
         sleepObserver = NSWorkspace.shared.notificationCenter.addObserver(
@@ -224,7 +281,13 @@ public final class AppContainer {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                self?.usageManager.handleSleep()
+                guard let self else { return }
+                if self.settingsManager.enablePowerAwareRefresh {
+                    // SystemStateMonitor handles this via its own notification observers
+                    // AdaptiveRefreshManager will detect .sleeping state and suspend refresh
+                } else {
+                    self.usageManager.handleSleep()
+                }
             }
         }
 
@@ -235,7 +298,13 @@ public final class AppContainer {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                self?.usageManager.handleWake()
+                guard let self else { return }
+                if self.settingsManager.enablePowerAwareRefresh {
+                    // Trigger immediate refresh after wake
+                    self.adaptiveRefreshManager.handleWake()
+                } else {
+                    self.usageManager.handleWake()
+                }
             }
         }
     }

@@ -139,7 +139,7 @@ Key research documents for this implementation:
   - **Target:** 20+ new tests
   - **Completed:** 2026-01-28 - 23 new tests added for AdaptiveRefreshManager + 6 new tests for MockAdaptiveRefreshManager (604 total)
 
-- [ ] **Integrate AdaptiveRefreshManager into AppContainer** [file: Packages/Core/Sources/Core/AppContainer.swift, App/ClaudeApp.swift]
+- [x] **Integrate AdaptiveRefreshManager into AppContainer** [file: Packages/Core/Sources/Core/AppContainer.swift, App/ClaudeApp.swift]
   - Create SystemStateMonitor instance in AppContainer
   - Create AdaptiveRefreshManager instance in AppContainer
   - Replace UsageManager's auto-refresh with AdaptiveRefreshManager when power-aware is enabled
@@ -149,6 +149,7 @@ Key research documents for this implementation:
   - **Research:** Existing AppContainer patterns in `Packages/Core/Sources/Core/AppContainer.swift`
   - **Test:** Integration tests for manager wiring
   - **Target:** 5+ new tests
+  - **Completed:** 2026-01-28 - 9 new tests added for AppContainer power-aware integration (613 total), SystemStateMonitor and AdaptiveRefreshManager wired into AppContainer
 
 ---
 <!-- CHECKPOINT: Phase 2 delivers adaptive refresh. Battery savings now active. -->
