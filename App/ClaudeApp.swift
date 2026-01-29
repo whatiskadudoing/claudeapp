@@ -98,14 +98,7 @@ struct MenuBarLabel: View {
 
     /// Color based on usage thresholds for icon tinting
     private var statusColor: Color {
-        switch currentUsage {
-        case 0..<50:
-            Theme.Colors.success
-        case 50..<90:
-            Theme.Colors.warning
-        default:
-            Theme.Colors.primary
-        }
+        Theme.Colors.forUsage(currentUsage)
     }
 
     var body: some View {
@@ -265,13 +258,13 @@ enum FocusableElement: Hashable {
 // MARK: - Dropdown View
 
 /// The dropdown content that appears when clicking the menu bar item.
-/// Shows detailed usage information with progress bars, or settings when toggled.
-/// Supports keyboard navigation via Tab key and keyboard shortcuts.
-/// Adapts layout for accessibility text sizes.
+/// KOSMA Business Card Design System inspired interface.
+/// Features: Status indicator knobs, bracket notation, corner accent, card-based layout.
 struct DropdownView: View {
     let updateChecker: UpdateChecker
 
     @Environment(UsageManager.self) private var usageManager
+    @Environment(SettingsManager.self) private var settings
     @Environment(\.sizeCategory) private var sizeCategory
 
     /// Whether to show settings instead of usage
@@ -295,142 +288,245 @@ struct DropdownView: View {
         sizeCategory >= .accessibilityMedium
     }
 
-    /// Dropdown width adapts to text size
-    /// Default: 280pt, Accessibility sizes (AX1+): 340pt
+    /// Dropdown width - slightly wider for KOSMA spacing
     private var dropdownWidth: CGFloat {
-        isAccessibilitySize ? 340 : 280
+        isAccessibilitySize ? 350 : 300
+    }
+
+    /// Connection status for indicator
+    private var isConnected: Bool {
+        usageManager.usageData != nil && usageManager.lastError == nil
+    }
+
+    /// Sync status for indicator
+    private var isSynced: Bool {
+        !usageManager.isStale && usageManager.usageData != nil
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Header
-            HStack {
+        HStack(spacing: 0) {
+            // === MAIN CONTENT AREA ===
+            VStack(alignment: .leading, spacing: 0) {
                 if showingSettings {
-                    Button {
-                        showingSettings = false
-                    } label: {
-                        HStack(spacing: 4) {
+                    // Settings header - KOSMA orange
+                    HStack(spacing: 8) {
+                        Button {
+                            withAnimation(.kosma) { showingSettings = false }
+                        } label: {
                             Image(systemName: "chevron.left")
-                                .font(.system(size: 12, weight: .semibold))
-                            Text(L("settings.title"))
-                                .font(Theme.Typography.title)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(Theme.Colors.brand)
+                        }
+                        .buttonStyle(.plain)
+
+                        Text(L("settings.title").uppercased())
+                            .font(Theme.Typography.sectionHeader)
+                            .foregroundStyle(Theme.Colors.brand.opacity(0.9))
+                            .tracking(1.2)
+                    }
+                    .padding(.horizontal, Theme.KOSMASpace.cardPadding)
+                    .padding(.vertical, 14)
+
+                    Rectangle()
+                        .fill(Color(red: 26/255, green: 26/255, blue: 26/255))  // #1A1A1A
+                        .frame(height: 1)
+                        .padding(.horizontal, 16)  // Inset divider
+
+                    SettingsContent(updateChecker: updateChecker)
+                        .accentColor(Theme.Colors.brand)
+                        .tint(Theme.Colors.brand)
+                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+                } else {
+                    // Main content (no header - cleaner KOSMA look)
+                    VStack(alignment: .leading, spacing: Theme.KOSMASpace.elementGap) {
+                        if hasErrorWithCachedData, let error = usageManager.lastError {
+                            StaleDataBanner(error: error) {
+                                Task { await usageManager.refresh() }
+                            }
+                        }
+
+                        if let data = usageManager.usageData {
+                            UsageContent(data: data, focusedElement: $focusedElement)
+                        } else if usageManager.isLoading {
+                            BrandedLoadingView()
+                        } else if let error = usageManager.lastError {
+                            BrandedErrorView(
+                                title: errorTitle(for: error),
+                                message: errorMessage(for: error)
+                            ) {
+                                Task { await usageManager.refresh() }
+                            }
+                        } else {
+                            BrandedEmptyStateView {
+                                Task { await usageManager.refresh() }
+                            }
                         }
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.primary)
-                } else {
-                    Text(L("usage.header.title"))
-                        .font(Theme.Typography.title)
-                }
-                Spacer()
-                if !showingSettings {
-                    // Show burn rate badge when available
-                    if let burnRateLevel = usageManager.usageData?.highestBurnRate?.level {
-                        BurnRateBadge(level: burnRateLevel)
+                    .padding(.horizontal, Theme.KOSMASpace.cardPadding)
+                    .padding(.top, 20)
+                    .padding(.bottom, Theme.KOSMASpace.cardPadding)
+                    .transition(.opacity.combined(with: .move(edge: .leading)))
+
+                    Spacer(minLength: 0)
+
+                    // Footer timestamp
+                    if let lastUpdated = usageManager.lastUpdated {
+                        KOSMABracketText(
+                            updatedAgoText(for: lastUpdated),
+                            bracketColor: Theme.Colors.accentRed,
+                            textColor: Theme.Colors.textTertiary,
+                            font: Theme.Typography.caption
+                        )
+                        .padding(.horizontal, Theme.KOSMASpace.cardPadding)
+                        .padding(.bottom, 12)
                     }
-                    SettingsButton {
-                        showingSettings = true
-                    }
-                    .focused($focusedElement, equals: .settings)
-                    RefreshButton()
-                        .focused($focusedElement, equals: .refresh)
                 }
             }
+            .frame(maxWidth: .infinity)
+            .animation(.kosma, value: showingSettings)
 
-            Divider()
+            // === KOSMA VERTICAL SIDEBAR ===
+            if !showingSettings {
+                Rectangle()
+                    .fill(Theme.Colors.brand.opacity(0.3))
+                    .frame(width: 1)
 
-            // Content - either settings or usage
-            if showingSettings {
-                SettingsContent(updateChecker: updateChecker)
-            } else {
-                // Usage content
-                if let data = usageManager.usageData {
-                    if hasErrorWithCachedData, let error = usageManager.lastError {
-                        StaleDataBanner(error: error) {
-                            Task { await usageManager.refresh() }
-                        }
-                    }
-                    UsageContent(data: data, focusedElement: $focusedElement)
-                } else if usageManager.isLoading {
-                    LoadingView()
-                } else if let error = usageManager.lastError {
-                    ErrorView(error: error) {
-                        Task { await usageManager.refresh() }
-                    }
-                } else {
-                    EmptyStateView {
-                        Task { await usageManager.refresh() }
-                    }
-                }
-
-                Divider()
-
-                // Footer
-                HStack {
-                    if hasErrorWithCachedData {
-                        HStack(spacing: 4) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(Theme.Typography.metadata)
-                                .foregroundStyle(.orange)
-                            Text(L("usage.staleData"))
-                                .font(Theme.Typography.metadata)
-                                .foregroundStyle(.secondary)
-                        }
-                    } else if let lastUpdated = usageManager.lastUpdated {
-                        Text(updatedAgoText(for: lastUpdated))
-                            .font(Theme.Typography.metadata)
-                            .foregroundStyle(.tertiary)
-                    }
+                VStack(spacing: 0) {
                     Spacer()
-                    Button(L("button.quit")) {
-                        NSApplication.shared.terminate(nil)
+
+                    // Vertical "[CLAUDE]" text - KOSMA bracket style (ghosted/ambient)
+                    HStack(spacing: 1) {
+                        Text("[")
+                            .foregroundStyle(Theme.Colors.accentRed.opacity(0.4))
+                        Text("CLAUDE")
+                            .foregroundStyle(Theme.Colors.textSecondaryOnDark.opacity(0.4))
+                        Text("]")
+                            .foregroundStyle(Theme.Colors.accentRed.opacity(0.4))
                     }
-                    .buttonStyle(.plain)
-                    .font(Theme.Typography.label)
-                    .keyboardShortcut("q", modifiers: .command)
+                    .font(.system(size: 8, weight: .semibold, design: .monospaced))
+                    .tracking(2)
+                    .rotationEffect(.degrees(-90))
+                    .fixedSize()
+
+                    Spacer()
+
+                    // Bottom icons section
+                    VStack(spacing: 2) {
+                        Rectangle()
+                            .fill(Theme.Colors.brand.opacity(0.2))
+                            .frame(height: 1)
+                            .padding(.horizontal, 8)
+
+                        // Refresh button
+                        RefreshButton()
+                            .focused($focusedElement, equals: .refresh)
+                            .frame(width: 36, height: 32)
+
+                        // Settings button
+                        Button {
+                            withAnimation(.kosma) { showingSettings = true }
+                        } label: {
+                            Image(systemName: "gearshape.fill")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Theme.Colors.brand.opacity(0.7))
+                                .frame(width: 36, height: 32)
+                        }
+                        .buttonStyle(.plain)
+                        .focused($focusedElement, equals: .settings)
+                        .keyboardShortcut(",", modifiers: .command)
+
+                        // Quit button
+                        Button {
+                            NSApplication.shared.terminate(nil)
+                        } label: {
+                            Image(systemName: "power")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(Theme.Colors.accentRed)
+                                .frame(width: 36, height: 32)
+                        }
+                        .buttonStyle(.plain)
+                        .keyboardShortcut("q", modifiers: .command)
+
+                        // KOSMA corner accent at very bottom
+                        KOSMACornerAccent(size: 12, thickness: 2, color: Theme.Colors.brand)
+                            .rotationEffect(.degrees(180))
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .padding(.trailing, 4)
+                            .padding(.bottom, 4)
+                    }
                 }
+                .frame(width: 36)
+                .background(Theme.Colors.cardBlack)
             }
         }
-        .padding(16)
         .frame(width: dropdownWidth)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(Theme.Colors.background)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.lg))
+        .accentColor(Theme.Colors.brand)
+        .tint(Theme.Colors.brand)
         .task {
-            // Refresh on dropdown open if data is stale or missing
             if usageManager.usageData == nil || usageManager.isStale {
                 await usageManager.refresh()
             }
         }
         .onAppear {
-            // Set initial focus to refresh button when dropdown opens
             focusedElement = .refresh
         }
     }
 
-    /// Localized text for "Updated X ago" display.
-    /// Combines localized format string with system-provided relative date.
+    /// Localized text for timestamp display
     private func updatedAgoText(for date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
-        let relativeTime = formatter.localizedString(for: date, relativeTo: Date())
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
 
-        let key = "usage.updated %@"
-        let format = Bundle.module.localizedString(forKey: key, value: "Updated %@ ago", table: nil)
-        return String(format: format, relativeTime)
+    /// Error title for branded error view
+    private func errorTitle(for error: AppError) -> String {
+        switch error {
+        case .notAuthenticated:
+            L("error.notAuthenticated.title")
+        case .networkError:
+            L("error.connectionError")
+        case .rateLimited:
+            L("error.rateLimited")
+        default:
+            L("error.unableToLoad")
+        }
+    }
+
+    /// Error message for branded error view
+    private func errorMessage(for error: AppError) -> String {
+        switch error {
+        case .notAuthenticated:
+            L("error.notAuthenticated.message")
+        case .networkError(let message):
+            message
+        case .rateLimited(let retryAfter):
+            L("error.rateLimited.wait", retryAfter)
+        case .apiError(let statusCode, _):
+            L("error.serverError", statusCode)
+        case .keychainError(let message):
+            message
+        case .decodingError(let message):
+            message
+        }
     }
 }
 
 // MARK: - Settings Button
 
-/// Button to open the settings window.
+/// Button to open settings.
 struct SettingsButton: View {
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: "gearshape")
-                .foregroundStyle(.secondary)
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.Colors.tertiary)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HoverHighlightButtonStyle())
         .keyboardShortcut(",", modifiers: .command)
         .accessibilityLabel(L("accessibility.openSettings"))
     }
@@ -450,52 +546,41 @@ struct RefreshButton: View {
             Task { await usageManager.refresh() }
         } label: {
             Image(systemName: iconName)
+                .font(.system(size: 12))
                 .foregroundStyle(iconColor)
                 .rotationEffect(.degrees(shouldAnimate ? 360 : 0))
                 .animation(animationValue, value: usageManager.refreshState)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HoverHighlightButtonStyle())
         .disabled(usageManager.isLoading)
         .keyboardShortcut("r", modifiers: .command)
         .accessibilityLabel(refreshAccessibilityLabel)
     }
 
-    /// Whether the spinning animation should be active.
-    /// Disabled when Reduce Motion is enabled - shows static icon instead.
     private var shouldAnimate: Bool {
         usageManager.refreshState == .loading && !reduceMotion
     }
 
-    /// Animation for the refresh button rotation.
-    /// Returns nil when Reduce Motion is enabled (instant state changes).
     private var animationValue: Animation? {
         guard !reduceMotion else { return nil }
         return usageManager.refreshState == .loading
             ? .linear(duration: 1).repeatForever(autoreverses: false)
-            : .default
+            : .quick
     }
 
     private var iconName: String {
         switch usageManager.refreshState {
-        case .idle:
-            "arrow.clockwise"
-        case .loading:
-            "arrow.clockwise"
-        case .success:
-            "checkmark.circle"
-        case .error:
-            "exclamationmark.circle"
+        case .idle, .loading: "arrow.clockwise"
+        case .success: "checkmark"
+        case .error: "exclamationmark"
         }
     }
 
     private var iconColor: Color {
         switch usageManager.refreshState {
-        case .idle, .loading:
-            .primary
-        case .success:
-            .green
-        case .error:
-            .red
+        case .idle, .loading: Theme.Colors.tertiary
+        case .success: Theme.Colors.safe
+        case .error: Theme.Colors.critical
         }
     }
 
@@ -516,15 +601,13 @@ struct RefreshButton: View {
 
 // MARK: - Usage Content
 
-/// Displays the usage progress bars when data is available.
-/// Passes time-to-exhaustion data from UsageWindow to each progress bar.
-/// Supports keyboard focus navigation through progress bars.
+/// KOSMA-style usage display with generous spacing
 struct UsageContent: View {
     let data: UsageData
     var focusedElement: FocusState<FocusableElement?>.Binding
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: Theme.KOSMASpace.sectionGap) {
             UsageProgressBar(
                 value: data.fiveHour.utilization,
                 label: L("usage.progressBar.session"),
@@ -574,52 +657,34 @@ struct UsageContent: View {
 
 // MARK: - Stale Data Banner
 
-/// Banner displayed when we have cached data but encountered an error on refresh.
-/// Shows a warning with the error reason and a retry button.
-/// Supports high contrast mode with visible border when "Increase Contrast" is enabled.
+/// KOSMA-style banner with bracket notation for stale data warning
 struct StaleDataBanner: View {
     let error: AppError
     let retryAction: () -> Void
 
-    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
-
-    /// Whether high contrast mode is enabled
-    private var isHighContrast: Bool {
-        colorSchemeContrast == .increased
-    }
-
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(Theme.Typography.label)
-                .foregroundStyle(.orange)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: Theme.Space.sm) {
+            HStack(spacing: 2) {
+                Text("[")
+                    .foregroundStyle(Theme.Colors.accentRed.opacity(0.7))
                 Text(L("error.unableToRefresh"))
-                    .font(Theme.Typography.label)
-                    .fontWeight(.medium)
-                Text(errorReason)
-                    .font(Theme.Typography.metadata)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.Colors.warning)
+                Text("]")
+                    .foregroundStyle(Theme.Colors.accentRed.opacity(0.7))
             }
+            .font(Theme.Typography.bracketSmall)
 
             Spacer()
 
-            Button(L("button.retry"), action: retryAction)
-                .buttonStyle(.bordered)
-                .controlSize(.mini)
-                .accessibilityLabel(L("accessibility.retryRefresh"))
+            Button("Retry", action: retryAction)
+                .buttonStyle(KOSMAGhostButtonStyle())
         }
-        .padding(8)
-        .background(Color.orange.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .overlay(
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .background(
             RoundedRectangle(cornerRadius: 6)
-                .strokeBorder(Color.orange.opacity(isHighContrast ? 0.5 : 0), lineWidth: isHighContrast ? 1.5 : 0)
+                .fill(Theme.Colors.warning.opacity(0.08))
         )
-        .padding(.bottom, 4)
-        .accessibilityElement(children: .contain)
         .accessibilityLabel(L("accessibility.unableToRefresh", errorReason))
     }
 
@@ -769,44 +834,40 @@ struct EmptyStateView: View {
 
 // MARK: - Settings Content (Inline)
 
-/// Settings content for inline display in the dropdown.
-/// Shows all settings sections in a scrollable view.
+/// Settings content with clean, minimal sections.
 struct SettingsContent: View {
     let updateChecker: UpdateChecker
 
+    @AppStorage("settings.section.display.expanded") private var displayExpanded = true
+    @AppStorage("settings.section.refresh.expanded") private var refreshExpanded = true
+    @AppStorage("settings.section.notifications.expanded") private var notificationsExpanded = true
+    @AppStorage("settings.section.general.expanded") private var generalExpanded = true
+    @AppStorage("settings.section.about.expanded") private var aboutExpanded = false
+
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 20) {
-                DisplaySection()
-
-                Divider()
-
-                RefreshSection()
-
-                Divider()
-
-                NotificationsSection()
-
-                Divider()
-
-                GeneralSection()
-
-                Divider()
-
-                AboutSection(updateChecker: updateChecker)
-
-                Divider()
-
-                // Quit button
-                Button {
-                    NSApplication.shared.terminate(nil)
-                } label: {
-                    Text(L("button.quit"))
-                        .font(.system(size: 13))
+            VStack(alignment: .leading, spacing: Theme.Space.lg) {
+                CollapsibleSection(title: L("settings.display"), isExpanded: $displayExpanded) {
+                    DisplaySectionContent()
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.red)
+
+                CollapsibleSection(title: L("settings.refresh"), isExpanded: $refreshExpanded) {
+                    RefreshSectionContent()
+                }
+
+                CollapsibleSection(title: L("settings.notifications"), isExpanded: $notificationsExpanded) {
+                    NotificationsSectionContent()
+                }
+
+                CollapsibleSection(title: L("settings.general"), isExpanded: $generalExpanded) {
+                    GeneralSectionContent()
+                }
+
+                CollapsibleSection(title: L("settings.about"), isExpanded: $aboutExpanded) {
+                    CompactAboutSection(updateChecker: updateChecker)
+                }
             }
+            .padding(Theme.Space.md)
         }
         .frame(maxHeight: 400)
     }
@@ -881,16 +942,24 @@ struct SettingsView: View {
 
 // MARK: - Display Section
 
-/// Settings for menu bar display options.
+/// Settings for menu bar display options (with header).
 struct DisplaySection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: L("settings.display"))
+            DisplaySectionContent()
+        }
+    }
+}
+
+/// Display settings content (without header, for use in collapsible sections).
+struct DisplaySectionContent: View {
     @Environment(SettingsManager.self) private var settings
 
     var body: some View {
         @Bindable var settings = settings
 
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: L("settings.display"))
-
             // Icon Style picker with live preview
             VStack(alignment: .leading, spacing: 8) {
                 SettingsPickerRow(
@@ -942,14 +1011,7 @@ struct IconStylePreview: View {
 
     /// Color based on usage thresholds
     private var statusColor: Color {
-        switch percentage {
-        case 0..<50:
-            Theme.Colors.success
-        case 50..<90:
-            Theme.Colors.warning
-        default:
-            Theme.Colors.primary
-        }
+        Theme.Colors.forUsage(percentage)
     }
 
     var body: some View {
@@ -1012,16 +1074,24 @@ struct IconStylePreview: View {
 
 // MARK: - Refresh Section
 
-/// Settings for data refresh interval.
+/// Settings for data refresh interval (with header).
 struct RefreshSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: L("settings.refresh"))
+            RefreshSectionContent()
+        }
+    }
+}
+
+/// Refresh settings content (without header, for use in collapsible sections).
+struct RefreshSectionContent: View {
     @Environment(SettingsManager.self) private var settings
 
     var body: some View {
         @Bindable var settings = settings
 
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: L("settings.refresh"))
-
             SettingsSliderRow(
                 title: L("settings.refresh.interval"),
                 value: Binding(
@@ -1055,9 +1125,19 @@ struct RefreshSection: View {
 
 // MARK: - Notifications Section
 
-/// Settings for notification preferences.
-/// Handles permission status display and denied state UI.
+/// Settings for notification preferences (with header).
 struct NotificationsSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: L("settings.notifications"))
+            NotificationsSectionContent()
+        }
+    }
+}
+
+/// Notifications settings content (without header, for use in collapsible sections).
+/// Handles permission status display and denied state UI.
+struct NotificationsSectionContent: View {
     @Environment(SettingsManager.self) private var settings
     @Environment(NotificationPermissionManager.self) private var permissionManager
 
@@ -1065,16 +1145,17 @@ struct NotificationsSection: View {
         @Bindable var settings = settings
 
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: L("settings.notifications"))
-
             HStack {
-                Text(L("settings.notifications.enable"))
-                    .font(.system(size: 13))
+                Text(L("settings.notifications.enable").uppercased())
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Theme.Colors.textOnDark)
+                    .tracking(0.5)
                 Spacer(minLength: 16)
                 Toggle("", isOn: Binding(
                     get: { settings.notificationsEnabled },
                     set: { newValue in
                         settings.notificationsEnabled = newValue
+                        HapticFeedback.success()
                         if newValue {
                             Task {
                                 await permissionManager.requestPermission()
@@ -1082,8 +1163,7 @@ struct NotificationsSection: View {
                         }
                     }
                 ))
-                .toggleStyle(.switch)
-                .controlSize(.small)
+                .toggleStyle(KOSMAToggleStyle())
                 .labelsHidden()
             }
 
@@ -1193,8 +1273,18 @@ struct PermissionDeniedBanner: View {
 
 // MARK: - General Section
 
-/// General app settings like launch at login.
+/// General app settings like launch at login (with header).
 struct GeneralSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: L("settings.general"))
+            GeneralSectionContent()
+        }
+    }
+}
+
+/// General settings content (without header, for use in collapsible sections).
+struct GeneralSectionContent: View {
     @Environment(SettingsManager.self) private var settings
     @Environment(LaunchAtLoginManager.self) private var launchAtLogin
 
@@ -1203,17 +1293,22 @@ struct GeneralSection: View {
         @Bindable var settings = settings
 
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: L("settings.general"))
-
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(L("settings.general.launchAtLogin"))
-                        .font(.system(size: 13))
+                    Text(L("settings.general.launchAtLogin").uppercased())
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundStyle(Theme.Colors.textOnDark)
+                        .tracking(0.5)
                     Spacer(minLength: 16)
-                    Toggle("", isOn: $launchAtLogin.isEnabled)
-                        .toggleStyle(.switch)
-                        .controlSize(.small)
-                        .labelsHidden()
+                    Toggle("", isOn: Binding(
+                        get: { launchAtLogin.isEnabled },
+                        set: { newValue in
+                            launchAtLogin.isEnabled = newValue
+                            HapticFeedback.success()
+                        }
+                    ))
+                    .toggleStyle(KOSMAToggleStyle())
+                    .labelsHidden()
                 }
 
                 if launchAtLogin.requiresUserApproval {
@@ -1255,8 +1350,20 @@ struct GeneralSection: View {
 
 // MARK: - About Section
 
-/// About section showing app info, version checking, and links.
+/// About section showing app info, version checking, and links (full version with header).
 struct AboutSection: View {
+    let updateChecker: UpdateChecker
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            SectionHeader(title: L("settings.about"))
+            AboutSectionContent(updateChecker: updateChecker)
+        }
+    }
+}
+
+/// Full about section content (for legacy SettingsView).
+struct AboutSectionContent: View {
     let updateChecker: UpdateChecker
 
     @State private var checkResult: CheckResult?
@@ -1267,38 +1374,34 @@ struct AboutSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            SectionHeader(title: L("settings.about"))
+        VStack(spacing: 16) {
+            // App icon
+            ClaudeIcon(size: 48)
 
-            VStack(spacing: 16) {
-                // App icon
-                ClaudeIcon(size: 48)
+            Text(L("settings.about.appName"))
+                .font(Theme.Typography.title)
 
-                Text(L("settings.about.appName"))
-                    .font(Theme.Typography.title)
-
-                Text(L("settings.about.version %@", appVersion))
-                    .font(Theme.Typography.label)
-                    .foregroundStyle(.secondary)
-
-                // Update check UI
-                updateStatusView
-
-                // Links
-                HStack(spacing: 8) {
-                    if let githubURL = URL(string: "https://github.com/anthropics/claude-code") {
-                        Link(L("settings.about.github"), destination: githubURL)
-                    }
-                    Text("•")
-                        .foregroundStyle(.tertiary)
-                    Text(L("settings.about.description"))
-                }
+            Text(L("settings.about.version %@", appVersion))
                 .font(Theme.Typography.label)
                 .foregroundStyle(.secondary)
+
+            // Update check UI
+            updateStatusView
+
+            // Links
+            HStack(spacing: 8) {
+                if let githubURL = URL(string: "https://github.com/anthropics/claude-code") {
+                    Link(L("settings.about.github"), destination: githubURL)
+                }
+                Text("•")
+                    .foregroundStyle(.tertiary)
+                Text(L("settings.about.description"))
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
+            .font(Theme.Typography.label)
+            .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
     }
 
     /// View showing update check status (button, checking spinner, or result)
@@ -1401,6 +1504,124 @@ struct AboutSection: View {
             }
 
             // Auto-dismiss rate limited and error after 5 seconds
+            if case .rateLimited = result {
+                try? await Task.sleep(for: .seconds(5))
+                await MainActor.run {
+                    if case .rateLimited = checkResult {
+                        checkResult = nil
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Compact about section for collapsible display.
+/// Horizontal layout: Icon (36px) | Name+Version | Update button
+/// Links in single row below.
+struct CompactAboutSection: View {
+    let updateChecker: UpdateChecker
+
+    @State private var checkResult: CheckResult?
+    @State private var isChecking = false
+
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.6.0"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Horizontal layout: Icon | Name+Version | Update button
+            HStack(spacing: 12) {
+                ClaudeIcon(size: 36)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L("settings.about.appName"))
+                        .font(.system(size: 13, weight: .medium))
+                    Text(L("settings.about.version %@", appVersion))
+                        .font(Theme.Typography.metadata)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                compactUpdateStatusView
+            }
+
+            // Links in single row
+            HStack(spacing: 8) {
+                if let githubURL = URL(string: "https://github.com/anthropics/claude-code") {
+                    Link(L("settings.about.github"), destination: githubURL)
+                }
+                Text("•")
+                    .foregroundStyle(.tertiary)
+                Text(L("settings.about.description"))
+            }
+            .font(Theme.Typography.metadata)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var compactUpdateStatusView: some View {
+        switch (isChecking, checkResult) {
+        case (true, _):
+            ProgressView()
+                .controlSize(.small)
+
+        case (false, nil):
+            Button(L("button.checkForUpdates")) {
+                checkForUpdates()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.mini)
+
+        case (false, .upToDate):
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .font(.system(size: 14))
+
+        case (false, .updateAvailable(let info)):
+            Button(L("button.download")) {
+                NSWorkspace.shared.open(info.downloadURL)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Theme.Colors.brand)
+            .controlSize(.mini)
+
+        case (false, .rateLimited), (false, .error):
+            Button {
+                checkForUpdates()
+            } label: {
+                Image(systemName: "arrow.clockwise")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.mini)
+        }
+    }
+
+    private func checkForUpdates() {
+        isChecking = true
+        checkResult = nil
+
+        Task {
+            let result = await updateChecker.check()
+
+            await MainActor.run {
+                isChecking = false
+                checkResult = result
+            }
+
+            // Auto-dismiss states after delay
+            if case .upToDate = result {
+                try? await Task.sleep(for: .seconds(3))
+                await MainActor.run {
+                    if case .upToDate = checkResult {
+                        checkResult = nil
+                    }
+                }
+            }
+
             if case .rateLimited = result {
                 try? await Task.sleep(for: .seconds(5))
                 await MainActor.run {

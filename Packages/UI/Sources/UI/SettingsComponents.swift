@@ -2,69 +2,152 @@ import SwiftUI
 
 // MARK: - Section Header
 
-/// Clean section header - just bold text.
+/// KOSMA-style section header with bracket notation
+/// Format: [SECTION TITLE] ─────────────
 public struct SectionHeader: View {
     let title: String
+    var showDivider: Bool
 
-    public init(title: String) {
+    public init(title: String, showDivider: Bool = true) {
         self.title = title
+        self.showDivider = showDivider
     }
 
     public var body: some View {
-        Text(title)
-            .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(.secondary)
-            .textCase(.uppercase)
+        HStack(spacing: 8) {
+            // KOSMA tight bracket notation [DISPLAY]
+            HStack(spacing: 0) {
+                Text("[")
+                    .foregroundStyle(Theme.Colors.accentRed)
+                Text(title.uppercased())
+                    .foregroundStyle(Theme.Colors.brand.opacity(0.7))
+                Text("]")
+                    .foregroundStyle(Theme.Colors.accentRed)
+            }
+            .font(.system(size: 11, weight: .medium, design: .monospaced))
+            .tracking(1.5)
+
+            if showDivider {
+                // KOSMA divider - barely visible
+                Rectangle()
+                    .fill(Color(red: 26/255, green: 26/255, blue: 26/255))  // #1A1A1A
+                    .frame(height: 1)
+            }
+        }
     }
 }
 
-// MARK: - Settings Toggle
+// MARK: - Collapsible Section
 
-/// A toggle row with label on left, switch on right.
+/// KOSMA-style collapsible section with bracket header
+public struct CollapsibleSection<Content: View>: View {
+    let title: String
+    @Binding var isExpanded: Bool
+    let content: Content
+
+    public init(title: String, isExpanded: Binding<Bool>, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self._isExpanded = isExpanded
+        self.content = content()
+    }
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // KOSMA-style header button
+            Button {
+                withAnimation(.kosma) { isExpanded.toggle() }
+            } label: {
+                HStack(spacing: 8) {
+                    // KOSMA tight bracket notation [DISPLAY]
+                    HStack(spacing: 0) {
+                        Text("[")
+                            .foregroundStyle(Theme.Colors.accentRed)
+                        Text(title.uppercased())
+                            .foregroundStyle(Theme.Colors.brand.opacity(0.7))
+                        Text("]")
+                            .foregroundStyle(Theme.Colors.accentRed)
+                    }
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .tracking(1.5)
+
+                    // Technical divider - barely visible
+                    Rectangle()
+                        .fill(Color(red: 26/255, green: 26/255, blue: 26/255))  // #1A1A1A
+                        .frame(height: 1)
+
+                    // KOSMA-style chevron
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(Theme.Colors.brand)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .animation(.kosma, value: isExpanded)
+                }
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                VStack(alignment: .leading, spacing: Theme.Space.md) {
+                    content
+                }
+                .padding(.top, Theme.Space.md)
+                .padding(.leading, 4)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+}
+
+// MARK: - Toggle
+
+/// KOSMA-style settings toggle
 public struct SettingsToggle: View {
     let title: String
     @Binding var isOn: Bool
     var subtitle: String?
+    var showSaveIndicator: Bool
 
-    public init(title: String, isOn: Binding<Bool>, subtitle: String? = nil) {
+    public init(title: String, isOn: Binding<Bool>, subtitle: String? = nil, showSaveIndicator: Bool = false) {
         self.title = title
         self._isOn = isOn
         self.subtitle = subtitle
+        self.showSaveIndicator = showSaveIndicator
     }
 
     public var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 13))
+        HStack(alignment: subtitle != nil ? .top : .center) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title.uppercased())
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Theme.Colors.textOnDark)
+                    .tracking(0.5)
+
                 if let subtitle {
                     Text(subtitle)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundStyle(Color(red: 102/255, green: 102/255, blue: 102/255))  // #666666
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            Spacer(minLength: 16)
+
+            Spacer(minLength: Theme.Space.md)
+
+            // Custom KOSMA toggle
             Toggle("", isOn: $isOn)
-                .toggleStyle(.switch)
-                .controlSize(.small)
+                .toggleStyle(KOSMAToggleStyle())
                 .labelsHidden()
         }
     }
 }
 
-// MARK: - Settings Picker Row
+// MARK: - Picker Row
 
-/// A picker row with label on left, dropdown on right.
+/// KOSMA-style picker row
 public struct SettingsPickerRow<SelectionValue: Hashable, Content: View>: View {
     let title: String
     @Binding var selection: SelectionValue
     let content: Content
 
-    public init(
-        title: String,
-        selection: Binding<SelectionValue>,
-        @ViewBuilder content: () -> Content
-    ) {
+    public init(title: String, selection: Binding<SelectionValue>, @ViewBuilder content: () -> Content) {
         self.title = title
         self._selection = selection
         self.content = content()
@@ -72,22 +155,26 @@ public struct SettingsPickerRow<SelectionValue: Hashable, Content: View>: View {
 
     public var body: some View {
         HStack {
-            Text(title)
-                .font(.system(size: 13))
+            Text(title.uppercased())
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundStyle(Theme.Colors.textOnDark)
+                .tracking(0.5)
+
             Spacer()
-            Picker("", selection: $selection) {
-                content
-            }
-            .pickerStyle(.menu)
-            .labelsHidden()
-            .fixedSize()
+
+            Picker("", selection: $selection) { content }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .fixedSize()
+                .tint(Theme.Colors.brand)
+                .accentColor(Theme.Colors.brand)
         }
     }
 }
 
-// MARK: - Settings Slider Row
+// MARK: - Slider Row
 
-/// A slider with label and current value display.
+/// KOSMA-style slider with value display
 public struct SettingsSliderRow: View {
     let title: String
     @Binding var value: Double
@@ -116,66 +203,90 @@ public struct SettingsSliderRow: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(title)
-                    .font(.system(size: 13))
+                Text(title.uppercased())
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Theme.Colors.textOnDark)
+                    .tracking(0.5)
+
                 Spacer()
-                Text(valueFormatter(value))
-                    .font(.system(size: 13).monospacedDigit())
-                    .foregroundStyle(.secondary)
+
+                // KOSMA tight bracket value
+                HStack(spacing: 0) {
+                    Text("[")
+                        .foregroundStyle(Theme.Colors.accentRed)
+                    Text(valueFormatter(value))
+                        .foregroundStyle(Theme.Colors.brand)
+                    Text("]")
+                        .foregroundStyle(Theme.Colors.accentRed)
+                }
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
             }
 
             Slider(value: $value, in: range, step: step)
                 .controlSize(.small)
+                .tint(Theme.Colors.brand)
+                .accentColor(Theme.Colors.brand)
 
             if minLabel != nil || maxLabel != nil {
                 HStack {
-                    if let minLabel {
-                        Text(minLabel)
-                            .font(.system(size: 10))
-                            .foregroundStyle(.tertiary)
-                    }
+                    Text(minLabel ?? "")
                     Spacer()
-                    if let maxLabel {
-                        Text(maxLabel)
-                            .font(.system(size: 10))
-                            .foregroundStyle(.tertiary)
-                    }
+                    Text(maxLabel ?? "")
                 }
+                .font(.system(size: 9, weight: .regular, design: .monospaced))
+                .foregroundStyle(Theme.Colors.textTertiaryOnDark)
             }
         }
     }
 }
 
-// MARK: - Backwards Compatibility
+// MARK: - Divider
 
-/// Backwards compatibility aliases
+/// KOSMA-style divider
+public struct SettingsDivider: View {
+    public init() {}
+
+    public var body: some View {
+        Rectangle()
+            .fill(Theme.Colors.separator)
+            .frame(height: 1)
+    }
+}
+
+// MARK: - Save Indicator
+
+/// Animated checkmark feedback on settings save
+public struct SettingsSaveIndicator: View {
+    @Binding var isVisible: Bool
+
+    public init(isVisible: Binding<Bool>) {
+        self._isVisible = isVisible
+    }
+
+    public var body: some View {
+        Image(systemName: "checkmark")
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(Theme.Colors.brand)
+            .opacity(isVisible ? 1 : 0)
+            .scaleEffect(isVisible ? 1 : 0.5)
+            .animation(.gentle, value: isVisible)
+    }
+}
+
+// MARK: - Legacy Components
+
 public struct SettingsGroup<Content: View>: View {
     let content: Content
-    public init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
+    public init(@ViewBuilder content: () -> Content) { self.content = content() }
     public var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            content
-        }
+        VStack(alignment: .leading, spacing: Theme.Space.md) { content }
     }
 }
 
 public struct SettingsRow<Content: View>: View {
     let content: Content
-    public init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-    public var body: some View {
-        content
-    }
-}
-
-public struct SettingsDivider: View {
-    public init() {}
-    public var body: some View {
-        EmptyView()
-    }
+    public init(@ViewBuilder content: () -> Content) { self.content = content() }
+    public var body: some View { content }
 }
