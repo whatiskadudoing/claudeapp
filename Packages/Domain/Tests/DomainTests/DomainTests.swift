@@ -497,6 +497,92 @@ struct UsageDataTests {
         #expect(data.highestBurnRate?.percentPerHour == 20.0)
         #expect(data.highestBurnRate?.level == .medium)
     }
+
+    // MARK: - isAtCapacity Tests
+
+    @Test("isAtCapacity returns false when all windows below 100%")
+    func isAtCapacityFalse() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0),
+            sevenDay: UsageWindow(utilization: 50.0),
+            sevenDayOpus: UsageWindow(utilization: 20.0),
+            sevenDaySonnet: UsageWindow(utilization: 99.0)
+        )
+
+        #expect(data.isAtCapacity == false)
+    }
+
+    @Test("isAtCapacity returns true when fiveHour at 100%")
+    func isAtCapacityFiveHour() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 100.0),
+            sevenDay: UsageWindow(utilization: 50.0),
+            sevenDayOpus: UsageWindow(utilization: 20.0),
+            sevenDaySonnet: UsageWindow(utilization: 30.0)
+        )
+
+        #expect(data.isAtCapacity == true)
+    }
+
+    @Test("isAtCapacity returns true when sevenDay at 100%")
+    func isAtCapacitySevenDay() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0),
+            sevenDay: UsageWindow(utilization: 100.0),
+            sevenDayOpus: UsageWindow(utilization: 20.0),
+            sevenDaySonnet: UsageWindow(utilization: 40.0)
+        )
+
+        #expect(data.isAtCapacity == true)
+    }
+
+    @Test("isAtCapacity returns true when sevenDayOpus at 100%")
+    func isAtCapacityOpus() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0),
+            sevenDay: UsageWindow(utilization: 50.0),
+            sevenDayOpus: UsageWindow(utilization: 100.0),
+            sevenDaySonnet: UsageWindow(utilization: 40.0)
+        )
+
+        #expect(data.isAtCapacity == true)
+    }
+
+    @Test("isAtCapacity returns true when sevenDaySonnet at 100%")
+    func isAtCapacitySonnet() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0),
+            sevenDay: UsageWindow(utilization: 50.0),
+            sevenDayOpus: UsageWindow(utilization: 20.0),
+            sevenDaySonnet: UsageWindow(utilization: 100.0)
+        )
+
+        #expect(data.isAtCapacity == true)
+    }
+
+    @Test("isAtCapacity handles nil optional windows")
+    func isAtCapacityNilOptionals() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0),
+            sevenDay: UsageWindow(utilization: 50.0),
+            sevenDayOpus: nil,
+            sevenDaySonnet: nil
+        )
+
+        #expect(data.isAtCapacity == false)
+    }
+
+    @Test("isAtCapacity returns true when over 100%")
+    func isAtCapacityOver100() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 105.0),
+            sevenDay: UsageWindow(utilization: 50.0),
+            sevenDayOpus: nil,
+            sevenDaySonnet: nil
+        )
+
+        #expect(data.isAtCapacity == true)
+    }
 }
 
 // MARK: - Credentials Tests

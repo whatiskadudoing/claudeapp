@@ -115,6 +115,11 @@ struct MenuBarLabel: View {
         Theme.Colors.forUsage(currentUsage)
     }
 
+    /// Whether any usage window has reached 100% capacity
+    private var isAtCapacity: Bool {
+        usageManager.usageData?.isAtCapacity ?? false
+    }
+
     var body: some View {
         HStack(spacing: 4) {
             if usageManager.isLoading && usageManager.usageData == nil {
@@ -125,6 +130,13 @@ struct MenuBarLabel: View {
             } else if usageManager.usageData != nil {
                 // Render based on selected icon style
                 iconStyleContent
+
+                // Warning indicator when any limit is at 100%
+                if isAtCapacity {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Theme.Colors.warning)
+                }
             } else {
                 // No data state - show icon only
                 ClaudeIconImage(size: 10, color: Theme.Colors.brand)
@@ -230,8 +242,8 @@ struct MenuBarLabel: View {
                 break
             }
 
-            // Add warning state for high usage
-            if percentage >= 100 {
+            // Add warning state for high usage (check isAtCapacity for any window at 100%)
+            if data.isAtCapacity {
                 label += L("accessibility.menuBar.limitReached")
             } else if percentage >= 90 {
                 label += L("accessibility.menuBar.approachingLimit")

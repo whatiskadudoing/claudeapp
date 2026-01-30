@@ -54,6 +54,12 @@ public struct UsageData: Sendable, Equatable {
             .max { $0.percentPerHour < $1.percentPerHour }
     }
 
+    /// Returns true if any usage window has reached 100% capacity.
+    /// Used to display a warning indicator in the menu bar.
+    public var isAtCapacity: Bool {
+        highestUtilization >= 100
+    }
+
     /// Returns the utilization for the specified percentage source.
     /// Falls back to highest utilization if the requested source is unavailable.
     public func utilization(for source: PercentageSource) -> Double {

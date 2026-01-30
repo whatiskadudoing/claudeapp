@@ -172,13 +172,14 @@ Key research documents for this implementation:
   - **Impact:** API requests will report correct version from Info.plist
   - **Tests:** 609 tests passing (no new tests needed - behavior change only)
 
-- [ ] **Add menu bar warning indicator at 100%** [spec: view-usage.md] [file: App/ClaudeApp.swift]
-  - Modify `MenuBarLabel` to show warning icon when any window at 100%
-  - Display format: `[✦] 100% ⚠️` or just add subtle indicator
-  - Use SF Symbol `exclamationmark.triangle.fill`
-  - **Research:** `specs/features/view-usage.md` "Display badge when any limit at 100%"
-  - **Test:** Visual verification at 100% utilization
-  - **Target:** 2+ new tests (627+ total)
+- [x] **Add menu bar warning indicator at 100%** [spec: view-usage.md] [file: App/ClaudeApp.swift]
+  - ✅ Added `isAtCapacity` computed property to `UsageData` (returns true when highestUtilization >= 100)
+  - ✅ Modified `MenuBarLabel` to show warning icon when any window at 100%
+  - ✅ Display format: `[✦] 100% ⚠️` using SF Symbol `exclamationmark.triangle.fill`
+  - ✅ Warning icon uses `Theme.Colors.warning` for consistent styling
+  - ✅ Updated accessibility label to use `isAtCapacity` for accurate VoiceOver announcements
+  - **Completed:** 2026-01-30
+  - **Tests:** 616 tests passing (+7 new isAtCapacity tests)
 
 - [ ] **Persist UpdateChecker lastCheckDate across restarts** [file: Packages/Core/Sources/Core/UpdateChecker.swift]
   - Save `lastCheckDate` to UserDefaults on successful check
@@ -236,7 +237,7 @@ Key research documents for this implementation:
 
 **Polish:**
 - [x] Fix user agent version string ✅ 2026-01-30
-- [ ] Add 100% warning indicator in menu bar
+- [x] Add 100% warning indicator in menu bar ✅ 2026-01-30
 - [ ] Persist update check date across restarts
 
 ---
@@ -292,11 +293,11 @@ Key research documents for this implementation:
 
 ## Test Coverage Summary
 
-**Current:** 609 tests across 4 packages
+**Current:** 616 tests across 4 packages
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
-| Domain | 81 | Excellent - models fully tested |
+| Domain | 88 | Excellent - models fully tested (+7 isAtCapacity tests) |
 | Services | 29 | Basic - needs error scenarios |
 | Core | 266 | Comprehensive - business logic (+4 userInfo tests) |
 | UI | 233 | Excellent - accessibility focus |
