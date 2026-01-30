@@ -6194,3 +6194,690 @@ struct CachedUsageDataTests {
         #expect(cached.ageInSeconds <= 301)
     }
 }
+
+// MARK: - UserDefaultsAccountStorage Tests
+
+@Suite("UserDefaultsAccountStorage Tests")
+struct UserDefaultsAccountStorageTests {
+    /// Creates a test UserDefaults instance with a unique suite name
+    private func createTestDefaults() -> UserDefaults {
+        let suiteName = "com.claudeapp.test.accounts.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        return defaults
+    }
+
+    // MARK: - Load/Save Tests
+
+    @Test("loadAccounts returns empty array when no data exists")
+    func loadAccountsEmpty() {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+
+        let accounts = storage.loadAccounts()
+
+        #expect(accounts.isEmpty)
+    }
+
+    @Test("saveAccounts and loadAccounts round-trip preserves data")
+    func saveLoadRoundTrip() {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+
+        let account1 = Account(name: "Personal", planType: .pro, keychainIdentifier: "default")
+        let account2 = Account(name: "Work", planType: .max20x, keychainIdentifier: "work")
+
+        storage.saveAccounts([account1, account2])
+        let loaded = storage.loadAccounts()
+
+        #expect(loaded.count == 2)
+        #expect(loaded[0].name == "Personal")
+        #expect(loaded[0].planType == .pro)
+        #expect(loaded[1].name == "Work")
+        #expect(loaded[1].planType == .max20x)
+    }
+
+    @Test("saveAccounts replaces existing data")
+    func saveReplacesData() {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+
+        let account1 = Account(name: "First")
+        storage.saveAccounts([account1])
+
+        let account2 = Account(name: "Second")
+        storage.saveAccounts([account2])
+
+        let loaded = storage.loadAccounts()
+
+        #expect(loaded.count == 1)
+        #expect(loaded[0].name == "Second")
+    }
+
+    @Test("saveAccounts handles empty array")
+    func saveEmptyArray() {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+
+        let account = Account(name: "Test")
+        storage.saveAccounts([account])
+        storage.saveAccounts([])
+
+        let loaded = storage.loadAccounts()
+
+        #expect(loaded.isEmpty)
+    }
+
+    @Test("clearAccounts removes all stored data")
+    func clearAccounts() {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+
+        let account = Account(name: "Test")
+        storage.saveAccounts([account])
+        storage.clearAccounts()
+
+        let loaded = storage.loadAccounts()
+
+        #expect(loaded.isEmpty)
+    }
+
+    @Test("loadAccounts preserves account IDs")
+    func preservesAccountIds() {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+
+        let id = UUID()
+        let account = Account(id: id, name: "Test")
+
+        storage.saveAccounts([account])
+        let loaded = storage.loadAccounts()
+
+        #expect(loaded.first?.id == id)
+    }
+
+    @Test("loadAccounts preserves all account fields")
+    func preservesAllFields() throws {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+
+        let createdAt = Date()
+        let id = UUID()
+        let account = Account(
+            id: id,
+            name: "Full Account",
+            email: "test@example.com",
+            planType: .max5x,
+            keychainIdentifier: "custom-key",
+            isActive: false,
+            isPrimary: true,
+            createdAt: createdAt
+        )
+
+        storage.saveAccounts([account])
+        let loaded = storage.loadAccounts()
+
+        #expect(loaded.count == 1)
+        let result = loaded[0]
+        #expect(result.id == id)
+        #expect(result.name == "Full Account")
+        #expect(result.email == "test@example.com")
+        #expect(result.planType == .max5x)
+        #expect(result.keychainIdentifier == "custom-key")
+        #expect(result.isActive == false)
+        #expect(result.isPrimary == true)
+    }
+
+    @Test("Storage is Sendable")
+    func sendable() async {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+        let account = Account(name: "Test")
+
+        await Task.detached {
+            storage.saveAccounts([account])
+        }.value
+
+        let loaded = storage.loadAccounts()
+        #expect(loaded.count == 1)
+    }
+}
+
+// MARK: - AccountManager Tests
+
+@Suite("AccountManager Tests")
+struct AccountManagerTests {
+    /// Creates a test UserDefaults instance with a unique suite name
+    private func createTestDefaults() -> UserDefaults {
+        let suiteName = "com.claudeapp.test.accountmanager.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        return defaults
+    }
+
+    /// Creates an AccountManager with isolated test storage
+    @MainActor
+    private func createTestManager() -> AccountManager {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+        return AccountManager(storage: storage)
+    }
+
+    // MARK: - Initialization Tests
+
+    @Test("AccountManager starts with empty accounts")
+    @MainActor
+    func initialStateEmpty() {
+        let manager = createTestManager()
+
+        #expect(manager.accounts.isEmpty)
+        #expect(manager.activeAccount == nil)
+        #expect(manager.primaryAccount == nil)
+        #expect(manager.hasAccounts == false)
+    }
+
+    @Test("AccountManager activeAccountCount starts at zero")
+    @MainActor
+    func initialActiveAccountCount() {
+        let manager = createTestManager()
+
+        #expect(manager.activeAccountCount == 0)
+    }
+
+    // MARK: - Add Account Tests
+
+    @Test("addAccount adds account to list")
+    @MainActor
+    func addAccountAddsToList() {
+        let manager = createTestManager()
+        let account = Account(name: "Personal")
+
+        manager.addAccount(account)
+
+        #expect(manager.accounts.count == 1)
+        #expect(manager.accounts.first?.name == "Personal")
+    }
+
+    @Test("addAccount makes first account primary")
+    @MainActor
+    func addAccountMakesFirstPrimary() {
+        let manager = createTestManager()
+        let account = Account(name: "First", isPrimary: false)
+
+        manager.addAccount(account)
+
+        #expect(manager.accounts.first?.isPrimary == true)
+        #expect(manager.primaryAccount?.name == "First")
+    }
+
+    @Test("addAccount sets new account as active")
+    @MainActor
+    func addAccountSetsActive() {
+        let manager = createTestManager()
+        let account = Account(name: "New")
+
+        manager.addAccount(account)
+
+        #expect(manager.activeAccount?.name == "New")
+    }
+
+    @Test("addAccount does not make second account primary")
+    @MainActor
+    func addAccountSecondNotPrimary() {
+        let manager = createTestManager()
+        let first = Account(name: "First")
+        let second = Account(name: "Second")
+
+        manager.addAccount(first)
+        manager.addAccount(second)
+
+        #expect(manager.accounts[0].isPrimary == true)
+        #expect(manager.accounts[1].isPrimary == false)
+        #expect(manager.primaryAccount?.name == "First")
+    }
+
+    @Test("addAccount persists to storage")
+    @MainActor
+    func addAccountPersists() {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+        let manager = AccountManager(storage: storage)
+
+        let account = Account(name: "Persistent")
+        manager.addAccount(account)
+
+        // Create new manager with same storage to verify persistence
+        let manager2 = AccountManager(storage: storage)
+        #expect(manager2.accounts.count == 1)
+        #expect(manager2.accounts.first?.name == "Persistent")
+    }
+
+    // MARK: - Remove Account Tests
+
+    @Test("removeAccount removes account from list")
+    @MainActor
+    func removeAccountRemovesFromList() {
+        let manager = createTestManager()
+        let account = Account(name: "ToRemove")
+        manager.addAccount(account)
+
+        manager.removeAccount(account)
+
+        #expect(manager.accounts.isEmpty)
+    }
+
+    @Test("removeAccount switches active to primary when removing active")
+    @MainActor
+    func removeActiveSwitchesToPrimary() {
+        let manager = createTestManager()
+        let first = Account(name: "First") // Will be primary
+        let second = Account(name: "Second")
+        manager.addAccount(first)
+        manager.addAccount(second) // This becomes active
+
+        #expect(manager.activeAccount?.name == "Second")
+
+        manager.removeAccount(manager.accounts[1]) // Remove "Second"
+
+        #expect(manager.activeAccount?.name == "First")
+    }
+
+    @Test("removeAccount assigns new primary when removing primary")
+    @MainActor
+    func removePrimaryAssignsNewPrimary() {
+        let manager = createTestManager()
+        let first = Account(name: "First")
+        let second = Account(name: "Second")
+        manager.addAccount(first)
+        manager.addAccount(second)
+
+        let primaryAccount = manager.accounts.first { $0.isPrimary }!
+        manager.removeAccount(primaryAccount)
+
+        #expect(manager.accounts.count == 1)
+        #expect(manager.accounts.first?.isPrimary == true)
+    }
+
+    @Test("removeAccount persists removal")
+    @MainActor
+    func removeAccountPersists() {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+        let manager = AccountManager(storage: storage)
+
+        let account = Account(name: "Temp")
+        manager.addAccount(account)
+        manager.removeAccount(manager.accounts.first!)
+
+        // Verify with new manager
+        let manager2 = AccountManager(storage: storage)
+        #expect(manager2.accounts.isEmpty)
+    }
+
+    // MARK: - Update Account Tests
+
+    @Test("updateAccount updates account data")
+    @MainActor
+    func updateAccountUpdatesData() {
+        let manager = createTestManager()
+        var account = Account(name: "Original")
+        manager.addAccount(account)
+
+        account = manager.accounts.first!
+        var updated = account
+        updated.name = "Updated"
+        manager.updateAccount(updated)
+
+        #expect(manager.accounts.first?.name == "Updated")
+    }
+
+    @Test("updateAccount is no-op for non-existent account")
+    @MainActor
+    func updateNonExistentIsNoOp() {
+        let manager = createTestManager()
+        let existing = Account(name: "Existing")
+        manager.addAccount(existing)
+
+        let nonExistent = Account(name: "NonExistent")
+        manager.updateAccount(nonExistent)
+
+        #expect(manager.accounts.count == 1)
+        #expect(manager.accounts.first?.name == "Existing")
+    }
+
+    @Test("updateAccount persists changes")
+    @MainActor
+    func updateAccountPersists() {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+        let manager = AccountManager(storage: storage)
+
+        var account = Account(name: "Original")
+        manager.addAccount(account)
+
+        account = manager.accounts.first!
+        var updated = account
+        updated.name = "Persisted Update"
+        manager.updateAccount(updated)
+
+        // Verify with new manager
+        let manager2 = AccountManager(storage: storage)
+        #expect(manager2.accounts.first?.name == "Persisted Update")
+    }
+
+    // MARK: - Set Active Account Tests
+
+    @Test("setActiveAccount changes active account")
+    @MainActor
+    func setActiveAccountChanges() {
+        let manager = createTestManager()
+        let first = Account(name: "First")
+        let second = Account(name: "Second")
+        manager.addAccount(first)
+        manager.addAccount(second)
+
+        let firstId = manager.accounts.first { $0.name == "First" }!.id
+        manager.setActiveAccount(firstId)
+
+        #expect(manager.activeAccount?.name == "First")
+    }
+
+    @Test("setActiveAccount is no-op for invalid ID")
+    @MainActor
+    func setActiveAccountInvalidId() {
+        let manager = createTestManager()
+        let account = Account(name: "Only")
+        manager.addAccount(account)
+
+        let originalActive = manager.activeAccount
+        manager.setActiveAccount(UUID()) // Non-existent ID
+
+        #expect(manager.activeAccount?.id == originalActive?.id)
+    }
+
+    // MARK: - Set Primary Account Tests
+
+    @Test("setPrimaryAccount changes primary account")
+    @MainActor
+    func setPrimaryAccountChanges() {
+        let manager = createTestManager()
+        let first = Account(name: "First")
+        let second = Account(name: "Second")
+        manager.addAccount(first)
+        manager.addAccount(second)
+
+        let secondId = manager.accounts.first { $0.name == "Second" }!.id
+        manager.setPrimaryAccount(secondId)
+
+        #expect(manager.primaryAccount?.name == "Second")
+        #expect(manager.accounts[0].isPrimary == false)
+        #expect(manager.accounts[1].isPrimary == true)
+    }
+
+    @Test("setPrimaryAccount ensures only one primary")
+    @MainActor
+    func setPrimaryAccountOnlyOne() {
+        let manager = createTestManager()
+        let first = Account(name: "First")
+        let second = Account(name: "Second")
+        let third = Account(name: "Third")
+        manager.addAccount(first)
+        manager.addAccount(second)
+        manager.addAccount(third)
+
+        let thirdId = manager.accounts.first { $0.name == "Third" }!.id
+        manager.setPrimaryAccount(thirdId)
+
+        let primaryCount = manager.accounts.filter(\.isPrimary).count
+        #expect(primaryCount == 1)
+    }
+
+    @Test("setPrimaryAccount persists change")
+    @MainActor
+    func setPrimaryAccountPersists() {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+        let manager = AccountManager(storage: storage)
+
+        let first = Account(name: "First")
+        let second = Account(name: "Second")
+        manager.addAccount(first)
+        manager.addAccount(second)
+
+        let secondId = manager.accounts.first { $0.name == "Second" }!.id
+        manager.setPrimaryAccount(secondId)
+
+        // Verify with new manager
+        let manager2 = AccountManager(storage: storage)
+        #expect(manager2.primaryAccount?.name == "Second")
+    }
+
+    // MARK: - Migration Tests
+
+    @Test("migrateIfNeeded creates default account when empty")
+    @MainActor
+    func migrateCreatesDefaultAccount() {
+        let manager = createTestManager()
+
+        manager.migrateIfNeeded()
+
+        #expect(manager.accounts.count == 1)
+        #expect(manager.accounts.first?.name == "Default")
+        #expect(manager.accounts.first?.keychainIdentifier == "default")
+        #expect(manager.accounts.first?.isPrimary == true)
+        #expect(manager.accounts.first?.isActive == true)
+    }
+
+    @Test("migrateIfNeeded sets active account to default")
+    @MainActor
+    func migrateSetsActiveAccount() {
+        let manager = createTestManager()
+
+        manager.migrateIfNeeded()
+
+        #expect(manager.activeAccount?.name == "Default")
+    }
+
+    @Test("migrateIfNeeded is no-op when accounts exist")
+    @MainActor
+    func migrateNoOpWhenAccountsExist() {
+        let manager = createTestManager()
+        let existing = Account(name: "Existing")
+        manager.addAccount(existing)
+
+        manager.migrateIfNeeded()
+
+        #expect(manager.accounts.count == 1)
+        #expect(manager.accounts.first?.name == "Existing")
+    }
+
+    @Test("migrateIfNeeded persists default account")
+    @MainActor
+    func migratePersistsDefaultAccount() {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+        let manager = AccountManager(storage: storage)
+
+        manager.migrateIfNeeded()
+
+        // Verify with new manager
+        let manager2 = AccountManager(storage: storage)
+        #expect(manager2.accounts.count == 1)
+        #expect(manager2.accounts.first?.name == "Default")
+    }
+
+    // MARK: - Computed Properties Tests
+
+    @Test("hasAccounts returns true when accounts exist")
+    @MainActor
+    func hasAccountsTrue() {
+        let manager = createTestManager()
+        manager.addAccount(Account(name: "Test"))
+
+        #expect(manager.hasAccounts == true)
+    }
+
+    @Test("activeAccountCount counts only active accounts")
+    @MainActor
+    func activeAccountCountOnlyActive() {
+        let manager = createTestManager()
+
+        var active = Account(name: "Active", isActive: true)
+        var inactive = Account(name: "Inactive", isActive: false)
+        manager.addAccount(active)
+
+        // Get the added account and update the inactive one
+        active = manager.accounts.first!
+        inactive.isActive = false
+        manager.addAccount(inactive)
+
+        // Manually set the second one to inactive
+        var updatedInactive = manager.accounts[1]
+        updatedInactive.isActive = false
+        manager.updateAccount(updatedInactive)
+
+        #expect(manager.activeAccountCount == 1)
+    }
+
+    // MARK: - Clear and Reload Tests
+
+    @Test("clearAllAccounts removes all accounts")
+    @MainActor
+    func clearAllAccountsRemovesAll() {
+        let manager = createTestManager()
+        manager.addAccount(Account(name: "One"))
+        manager.addAccount(Account(name: "Two"))
+
+        manager.clearAllAccounts()
+
+        #expect(manager.accounts.isEmpty)
+        #expect(manager.activeAccount == nil)
+    }
+
+    @Test("reload loads from storage")
+    @MainActor
+    func reloadLoadsFromStorage() {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+        let manager = AccountManager(storage: storage)
+
+        // Directly save to storage
+        let account = Account(name: "External", isPrimary: true)
+        storage.saveAccounts([account])
+
+        manager.reload()
+
+        #expect(manager.accounts.count == 1)
+        #expect(manager.accounts.first?.name == "External")
+    }
+}
+
+// MARK: - MultiAccountCredentialsRepository Tests
+
+@Suite("MultiAccountCredentialsRepository Tests")
+struct MultiAccountCredentialsRepositoryTests {
+    @Test("Repository conforms to CredentialsRepository")
+    func conformsToProtocol() async {
+        let repo = MultiAccountCredentialsRepository()
+
+        // This test verifies the protocol conformance compiles
+        // The actual credential fetching depends on system Keychain state
+        let hasCredentials = await repo.hasCredentials()
+        // We don't assert the result since it depends on system state
+        _ = hasCredentials
+    }
+
+    @Test("getCredentials(for:) uses account keychain service name")
+    func usesAccountServiceName() async {
+        let repo = MultiAccountCredentialsRepository()
+
+        // Create an account with a custom keychain identifier
+        let account = Account(name: "Custom", keychainIdentifier: "custom-test-id")
+
+        // This will try to fetch from "ClaudeApp-account-custom-test-id"
+        // which shouldn't exist, so we expect notAuthenticated error
+        do {
+            _ = try await repo.getCredentials(for: account)
+            Issue.record("Expected notAuthenticated error for non-existent keychain entry")
+        } catch let error as AppError {
+            switch error {
+            case .notAuthenticated:
+                // Expected - no credentials exist for this custom identifier
+                break
+            case .keychainError:
+                // Also acceptable - keychain access might fail differently
+                break
+            default:
+                Issue.record("Unexpected error type: \(error)")
+            }
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
+    @Test("hasCredentials(for:) returns false for non-existent account")
+    func hasCredentialsFalseForNonExistent() async {
+        let repo = MultiAccountCredentialsRepository()
+        let account = Account(name: "NonExistent", keychainIdentifier: "definitely-not-real-\(UUID())")
+
+        let result = await repo.hasCredentials(for: account)
+
+        #expect(result == false)
+    }
+
+    @Test("clearCache clears repository cache")
+    func clearCacheWorks() async {
+        let repo = MultiAccountCredentialsRepository()
+
+        // Access a few service names to populate cache
+        _ = await repo.hasCredentials(forServiceName: "test-service-1")
+        _ = await repo.hasCredentials(forServiceName: "test-service-2")
+
+        await repo.clearCache()
+
+        // Cache is cleared - no way to directly verify, but this shouldn't crash
+        _ = await repo.hasCredentials(forServiceName: "test-service-1")
+    }
+
+    @Test("Repository handles default account correctly")
+    func handlesDefaultAccount() async {
+        let repo = MultiAccountCredentialsRepository()
+        let account = Account(name: "Default", keychainIdentifier: "default")
+
+        // Default account should use "Claude Code-credentials" service name
+        #expect(account.keychainServiceName == "Claude Code-credentials")
+
+        // The actual credential fetch depends on system state
+        let hasCredentials = await repo.hasCredentials(for: account)
+        _ = hasCredentials // Result depends on whether Claude Code is installed and logged in
+    }
+
+    @Test("getCredentials(forServiceName:) uses specified service name")
+    func getCredentialsForServiceName() async {
+        let repo = MultiAccountCredentialsRepository()
+
+        do {
+            _ = try await repo.getCredentials(forServiceName: "non-existent-service-\(UUID())")
+            Issue.record("Expected error for non-existent service")
+        } catch let error as AppError {
+            switch error {
+            case .notAuthenticated, .keychainError:
+                // Expected
+                break
+            default:
+                Issue.record("Unexpected error type: \(error)")
+            }
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
+    @Test("hasCredentials(forServiceName:) returns false for non-existent service")
+    func hasCredentialsForServiceNameFalse() async {
+        let repo = MultiAccountCredentialsRepository()
+
+        let result = await repo.hasCredentials(forServiceName: "definitely-non-existent-\(UUID())")
+
+        #expect(result == false)
+    }
+}

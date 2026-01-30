@@ -110,18 +110,20 @@ Key research documents for this implementation:
 
 **Purpose:** Implement account management business logic and multi-account credential access.
 
-- [ ] **Implement AccountManager and credential retrieval in Core package** [spec: multi-account.md] [file: Packages/Core/Sources/Core/]
-  - Create `UserDefaultsAccountStorage.swift` implementing AccountStorage protocol
-  - Create `AccountManager.swift` with @Observable @MainActor class
-  - Implement addAccount, removeAccount, updateAccount, setActiveAccount, setPrimaryAccount
-  - Implement automatic primary assignment (first account becomes primary)
-  - Create `MultiAccountCredentialsRepository.swift` as actor
-  - Support both "default" (Claude Code-credentials) and custom keychainIdentifier
-  - Implement migration logic: auto-create "Default" account on first launch if accounts empty
-  - Wire AccountManager into AppContainer as shared dependency
+- [x] **Implement AccountManager and credential retrieval in Core package** [spec: multi-account.md] [file: Packages/Core/Sources/Core/]
+  - Create `UserDefaultsAccountStorage.swift` implementing AccountStorage protocol ✅
+  - Create `AccountManager.swift` with @Observable @MainActor class ✅
+  - Implement addAccount, removeAccount, updateAccount, setActiveAccount, setPrimaryAccount ✅
+  - Implement automatic primary assignment (first account becomes primary) ✅
+  - Create `MultiAccountCredentialsRepository.swift` as actor ✅
+  - Support both "default" (Claude Code-credentials) and custom keychainIdentifier ✅
+  - Implement migration logic: auto-create "Default" account on first launch if accounts empty ✅
+  - ~~Wire AccountManager into AppContainer as shared dependency~~ (Deferred to Phase 3 with UsageManager integration)
   - **Research:** `specs/features/multi-account.md#credentials-management`
-  - **Tests:** Add 50+ tests for AccountManager (CRUD operations, primary logic, migration, credential retrieval)
-  - **Success criteria:** Can add/remove accounts, credentials fetched per-account
+  - **Tests:** Added 42 new tests (839 total, was 797) - UserDefaultsAccountStorage, AccountManager CRUD, migration, MultiAccountCredentialsRepository ✅
+  - **Success criteria:** Can add/remove accounts, credentials fetched per-account ✅
+  - **Completed:** 2026-01-30
+  - **Note:** AppContainer wiring deferred to Phase 3 to integrate with UsageManager changes simultaneously
 
 ---
 <!-- CHECKPOINT: Phase 2 delivers account management infrastructure. -->
@@ -257,21 +259,20 @@ Key research documents for this implementation:
 
 ## Test Coverage Summary
 
-**Current (SLC 10):** 752 tests across 4 packages
+**Current (Phase 2 complete):** 839 tests across 4 packages (+87 from SLC 10)
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
-| Domain | 123 | Excellent - models fully tested |
+| Domain | 168 | Excellent - models fully tested (+45 from Phase 1) |
 | Services | 29 | Basic - needs error scenarios |
-| Core | 341 | Comprehensive - business logic |
+| Core | 383 | Comprehensive - business logic (+42 from Phase 2) |
 | UI | 259 | Excellent - accessibility focus |
 
-**Target for SLC 11:** 870+ tests (120+ new tests for multi-account functionality)
+**Target for SLC 11:** 870+ tests (31+ more tests needed for UsageManager and UI)
 
-| Package | New Tests | Focus |
-|---------|-----------|-------|
-| Domain | +30 | Account model, AccountStorage protocol |
-| Core | +60 | AccountManager, MultiAccountCredentialsRepository, UsageManager updates |
+| Package | Remaining Tests | Focus |
+|---------|-----------------|-------|
+| Core | +20 | UsageManager multi-account integration |
 | UI | +30 | Account switcher, settings section, display modes |
 
 ---
