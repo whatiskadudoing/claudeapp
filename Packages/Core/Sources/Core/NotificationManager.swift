@@ -146,7 +146,8 @@ public actor NotificationManager {
     ///   - title: The notification title
     ///   - body: The notification body text
     ///   - identifier: Unique identifier for this notification
-    public func send(title: String, body: String, identifier: String) async {
+    ///   - userInfo: Optional dictionary to attach to the notification for handling clicks
+    public func send(title: String, body: String, identifier: String, userInfo: [String: String]? = nil) async {
         // Check duplicate prevention
         guard notificationState[identifier] != true else {
             return
@@ -160,6 +161,9 @@ public actor NotificationManager {
         content.title = title
         content.body = body
         content.sound = .default
+        if let userInfo = userInfo {
+            content.userInfo = userInfo
+        }
 
         // Create immediate request
         let request = UNNotificationRequest(

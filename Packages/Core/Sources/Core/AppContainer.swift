@@ -191,7 +191,8 @@ public final class AppContainer {
         await notificationManager.send(
             title: "Update Available",
             body: "ClaudeApp v\(updateInfo.version) is now available",
-            identifier: "update-available-\(updateInfo.version)"
+            identifier: "update-available-\(updateInfo.version)",
+            userInfo: ["downloadURL": updateInfo.downloadURL.absoluteString]
         )
     }
 

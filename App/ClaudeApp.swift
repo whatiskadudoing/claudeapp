@@ -25,13 +25,26 @@ func L(_ key: String, _ args: CVarArg...) -> String {
 /// Configured at app launch to handle notification responses.
 final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     /// Called when user interacts with a notification (clicks it).
-    /// Opens the dropdown by activating the app.
+    /// For update notifications: opens the download URL in the browser.
+    /// For other notifications: opens the dropdown by activating the app.
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        // Activate the app - this will show the menu bar dropdown
+        let identifier = response.notification.request.identifier
+
+        // Check if this is an update notification
+        if identifier.hasPrefix("update-available-") {
+            // Extract download URL from userInfo and open in browser
+            let userInfo = response.notification.request.content.userInfo
+            if let urlString = userInfo["downloadURL"] as? String,
+               let url = URL(string: urlString) {
+                NSWorkspace.shared.open(url)
+            }
+        }
+
+        // Always activate the app (shows the dropdown)
         NSApp.activate(ignoringOtherApps: true)
         completionHandler()
     }

@@ -141,14 +141,14 @@ Key research documents for this implementation:
 
 **Purpose:** Fix the broken update notification click handling.
 
-- [ ] **Fix notification click to open download URL** [spec: updates.md] [file: App/ClaudeApp.swift]
-  - Update `NotificationDelegate.didReceive` to check notification identifier
-  - If identifier starts with "update-available-", extract version and open download URL
-  - Store download URL in notification userInfo or query UpdateChecker
-  - Maintain existing behavior (activate app) for other notifications
-  - **Research:** `specs/features/updates.md` "Notification Click Deep-Link"
-  - **Test:** Verify notification click opens browser
-  - **Target:** 2+ new tests (625+ total)
+- [x] **Fix notification click to open download URL** [spec: updates.md] [file: App/ClaudeApp.swift]
+  - ✅ Added `userInfo` parameter to `NotificationManager.send()` method
+  - ✅ Updated `checkForUpdatesInBackground()` to pass download URL in userInfo
+  - ✅ Updated `NotificationDelegate.didReceive()` to check for update notifications and open download URL
+  - ✅ Maintains existing behavior (activate app) for all notification types
+  - ✅ Added 4 new tests for userInfo functionality
+  - **Completed:** 2026-01-30
+  - **Tests:** 609 tests passing (was 605, +4 new userInfo tests)
 
 - [ ] **Configure actual GitHub repository in UpdateChecker** [file: Packages/Core/Sources/Core/UpdateChecker.swift]
   - Change `repoOwner` default from "yourname" to actual owner
@@ -230,7 +230,7 @@ Key research documents for this implementation:
 **Update Flow:**
 - [x] Check for updates via GitHub Releases
 - [x] Show notification when update available
-- [ ] **NEW:** Notification click opens download URL
+- [x] **NEW:** Notification click opens download URL ✅ 2026-01-30
 
 **Polish:**
 - [ ] Fix user agent version string
@@ -290,16 +290,14 @@ Key research documents for this implementation:
 
 ## Test Coverage Summary
 
-**Current:** 605 tests across 4 packages (down from 613 after removing obsolete tests)
+**Current:** 609 tests across 4 packages
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
 | Domain | 81 | Excellent - models fully tested |
 | Services | 29 | Basic - needs error scenarios |
-| Core | 262 | Comprehensive - business logic |
-| UI | 233 | Excellent - accessibility focus (8 obsolete tests removed) |
-
-**Note:** 8 tests removed that referenced DiagonalStripes (removed in KOSMA redesign)
+| Core | 266 | Comprehensive - business logic (+4 userInfo tests) |
+| UI | 233 | Excellent - accessibility focus |
 
 **Target for SLC 8:** 620+ tests (adjusted after cleanup)
 

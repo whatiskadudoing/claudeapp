@@ -1962,6 +1962,79 @@ struct NotificationManagerTests {
         count = mockService.getAddedRequestCount()
         #expect(count == 2)
     }
+
+    // MARK: - UserInfo Tests
+
+    @Test("send includes userInfo when provided")
+    func sendIncludesUserInfo() async {
+        let mockService = MockNotificationService()
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        await manager.send(
+            title: "Update Available",
+            body: "ClaudeApp v1.7.0 is now available",
+            identifier: "update-available-1.7.0",
+            userInfo: ["downloadURL": "https://example.com/download.dmg"]
+        )
+
+        let request = mockService.getLastRequest()
+        #expect(request != nil)
+        #expect(request?.content.userInfo["downloadURL"] as? String == "https://example.com/download.dmg")
+    }
+
+    @Test("send works without userInfo")
+    func sendWorksWithoutUserInfo() async {
+        let mockService = MockNotificationService()
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        await manager.send(
+            title: "Test",
+            body: "Test body",
+            identifier: "test-id"
+        )
+
+        let request = mockService.getLastRequest()
+        #expect(request != nil)
+        #expect(request?.content.userInfo.isEmpty == true)
+    }
+
+    @Test("send with nil userInfo does not crash")
+    func sendWithNilUserInfoDoesNotCrash() async {
+        let mockService = MockNotificationService()
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        await manager.send(
+            title: "Test",
+            body: "Test body",
+            identifier: "test-id",
+            userInfo: nil
+        )
+
+        let request = mockService.getLastRequest()
+        #expect(request != nil)
+        #expect(request?.content.userInfo.isEmpty == true)
+    }
+
+    @Test("send preserves multiple userInfo keys")
+    func sendPreservesMultipleUserInfoKeys() async {
+        let mockService = MockNotificationService()
+        let manager = NotificationManager(notificationCenter: mockService)
+
+        await manager.send(
+            title: "Test",
+            body: "Test body",
+            identifier: "test-id",
+            userInfo: [
+                "downloadURL": "https://example.com/download.dmg",
+                "version": "1.7.0"
+            ]
+        )
+
+        let request = mockService.getLastRequest()
+        #expect(request != nil)
+        #expect(request?.content.userInfo["downloadURL"] as? String == "https://example.com/download.dmg")
+        #expect(request?.content.userInfo["version"] as? String == "1.7.0")
+    }
 }
 
 // MARK: - UsageNotificationChecker Tests
