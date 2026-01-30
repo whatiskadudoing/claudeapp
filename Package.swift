@@ -11,7 +11,9 @@ let package = Package(
     products: [
         .executable(name: "ClaudeApp", targets: ["ClaudeApp"])
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.3.0")
+    ],
     targets: [
         // Main app executable
         .executableTarget(
@@ -20,11 +22,13 @@ let package = Package(
                 "Domain",
                 "Services",
                 "Core",
-                "UI"
+                "UI",
+                .product(name: "ArgumentParser", package: "swift-argument-parser")
             ],
             path: "App",
             resources: [
-                .process("Localizable.xcstrings")
+                .process("Localizable.xcstrings"),
+                .process("Resources/Assets.xcassets")
             ]
         ),
 

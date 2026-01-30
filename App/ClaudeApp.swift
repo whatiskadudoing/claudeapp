@@ -61,8 +61,9 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     }
 }
 
-@main
-struct ClaudeApp: App {
+/// Main SwiftUI app for GUI mode.
+/// Entry point is handled by main.swift to support CLI/GUI mode detection.
+struct ClaudeAppMain: App {
     @State private var container: AppContainer
     private let notificationDelegate = NotificationDelegate()
 
