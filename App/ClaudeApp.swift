@@ -83,6 +83,7 @@ struct ClaudeApp: App {
                 .environment(container.launchAtLoginManager)
                 .environment(container.notificationPermissionManager)
                 .environment(container.systemStateMonitor)
+                .environment(container.usageHistoryManager)
         } label: {
             MenuBarLabel(detectedPlanType: container.detectedPlanType)
                 .environment(container.usageManager)
@@ -714,32 +715,53 @@ struct RefreshButton: View {
 // MARK: - Usage Content
 
 /// KOSMA-style usage display with generous spacing
+/// Shows progress bars with optional sparkline charts below each when enabled.
 struct UsageContent: View {
     let data: UsageData
     var focusedElement: FocusState<FocusableElement?>.Binding
 
+    @Environment(SettingsManager.self) private var settings
+    @Environment(UsageHistoryManager.self) private var historyManager
+
     var body: some View {
         VStack(spacing: Theme.KOSMASpace.sectionGap) {
-            UsageProgressBar(
-                value: data.fiveHour.utilization,
-                label: L("usage.progressBar.session"),
-                resetsAt: data.fiveHour.resetsAt,
-                timeToExhaustion: data.fiveHour.timeToExhaustion
-            )
-            .focusable()
-            .focusEffectDisabled()
-            .focused(focusedElement, equals: .progressBar(0))
+            // 5-hour session window
+            VStack(spacing: 4) {
+                UsageProgressBar(
+                    value: data.fiveHour.utilization,
+                    label: L("usage.progressBar.session"),
+                    resetsAt: data.fiveHour.resetsAt,
+                    timeToExhaustion: data.fiveHour.timeToExhaustion
+                )
+                .focusable()
+                .focusEffectDisabled()
+                .focused(focusedElement, equals: .progressBar(0))
 
-            UsageProgressBar(
-                value: data.sevenDay.utilization,
-                label: L("usage.progressBar.weekly"),
-                resetsAt: data.sevenDay.resetsAt,
-                timeToExhaustion: data.sevenDay.timeToExhaustion
-            )
-            .focusable()
-            .focusEffectDisabled()
-            .focused(focusedElement, equals: .progressBar(1))
+                // Sparkline for session history
+                if settings.showSparklines, historyManager.hasSessionChartData {
+                    UsageSparkline(dataPoints: historyManager.sessionHistory)
+                }
+            }
 
+            // 7-day weekly window (all models)
+            VStack(spacing: 4) {
+                UsageProgressBar(
+                    value: data.sevenDay.utilization,
+                    label: L("usage.progressBar.weekly"),
+                    resetsAt: data.sevenDay.resetsAt,
+                    timeToExhaustion: data.sevenDay.timeToExhaustion
+                )
+                .focusable()
+                .focusEffectDisabled()
+                .focused(focusedElement, equals: .progressBar(1))
+
+                // Sparkline for weekly history
+                if settings.showSparklines, historyManager.hasWeeklyChartData {
+                    UsageSparkline(dataPoints: historyManager.weeklyHistory)
+                }
+            }
+
+            // Opus-specific window (optional)
             if let opus = data.sevenDayOpus {
                 UsageProgressBar(
                     value: opus.utilization,
@@ -752,6 +774,7 @@ struct UsageContent: View {
                 .focused(focusedElement, equals: .progressBar(2))
             }
 
+            // Sonnet-specific window (optional)
             if let sonnet = data.sevenDaySonnet {
                 UsageProgressBar(
                     value: sonnet.utilization,

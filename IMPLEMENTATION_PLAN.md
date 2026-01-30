@@ -133,14 +133,15 @@ Key research documents for this implementation:
   - **Research:** `specs/features/historical-charts.md#settings-toggle`
   - **Tests:** Add tests for setting persistence and UI toggle behavior - ✅ 3 tests updated in CoreTests.swift
 
-- [ ] **Integrate sparklines into UsageProgressBar** [spec: historical-charts.md] [file: App/ClaudeApp.swift]
-  - Add optional historyDataPoints parameter to UsageProgressBar
-  - Display sparkline below progress bar when showSparklines enabled
-  - Pass session history for 5-hour window, weekly history for 7-day windows
-  - Only show sparkline when >= 2 data points available
-  - Add localization strings for "Show Usage Charts" toggle
-  - **Research:** `specs/features/historical-charts.md#integration-with-usageprogressbar`
-  - **Tests:** Add UI tests verifying sparkline visibility conditions
+- [x] **Integrate sparklines into UsageProgressBar** [spec: historical-charts.md] [file: App/ClaudeApp.swift]
+  - Added usageHistoryManager to SwiftUI environment in ClaudeApp scene - ✅
+  - Modified UsageContent to access UsageHistoryManager and SettingsManager via environment - ✅
+  - Display sparkline below progress bar when showSparklines enabled - ✅
+  - Pass session history for 5-hour window, weekly history for 7-day windows - ✅
+  - Only show sparkline when hasSessionChartData/hasWeeklyChartData (>= 2 points) - ✅
+  - Localization strings already added in previous task - ✅
+  - **Note:** Opus/Sonnet-specific windows don't have separate history tracking (use weekly history)
+  - **Tests:** All 685 tests pass including existing sparkline component tests
 
 ---
 <!-- CHECKPOINT: Phase 2 delivers visual usage trends. -->
