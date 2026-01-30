@@ -24,6 +24,58 @@ A native macOS menu bar application that helps Claude Code users track their API
 - **Launch at Login** - Native SMAppService integration
 - **Dark Mode Support** - Technical dark-first design
 - **Multi-Language Support** - Available in English, Portuguese (Brazil), and Spanish (Latin America)
+- **Terminal Integration** - CLI for shell prompts, tmux, and scripts (NEW in v1.9.0)
+
+## Terminal Integration
+
+ClaudeApp includes a command-line interface for monitoring usage directly in your terminal:
+
+```bash
+# Install CLI symlink (one-time)
+./scripts/install-cli.sh
+
+# Check usage
+claudeapp --status
+# Output: 86% (5h: 45%, 7d: 72%)
+
+# Minimal output (for prompts)
+claudeapp --status --format minimal
+# Output: 86%
+
+# JSON output (for scripts)
+claudeapp --status --format json
+
+# Verbose with ASCII progress bars
+claudeapp --status --format verbose
+```
+
+### Shell Prompt Examples
+
+**Zsh:**
+```zsh
+# Add to ~/.zshrc
+claude_usage() { claudeapp --status --format minimal 2>/dev/null || echo "--"; }
+RPROMPT='[Claude: %F{yellow}$(claude_usage)%f]'
+```
+
+**Bash:**
+```bash
+# Add to ~/.bashrc
+claude_usage() { claudeapp --status --format minimal 2>/dev/null || echo "--"; }
+PS1='\u@\h:\w [Claude: $(claude_usage)] \$ '
+```
+
+**Starship:**
+```toml
+# Add to ~/.config/starship.toml
+[custom.claude]
+command = "claudeapp --status --format minimal"
+when = "test -x /Applications/ClaudeApp.app/Contents/MacOS/ClaudeApp"
+format = "[Claude: $output]($style) "
+style = "yellow"
+```
+
+See [Terminal Integration Guide](docs/TERMINAL.md) for comprehensive documentation including tmux, Oh My Zsh plugin, and scripting examples.
 
 ## Accessibility
 
@@ -111,6 +163,7 @@ Comprehensive documentation is available in the [docs/](docs/) folder:
 |-------|-------------|
 | [Installation Guide](docs/installation.md) | Detailed installation instructions for all methods |
 | [Usage Guide](docs/usage.md) | Complete feature guide and how to use the app |
+| [Terminal Integration](docs/TERMINAL.md) | CLI usage, shell prompts, tmux, and scripting |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
 | [FAQ](docs/faq.md) | Frequently asked questions |
 | [Privacy Policy](docs/privacy.md) | Data handling and privacy information |

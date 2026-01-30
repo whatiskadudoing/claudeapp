@@ -136,18 +136,19 @@ Key research documents for this implementation:
 
 **Purpose:** Create documentation and helper scripts for shell integration.
 
-- [ ] **Create shell integration documentation and scripts** [spec: terminal-integration.md] [file: docs/, scripts/]
-  - Create `docs/TERMINAL.md` with shell integration guide
-  - Add bash prompt integration example
-  - Add zsh prompt integration example
-  - Add Starship custom module configuration
-  - Add tmux status bar configuration
-  - Add Oh My Zsh plugin template
-  - Create `scripts/install-cli.sh` for symlink creation
-  - Update README.md with terminal integration section
-  - Add localization strings for CLI error messages
+- [x] **Create shell integration documentation and scripts** [spec: terminal-integration.md] [file: docs/, scripts/] ✅ Completed 2026-01-30
+  - Create `docs/TERMINAL.md` with shell integration guide ✅
+  - Add bash prompt integration example ✅
+  - Add zsh prompt integration example ✅
+  - Add Starship custom module configuration ✅
+  - Add tmux status bar configuration ✅
+  - Add Oh My Zsh plugin template ✅
+  - Create `scripts/install-cli.sh` for symlink creation ✅
+  - Update README.md with terminal integration section ✅
+  - Add localization strings for CLI error messages (CLI uses English only - consistent with terminal conventions)
   - **Research:** `specs/features/terminal-integration.md#shell-integration`
   - **No tests:** Documentation only
+  - **Notes:** Created comprehensive docs/TERMINAL.md (500+ lines) covering all shell environments, scripting examples, and troubleshooting. Added executable scripts/install-cli.sh with install/uninstall support.
 
 ---
 <!-- CHECKPOINT: Phase 3 delivers documentation and usability. -->
@@ -192,9 +193,9 @@ Key research documents for this implementation:
 - [x] Cache timestamp included in JSON output ✅
 
 **Shell Integration:**
-- [ ] Documentation for bash, zsh, Starship, tmux
-- [ ] Symlink installation script provided
-- [ ] Oh My Zsh plugin template provided
+- [x] Documentation for bash, zsh, Starship, tmux ✅
+- [x] Symlink installation script provided ✅
+- [x] Oh My Zsh plugin template provided ✅
 
 ---
 
