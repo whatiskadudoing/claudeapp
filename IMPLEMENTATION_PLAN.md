@@ -87,15 +87,16 @@ Key research documents for this implementation:
 
 **Purpose:** Set up App Group for shared data between GUI app and CLI.
 
-- [ ] **Configure App Group and update cache infrastructure** [spec: terminal-integration.md] [file: App/, Packages/Core/]
-  - Add App Group entitlement: `group.com.kaduwaengertner.ClaudeApp`
-  - Create `SharedCacheManager` class in Core package
-  - Implement `writeUsageCache(_ data: UsageData)` to App Group UserDefaults
-  - Implement `readUsageCache() -> (UsageData, Date)?` returning data + timestamp
-  - Wire UsageManager to write to shared cache on each refresh
-  - Add cache TTL constants (fresh: <5min, stale: 5-15min, expired: >15min)
+- [x] **Configure App Group and update cache infrastructure** [spec: terminal-integration.md] [file: App/, Packages/Core/] ✅ Completed 2026-01-30
+  - Add App Group entitlement: `group.com.kaduwaengertner.ClaudeApp` ✅
+  - Create `SharedCacheManager` class in Core package ✅
+  - Implement `writeUsageCache(_ data: UsageData)` to App Group UserDefaults ✅
+  - Implement `readUsageCache() -> (UsageData, Date)?` returning data + timestamp ✅
+  - Wire UsageManager to write to shared cache on each refresh ✅
+  - Add cache TTL constants (fresh: <5min, stale: 5-15min, expired: >15min) ✅
   - **Research:** `specs/features/terminal-integration.md#shared-data-with-gui`
-  - **Tests:** Add 15+ tests for cache read/write, TTL validation, JSON encoding
+  - **Tests:** Add 15+ tests for cache read/write, TTL validation, JSON encoding ✅ (26 tests added)
+  - **Notes:** Added Codable conformance to UsageData/UsageWindow. Created CacheTTL enum for Sendable access. Test count: 726 → 752
 
 ---
 <!-- CHECKPOINT: Phase 1 establishes data sharing foundation. -->
@@ -184,7 +185,7 @@ Key research documents for this implementation:
 - [ ] Exit codes indicate status (0, 1, 2, 3)
 
 **Shared Cache:**
-- [ ] GUI app writes to App Group UserDefaults on refresh
+- [x] GUI app writes to App Group UserDefaults on refresh ✅
 - [ ] CLI reads from App Group UserDefaults
 - [ ] Stale data (>5 min) returns exit code 3
 - [ ] Cache timestamp included in JSON output
@@ -235,16 +236,16 @@ Key research documents for this implementation:
 
 ## Test Coverage Summary
 
-**Current:** 726 tests across 4 packages
+**Current:** 752 tests across 4 packages (Phase 1 complete)
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
 | Domain | 132 | Excellent - models fully tested |
 | Services | 29 | Basic - needs error scenarios |
-| Core | 313 | Comprehensive - business logic |
+| Core | 339 | Comprehensive - business logic (+26 SharedCacheManager) |
 | UI | 252 | Excellent - accessibility focus |
 
-**Target for SLC 10:** 770+ tests (adding ~45 for CLI and shared cache)
+**Target for SLC 10:** 790+ tests (adding ~40 for CLI and output formatters)
 
 ---
 

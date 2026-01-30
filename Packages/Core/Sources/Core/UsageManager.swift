@@ -45,6 +45,7 @@ public final class UsageManager {
     private let usageRepository: UsageRepository
     private var notificationChecker: UsageNotificationChecker?
     private var usageHistoryManager: UsageHistoryManager?
+    private var sharedCacheManager: SharedCacheManager?
     private let accessibilityAnnouncer: AccessibilityAnnouncerProtocol
 
     // MARK: - Burn Rate State
@@ -112,6 +113,13 @@ public final class UsageManager {
     /// - Parameter manager: The usage history manager to use
     public func setUsageHistoryManager(_ manager: UsageHistoryManager) {
         self.usageHistoryManager = manager
+    }
+
+    /// Sets the shared cache manager for CLI data sharing.
+    /// This should be called after initialization when the manager is available.
+    /// - Parameter manager: The shared cache manager to use
+    public func setSharedCacheManager(_ manager: SharedCacheManager) {
+        self.sharedCacheManager = manager
     }
 
     // MARK: - Computed Properties
@@ -193,6 +201,9 @@ public final class UsageManager {
 
             // Enrich data with burn rates and time-to-exhaustion
             let enrichedData = enrichWithBurnRates(newData)
+
+            // Write to shared cache for CLI access
+            sharedCacheManager?.writeUsageCache(enrichedData)
 
             // Update previous data before current (for next comparison)
             previousUsageData = usageData

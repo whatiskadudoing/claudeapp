@@ -7,7 +7,7 @@ import Foundation
 ///
 /// The `burnRate` and `timeToExhaustion` properties are optional and get enriched
 /// by the `BurnRateCalculator` in the Core package after accumulating usage history.
-public struct UsageWindow: Sendable, Equatable {
+public struct UsageWindow: Sendable, Equatable, Codable {
     /// Usage percentage (0.0 to 100.0)
     public let utilization: Double
 

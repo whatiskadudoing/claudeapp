@@ -54,6 +54,9 @@ public final class AppContainer {
     /// Manager for settings export, import, backup, and reset
     public let settingsExportManager: SettingsExportManager
 
+    /// Manager for shared cache (CLI data sharing)
+    public let sharedCacheManager: SharedCacheManager
+
     /// The detected subscription plan type from credentials
     public private(set) var detectedPlanType: PlanType = .pro
 
@@ -133,6 +136,11 @@ public final class AppContainer {
             launchAtLoginManager: self.launchAtLoginManager,
             usageHistoryManager: historyMgr
         )
+
+        // Create shared cache manager for CLI data sharing
+        let sharedCache = SharedCacheManager()
+        self.sharedCacheManager = sharedCache
+        usageMgr.setSharedCacheManager(sharedCache)
 
         // Configure settings callback to update refresh interval
         // When power-aware is enabled, AdaptiveRefreshManager handles intervals automatically
@@ -282,6 +290,11 @@ public final class AppContainer {
             launchAtLoginManager: self.launchAtLoginManager,
             usageHistoryManager: historyMgr
         )
+
+        // Create shared cache manager for CLI data sharing
+        let sharedCache = SharedCacheManager()
+        self.sharedCacheManager = sharedCache
+        usageMgr.setSharedCacheManager(sharedCache)
 
         if startAutoRefresh {
             if settings.enablePowerAwareRefresh {

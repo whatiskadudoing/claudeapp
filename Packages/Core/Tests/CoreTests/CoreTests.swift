@@ -5818,3 +5818,378 @@ struct UsageHistoryManagerImportTests {
         #expect(manager.weeklyHistory.first?.utilization == 32.0)
     }
 }
+
+// MARK: - SharedCacheManager Tests
+
+@Suite("SharedCacheManager Tests")
+struct SharedCacheManagerTests {
+    /// Creates a test UserDefaults instance with a unique suite name
+    private func createTestDefaults() -> UserDefaults {
+        let suiteName = "com.claudeapp.test.cache.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        return defaults
+    }
+
+    /// Creates test usage data for testing
+    private func createTestUsageData(
+        sessionUtilization: Double = 45.0,
+        weeklyUtilization: Double = 72.0
+    ) -> UsageData {
+        UsageData(
+            fiveHour: UsageWindow(utilization: sessionUtilization),
+            sevenDay: UsageWindow(utilization: weeklyUtilization),
+            fetchedAt: Date()
+        )
+    }
+
+    // MARK: - Initialization Tests
+
+    @Test("SharedCacheManager initializes with custom UserDefaults")
+    @MainActor
+    func initWithCustomDefaults() {
+        let defaults = createTestDefaults()
+        let manager = SharedCacheManager(userDefaults: defaults)
+
+        #expect(manager.isAppGroupAvailable == true)
+    }
+
+    @Test("SharedCacheManager defaults to App Group when nil passed")
+    @MainActor
+    func initWithNilUsesAppGroup() {
+        // When nil is passed, it tries to use App Group UserDefaults
+        // On macOS without sandboxing, this typically succeeds
+        let manager = SharedCacheManager(userDefaults: nil)
+
+        // App Group UserDefaults can be created on macOS
+        #expect(manager.isAppGroupAvailable == true)
+    }
+
+    // MARK: - Write Operation Tests
+
+    @Test("writeUsageCache stores data successfully")
+    @MainActor
+    func writeStoresData() {
+        let defaults = createTestDefaults()
+        let manager = SharedCacheManager(userDefaults: defaults)
+        let testData = createTestUsageData()
+
+        let success = manager.writeUsageCache(testData)
+
+        #expect(success == true)
+    }
+
+    @Test("writeUsageCache works with App Group defaults")
+    @MainActor
+    func writeWorksWithAppGroup() {
+        // When nil is passed, it uses App Group which should work
+        let manager = SharedCacheManager(userDefaults: nil)
+        let testData = createTestUsageData()
+
+        let success = manager.writeUsageCache(testData)
+
+        #expect(success == true)
+
+        // Clean up - remove the test data from App Group
+        manager.clearCache()
+    }
+
+    // MARK: - Read Operation Tests
+
+    @Test("readUsageCache returns nil when no data cached")
+    @MainActor
+    func readReturnsNilWhenEmpty() {
+        let defaults = createTestDefaults()
+        let manager = SharedCacheManager(userDefaults: defaults)
+
+        let result = manager.readUsageCache()
+
+        #expect(result == nil)
+    }
+
+    @Test("readUsageCache returns cached data after write")
+    @MainActor
+    func readAfterWrite() {
+        let defaults = createTestDefaults()
+        let manager = SharedCacheManager(userDefaults: defaults)
+        let testData = createTestUsageData(sessionUtilization: 55.0, weeklyUtilization: 80.0)
+
+        manager.writeUsageCache(testData)
+        let result = manager.readUsageCache()
+
+        #expect(result != nil)
+        #expect(result?.data.fiveHour.utilization == 55.0)
+        #expect(result?.data.sevenDay.utilization == 80.0)
+    }
+
+    @Test("readUsageCache preserves all usage windows")
+    @MainActor
+    func readPreservesAllWindows() {
+        let defaults = createTestDefaults()
+        let manager = SharedCacheManager(userDefaults: defaults)
+
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: Date().addingTimeInterval(3600)),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: Date().addingTimeInterval(86400)),
+            sevenDayOpus: UsageWindow(utilization: 30.0),
+            sevenDaySonnet: UsageWindow(utilization: 50.0),
+            fetchedAt: Date()
+        )
+
+        manager.writeUsageCache(testData)
+        let result = manager.readUsageCache()
+
+        #expect(result?.data.fiveHour.utilization == 45.0)
+        #expect(result?.data.sevenDay.utilization == 72.0)
+        #expect(result?.data.sevenDayOpus?.utilization == 30.0)
+        #expect(result?.data.sevenDaySonnet?.utilization == 50.0)
+    }
+
+    // MARK: - Freshness Tests
+
+    @Test("cacheFreshness returns .none when no cache")
+    @MainActor
+    func freshnessNoneWhenEmpty() {
+        let defaults = createTestDefaults()
+        let manager = SharedCacheManager(userDefaults: defaults)
+
+        let freshness = manager.cacheFreshness()
+
+        #expect(freshness == .none)
+    }
+
+    @Test("cacheFreshness returns .fresh for recent cache")
+    @MainActor
+    func freshnessFreshForRecent() {
+        let defaults = createTestDefaults()
+        let manager = SharedCacheManager(userDefaults: defaults)
+        let testData = createTestUsageData()
+
+        manager.writeUsageCache(testData)
+        let freshness = manager.cacheFreshness()
+
+        #expect(freshness == .fresh)
+    }
+
+    @Test("CachedUsageData calculates fresh freshness correctly")
+    func cachedDataFreshnessCalculation() {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0),
+            sevenDay: UsageWindow(utilization: 72.0)
+        )
+
+        // Cache created now should be fresh
+        let cached = CachedUsageData(data: testData, timestamp: Date())
+        #expect(cached.freshness() == .fresh)
+
+        // Cache from 3 minutes ago should be fresh
+        let cached3min = CachedUsageData(data: testData, timestamp: Date().addingTimeInterval(-180))
+        #expect(cached3min.freshness() == .fresh)
+    }
+
+    @Test("CachedUsageData calculates stale freshness correctly")
+    func cachedDataStaleCalculation() {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0),
+            sevenDay: UsageWindow(utilization: 72.0)
+        )
+
+        // Cache from 6 minutes ago should be stale (>5 min, <15 min)
+        let cached6min = CachedUsageData(data: testData, timestamp: Date().addingTimeInterval(-360))
+        #expect(cached6min.freshness() == .stale)
+
+        // Cache from 10 minutes ago should be stale
+        let cached10min = CachedUsageData(data: testData, timestamp: Date().addingTimeInterval(-600))
+        #expect(cached10min.freshness() == .stale)
+    }
+
+    @Test("CachedUsageData calculates expired freshness correctly")
+    func cachedDataExpiredCalculation() {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0),
+            sevenDay: UsageWindow(utilization: 72.0)
+        )
+
+        // Cache from 16 minutes ago should be expired (>15 min)
+        let cached16min = CachedUsageData(data: testData, timestamp: Date().addingTimeInterval(-960))
+        #expect(cached16min.freshness() == .expired)
+
+        // Cache from 1 hour ago should be expired
+        let cached1hr = CachedUsageData(data: testData, timestamp: Date().addingTimeInterval(-3600))
+        #expect(cached1hr.freshness() == .expired)
+    }
+
+    // MARK: - Cache Age Tests
+
+    @Test("cacheAge returns nil when no cache")
+    @MainActor
+    func cacheAgeNilWhenEmpty() {
+        let defaults = createTestDefaults()
+        let manager = SharedCacheManager(userDefaults: defaults)
+
+        let age = manager.cacheAge()
+
+        #expect(age == nil)
+    }
+
+    @Test("cacheAge returns approximately correct age")
+    @MainActor
+    func cacheAgeCorrect() {
+        let defaults = createTestDefaults()
+        let manager = SharedCacheManager(userDefaults: defaults)
+        let testData = createTestUsageData()
+
+        manager.writeUsageCache(testData)
+        let age = manager.cacheAge()
+
+        #expect(age != nil)
+        #expect(age! >= 0)
+        #expect(age! < 1) // Should be less than 1 second since we just wrote it
+    }
+
+    // MARK: - Clear Cache Tests
+
+    @Test("clearCache removes cached data")
+    @MainActor
+    func clearCacheRemovesData() {
+        let defaults = createTestDefaults()
+        let manager = SharedCacheManager(userDefaults: defaults)
+        let testData = createTestUsageData()
+
+        manager.writeUsageCache(testData)
+        #expect(manager.readUsageCache() != nil)
+
+        manager.clearCache()
+        #expect(manager.readUsageCache() == nil)
+    }
+
+    @Test("clearCache is safe when no cache exists")
+    @MainActor
+    func clearCacheSafeWhenEmpty() {
+        let defaults = createTestDefaults()
+        let manager = SharedCacheManager(userDefaults: defaults)
+
+        // Should not crash
+        manager.clearCache()
+
+        #expect(manager.readUsageCache() == nil)
+    }
+
+    // MARK: - TTL Constant Tests
+
+    @Test("Fresh threshold is 5 minutes")
+    func freshThresholdIs5Minutes() {
+        #expect(SharedCacheManager.freshThreshold == 300)
+    }
+
+    @Test("Expired threshold is 15 minutes")
+    func expiredThresholdIs15Minutes() {
+        #expect(SharedCacheManager.expiredThreshold == 900)
+    }
+
+    @Test("App Group identifier is correct")
+    func appGroupIdentifier() {
+        #expect(SharedCacheManager.appGroupIdentifier == "group.com.kaduwaengertner.ClaudeApp")
+    }
+}
+
+// MARK: - CacheFreshness Tests
+
+@Suite("CacheFreshness Tests")
+struct CacheFreshnessTests {
+    @Test("CacheFreshness is Equatable")
+    func freshnessEquatable() {
+        #expect(CacheFreshness.fresh == CacheFreshness.fresh)
+        #expect(CacheFreshness.stale == CacheFreshness.stale)
+        #expect(CacheFreshness.expired == CacheFreshness.expired)
+        #expect(CacheFreshness.none == CacheFreshness.none)
+        #expect(CacheFreshness.fresh != CacheFreshness.stale)
+    }
+
+    @Test("CacheFreshness is Sendable")
+    func freshnessSendable() async {
+        let freshness: CacheFreshness = .fresh
+
+        let result = await Task.detached {
+            freshness
+        }.value
+
+        #expect(result == .fresh)
+    }
+}
+
+// MARK: - CachedUsageData Tests
+
+@Suite("CachedUsageData Tests")
+struct CachedUsageDataTests {
+    @Test("CachedUsageData initializes with current timestamp by default")
+    func initDefaultTimestamp() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0),
+            sevenDay: UsageWindow(utilization: 72.0)
+        )
+
+        let before = Date()
+        let cached = CachedUsageData(data: data)
+        let after = Date()
+
+        #expect(cached.timestamp >= before)
+        #expect(cached.timestamp <= after)
+    }
+
+    @Test("CachedUsageData initializes with custom timestamp")
+    func initCustomTimestamp() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0),
+            sevenDay: UsageWindow(utilization: 72.0)
+        )
+        let customDate = Date().addingTimeInterval(-1000)
+
+        let cached = CachedUsageData(data: data, timestamp: customDate)
+
+        #expect(cached.timestamp == customDate)
+    }
+
+    @Test("CachedUsageData is Equatable")
+    func cachedDataEquatable() {
+        let timestamp = Date()
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0),
+            sevenDay: UsageWindow(utilization: 72.0)
+        )
+
+        let cached1 = CachedUsageData(data: data, timestamp: timestamp)
+        let cached2 = CachedUsageData(data: data, timestamp: timestamp)
+
+        #expect(cached1 == cached2)
+    }
+
+    @Test("CachedUsageData is Sendable")
+    func cachedDataSendable() async {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0),
+            sevenDay: UsageWindow(utilization: 72.0)
+        )
+        let cached = CachedUsageData(data: data)
+
+        let result = await Task.detached {
+            cached.data.fiveHour.utilization
+        }.value
+
+        #expect(result == 45.0)
+    }
+
+    @Test("CachedUsageData ageInSeconds is approximately correct")
+    func ageInSeconds() {
+        let data = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0),
+            sevenDay: UsageWindow(utilization: 72.0)
+        )
+        let fiveMinutesAgo = Date().addingTimeInterval(-300)
+
+        let cached = CachedUsageData(data: data, timestamp: fiveMinutesAgo)
+
+        #expect(cached.ageInSeconds >= 299)
+        #expect(cached.ageInSeconds <= 301)
+    }
+}

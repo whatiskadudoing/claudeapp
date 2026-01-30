@@ -4,7 +4,7 @@ import Foundation
 
 /// Aggregated usage data across all usage windows.
 /// Fetched from the Claude API and displayed in the app.
-public struct UsageData: Sendable, Equatable {
+public struct UsageData: Sendable, Equatable, Codable {
     /// 5-hour rolling session window
     public let fiveHour: UsageWindow
 
