@@ -116,7 +116,7 @@ UI → Core → Services → Domain
 | [features/multi-account.md](./features/multi-account.md) | Multiple Claude accounts | 📋 Planned |
 | [features/widgets.md](./features/widgets.md) | macOS Notification Center widgets | 📋 Planned |
 | [features/settings-export.md](./features/settings-export.md) | JSON export/import of settings | ✅ Implemented |
-| [features/terminal-integration.md](./features/terminal-integration.md) | Shell prompt integration | 📋 Planned |
+| [features/terminal-integration.md](./features/terminal-integration.md) | Shell prompt integration | ✅ Implemented |
 
 ### System Specifications
 
@@ -132,7 +132,7 @@ UI → Core → Services → Domain
 
 ## Key Features
 
-### Implemented (v1.8.0)
+### Implemented (v1.9.0)
 
 | Feature | Description |
 |---------|-------------|
@@ -150,14 +150,14 @@ UI → Core → Services → Domain
 | **Icon Styles** | 6 customizable menu bar display styles |
 | **Historical Charts** | Sparkline usage trends below progress bars |
 | **Settings Export** | JSON backup, restore, and reset of configurations |
+| **Terminal Integration** | CLI for shell prompts, tmux, Starship with shared cache |
 
-### Planned (v1.9.0+)
+### Planned (v2.0.0+)
 
 | Feature | Priority | Spec |
 |---------|----------|------|
 | **Sparkle Updates** | High | [sparkle-updates.md](./sparkle-updates.md) |
-| **Terminal Integration** | Medium | [terminal-integration.md](./features/terminal-integration.md) |
-| **Multi-Account** | Low | [multi-account.md](./features/multi-account.md) |
+| **Multi-Account** | Medium | [multi-account.md](./features/multi-account.md) |
 | **Widgets** | Low | [widgets.md](./features/widgets.md) |
 
 ---

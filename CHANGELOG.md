@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-01-30
+
+### Added
+- **Terminal Integration**: CLI interface for shell prompt, tmux, and Starship integration
+  - `claudeapp --status` outputs usage data from shared cache
+  - `--format` option: plain, json, minimal, verbose
+  - `--metric` option: session, weekly, highest, opus, sonnet
+  - `--refresh` flag forces API fetch and updates cache
+  - `--no-color` flag disables ANSI color output
+  - Exit codes: 0 (success), 1 (not authenticated), 2 (API error), 3 (stale data)
+- **Shared Cache Infrastructure**: App Group for CLI/GUI data sharing
+  - SharedCacheManager in Core package with read/write operations
+  - Cache TTL system: fresh (<5min), stale (5-15min), expired (>15min)
+  - Automatic cache updates on each GUI refresh
+  - JSON-encoded UsageData with timestamp in App Group UserDefaults
+- **Shell Integration Documentation**: Comprehensive terminal setup guides
+  - bash prompt integration example
+  - zsh prompt integration example
+  - Starship custom module configuration
+  - tmux status bar configuration
+  - Oh My Zsh plugin template
+  - `scripts/install-cli.sh` for symlink creation
+
+### Changed
+- UsageManager now writes to SharedCacheManager on each refresh
+- UsageData and UsageWindow models now Codable for JSON serialization
+- App entry point moved to main.swift for CLI/GUI routing
+
+### Technical
+- Added ArgumentParser dependency for CLI parsing
+- Created CLIHandler with ParsableCommand conformance
+- Added 26 SharedCacheManager tests
+- Total test count: 752 tests passing
+
 ## [1.8.0] - 2026-01-30
 
 ### Added
@@ -209,7 +243,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - macOS 14 (Sonoma) required
 - 81 tests passing
 
-[Unreleased]: https://github.com/kaduwaengertner/claudeapp/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/kaduwaengertner/claudeapp/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.5.0...v1.6.0
