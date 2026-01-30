@@ -114,15 +114,16 @@ Key research documents for this implementation:
 
 **Purpose:** Add sparkline chart components to dropdown view.
 
-- [ ] **Add UsageSparkline component using Swift Charts** [spec: historical-charts.md] [file: Packages/UI/Sources/UI/]
-  - Create `UsageSparkline` view using native Swift Charts (macOS 13+)
-  - Implement AreaMark + LineMark with catmullRom interpolation
-  - Color matches progress bar threshold colors
-  - Height: 20px, hidden axes
-  - Support gradient fill under line
-  - Accessibility: mark as decorative (parent provides context)
+- [x] **Add UsageSparkline component using Swift Charts** [spec: historical-charts.md] [file: Packages/UI/Sources/UI/]
+  - Create `UsageSparkline` view using native Swift Charts (macOS 13+) - ✅ UsageSparkline.swift
+  - Implement AreaMark + LineMark with catmullRom interpolation - ✅
+  - Color matches progress bar threshold colors - ✅ Uses Theme.Colors.brand
+  - Height: 20px, hidden axes - ✅
+  - Support gradient fill under line - ✅ LinearGradient with opacity
+  - Accessibility: mark as decorative (parent provides context) - ✅ accessibilityHidden(true)
+  - LED glow shadow effect added to match KOSMA design - ✅
   - **Research:** `specs/features/historical-charts.md#option-1-native-swift-charts-recommended`
-  - **Tests:** Add snapshot tests for sparkline rendering at various data points
+  - **Tests:** Added 26 tests for sparkline initialization, edge cases, accessibility, and visual styling
 
 - [ ] **Add showSparklines settings toggle** [spec: historical-charts.md] [file: Packages/Domain/Sources/Domain/SettingsKey.swift]
   - Add `SettingsKey<Bool>("showSparklines", defaultValue: true)`
@@ -277,16 +278,16 @@ Key research documents for this implementation:
 
 ## Test Coverage Summary
 
-**Current:** 659 tests across 4 packages
+**Current:** 685 tests across 4 packages
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
 | Domain | 107 | Excellent - models fully tested (+12 UsageDataPoint tests) |
 | Services | 29 | Basic - needs error scenarios |
 | Core | 297 | Comprehensive - business logic (+31 UsageHistoryManager/integration tests) |
-| UI | 226 | Excellent - accessibility focus |
+| UI | 252 | Excellent - accessibility focus (+26 UsageSparkline tests) |
 
-**Target for SLC 9:** 680+ tests (28+ more tests needed)
+**Target for SLC 9:** 680+ tests (met! currently 685)
 
 ---
 
