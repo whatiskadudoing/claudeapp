@@ -9,8 +9,7 @@ A macOS menu bar application for Claude Code users to monitor their API usage li
 | Document | Description |
 |----------|-------------|
 | **[AUDIENCE_JTBD.md](../AUDIENCE_JTBD.md)** | Target audience, personas, jobs to be done - **READ FIRST** |
-
-This document lives at the project root and defines WHO we're building for and WHY. All specs flow from it.
+| **[competitive-analysis.md](./competitive-analysis.md)** | Competitive research and feature gap analysis |
 
 ---
 
@@ -22,6 +21,8 @@ This document lives at the project root and defines WHO we're building for and W
 
 - **Menu Bar Display**: Shows Claude icon + highest usage percentage (e.g., "86%")
 - **Detailed Dropdown**: Breakdown of 5-hour session, 7-day limits, per-model limits
+- **Burn Rate**: Consumption velocity indicator (Low/Med/High/Very High)
+- **Time-to-Exhaustion**: Predicts when usage limit will be reached
 - **Warnings**: Visual alerts when hitting 100% capacity
 - **Auto-Refresh**: Background polling with configurable intervals
 
@@ -87,22 +88,94 @@ UI → Core → Services → Domain
 
 ---
 
+## Documentation Structure
+
+### Core Specifications
+
+| File | Description |
+|------|-------------|
+| [architecture.md](./architecture.md) | Package structure, DDD patterns, dependency rules |
+| [design-system.md](./design-system.md) | Hybrid design system (McLaren/TE/KOSMA) |
+| [BRANDING.MD](./BRANDING.MD) | Brand identity, voice, visual language |
+| [api-documentation.md](./api-documentation.md) | Claude API endpoints, auth, responses |
+| [toolchain.md](./toolchain.md) | Build commands, dev workflow, CI/CD |
+| [competitive-analysis.md](./competitive-analysis.md) | Competitive research summary |
+
+### Feature Specifications
+
+| File | Description | Status |
+|------|-------------|--------|
+| [features/view-usage.md](./features/view-usage.md) | Main usage display with burn rate | ✅ Implemented |
+| [features/refresh-usage.md](./features/refresh-usage.md) | Auto-refresh and manual refresh | ✅ Implemented |
+| [features/notifications.md](./features/notifications.md) | Warning alerts with hysteresis | ✅ Implemented |
+| [features/settings.md](./features/settings.md) | In-popover settings UI | ✅ Implemented |
+| [features/updates.md](./features/updates.md) | GitHub Releases version checking | ✅ Implemented |
+| [features/icon-styles.md](./features/icon-styles.md) | Multiple menu bar display styles | 📋 Planned |
+| [features/historical-charts.md](./features/historical-charts.md) | Sparkline usage charts | 📋 Planned |
+| [features/power-aware-refresh.md](./features/power-aware-refresh.md) | Battery-optimized refresh | ✅ Implemented |
+| [features/multi-account.md](./features/multi-account.md) | Multiple Claude accounts | 📋 Planned |
+| [features/widgets.md](./features/widgets.md) | macOS Notification Center widgets | 📋 Planned |
+| [features/settings-export.md](./features/settings-export.md) | JSON export/import of settings | 📋 Planned |
+| [features/terminal-integration.md](./features/terminal-integration.md) | Shell prompt integration | 📋 Planned |
+
+### System Specifications
+
+| File | Description | Status |
+|------|-------------|--------|
+| [sparkle-updates.md](./sparkle-updates.md) | Sparkle framework for auto-updates | 📋 Planned |
+| [accessibility.md](./accessibility.md) | VoiceOver, keyboard nav, WCAG | ✅ Implemented |
+| [internationalization.md](./internationalization.md) | i18n/l10n, supported languages | ✅ en, pt-BR, es |
+| [user-documentation.md](./user-documentation.md) | README, guides, FAQ, privacy | ✅ Complete |
+| [performance.md](./performance.md) | Memory/CPU budgets, profiling | ✅ Defined |
+
+---
+
 ## Key Features
+
+### Implemented (v1.6.0)
 
 | Feature | Description |
 |---------|-------------|
-| **View Usage** | Display all usage limits with progress bars |
-| **Auto-Refresh** | Configurable polling (1-30 min, default 5 min) |
-| **Manual Refresh** | On-demand usage update |
-| **Notifications** | Warnings at configurable thresholds |
-| **Configure Display** | Toggle plan badge, choose percentage source |
-| **Launch at Login** | Native SMAppService integration |
-| **Check Updates** | GitHub releases version checking |
+| **View Usage** | Display all usage limits with LED-style progress bars |
+| **Burn Rate** | Show consumption velocity (Low/Med/High/Very High) |
 | **Time-to-Exhaustion** | Predict when usage limit will be reached |
-| **Burn Rate Indicator** | Show consumption velocity (Low/Med/High) |
-| **Multi-Language** | Localized in English, Portuguese (Brazil), Spanish (Latin America) |
+| **Auto-Refresh** | Configurable polling (1-30 min, default 5 min) |
+| **Power-Aware Refresh** | Smart refresh scheduling based on battery/power state |
+| **Notifications** | Warnings at configurable thresholds with hysteresis |
+| **Settings** | In-popover KOSMA-styled configuration UI |
+| **Updates** | GitHub releases version checking |
+| **Accessibility** | VoiceOver, keyboard nav, Dynamic Type, color-blind safe |
+| **Multi-Language** | English, Portuguese (Brazil), Spanish (Latin America) |
+| **Premium Design** | Hybrid McLaren/TE/KOSMA design system |
 
-> **Internationalization (v1.4.0):** Full localization support with 105 translated strings. See [internationalization.md](./internationalization.md) for adding new languages.
+### Planned (v1.7.0+)
+
+| Feature | Priority | Spec |
+|---------|----------|------|
+| **Icon Styles** | High | [icon-styles.md](./features/icon-styles.md) |
+| **Sparkle Updates** | High | [sparkle-updates.md](./sparkle-updates.md) |
+| **Historical Charts** | Medium | [historical-charts.md](./features/historical-charts.md) |
+| **Settings Export** | Medium | [settings-export.md](./features/settings-export.md) |
+| **Terminal Integration** | Medium | [terminal-integration.md](./features/terminal-integration.md) |
+| **Multi-Account** | Low | [multi-account.md](./features/multi-account.md) |
+| **Widgets** | Low | [widgets.md](./features/widgets.md) |
+
+---
+
+## Research References
+
+Detailed competitive research conducted January 2026:
+
+| Document | Description |
+|----------|-------------|
+| `research/competitive-analysis.md` | Direct competitors analysis |
+| `research/macos-menubar-apps.md` | 19 popular menu bar apps |
+| `research/llm-usage-tracking-tools.md` | LLM cost tracking platforms |
+| `research/swift-chart-libraries.md` | Data visualization libraries |
+| `research/update-mechanisms.md` | Auto-update implementations |
+| `research/claude-related-tools.md` | Claude ecosystem tools |
+
+See [competitive-analysis.md](./competitive-analysis.md) for summary.
 
 ---
 
@@ -130,46 +203,31 @@ If API is unavailable, can parse local usage files from `~/.claude/projects/*.js
 
 ---
 
-## Documentation Structure
-
-### Core Specifications
-
-| File | Description |
-|------|-------------|
-| [architecture.md](./architecture.md) | Package structure, DDD patterns, dependency rules |
-| [design-system.md](./design-system.md) | Colors, typography, spacing, components |
-| [api-documentation.md](./api-documentation.md) | Claude API endpoints, auth, responses |
-| [toolchain.md](./toolchain.md) | Build commands, dev workflow, CI/CD |
-| [features/](./features/) | Individual feature specifications |
-
-### User-Facing Polish
-
-| File | Description | Status |
-|------|-------------|--------|
-| [accessibility.md](./accessibility.md) | VoiceOver, keyboard nav, WCAG compliance | Phase 1 ✅ |
-| [internationalization.md](./internationalization.md) | i18n/l10n strategy, supported languages | Phase 1 ✅ (en, pt-BR, es) |
-| [user-documentation.md](./user-documentation.md) | README, guides, FAQ, privacy policy | ✅ |
-
-### Production Readiness
-
-| File | Description |
-|------|-------------|
-| [performance.md](./performance.md) | Memory/CPU budgets, optimization, profiling |
-
----
-
 ## Design Inspirations
 
+ClaudeApp uses a **hybrid design system** combining three world-class design sources:
+
+| Source | URL | Contribution |
+|--------|-----|--------------|
+| **McLaren F1 Playbook** | [mclaren.com/racing/formula-1/playbook](https://www.mclaren.com/racing/formula-1/playbook/) | Papaya orange `#FF7300`, timing curves, precision |
+| **Teenage Engineering** | [teenage.engineering/products/ep-133](https://teenage.engineering/products/ep-133) | Light typography, LED indicators, warm accents |
+| **KOSMA** | Internal spec | Bracket notation, data hierarchy, dark-first |
+
+Additional references:
 - **UI Components**: [swiftcn-ui](https://github.com/Mobilecn-UI/swiftcn-ui) - Modern SwiftUI patterns
-- **Functionality**: Existing Claude monitors analyzed for best practices
-- **Brand**: Official Claude colors and iconography
+- **Menu Bar UX**: [Stats](https://github.com/exelban/stats) - Best-in-class system monitor
+- **Architecture**: [Quotio](https://github.com/nguyenphutrong/quotio) - Modern @Observable patterns
+
+See [design-system.md](./design-system.md) and [BRANDING.MD](./BRANDING.MD) for complete details.
 
 ---
 
 ## Out of Scope (v1)
 
-- Multiple account support
-- Historical usage graphs/predictions
+Items deferred to future releases:
+
+- ~~Multiple account support~~ → Spec created: [multi-account.md](./features/multi-account.md)
+- ~~Historical usage graphs~~ → Spec created: [historical-charts.md](./features/historical-charts.md)
 - Push notifications (polling only)
 - In-app update installation (requires signing)
 - iOS/iPadOS versions

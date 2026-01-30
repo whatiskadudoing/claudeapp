@@ -21,49 +21,44 @@ public struct UsageProgressBar: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // === KOSMA LABEL ROW ===
+        VStack(alignment: .leading, spacing: 12) {
+            // === TE-STYLE LABEL ROW ===
             HStack(alignment: .firstTextBaseline) {
-                // Label with KOSMA uppercase tracking - monospaced
+                // Label - light weight, tracked (Univers Light style)
                 Text(label.uppercased())
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(Theme.Colors.textSecondaryOnDark)
-                    .tracking(0.8)
+                    .font(.system(size: 10, weight: .light, design: .monospaced))
+                    .foregroundStyle(Theme.Colors.textTertiaryOnDark)
+                    .tracking(1.5)
 
                 Spacer()
 
-                // Large, bold percentage (KOSMA orange - tabular figures)
-                HStack(alignment: .firstTextBaseline, spacing: 0) {
+                // Large percentage - calculator display style
+                HStack(alignment: .firstTextBaseline, spacing: 1) {
                     Text("\(Int(value))")
-                        .font(.system(size: 28, weight: .bold, design: .monospaced).monospacedDigit())
+                        .font(.system(size: 32, weight: .bold, design: .monospaced).monospacedDigit())
                         .foregroundStyle(Theme.Colors.brand)
                         .contentTransition(.numericText())
+                        .shadow(color: Theme.Colors.brand.opacity(0.4), radius: 8, x: 0, y: 0)
 
                     Text("%")
-                        .font(.system(size: 14, weight: .medium, design: .monospaced))
-                        .foregroundStyle(Theme.Colors.brand.opacity(0.5))
-                        .baselineOffset(8)
+                        .font(.system(size: 12, weight: .light, design: .monospaced))
+                        .foregroundStyle(Theme.Colors.brand.opacity(0.6))
+                        .baselineOffset(12)
                 }
             }
 
-            // === KOSMA PROGRESS BAR (3px, technical) ===
+            // === TE-STYLE PROGRESS BAR (LED meter aesthetic) ===
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    // Track - deep with inner shadow effect
-                    RoundedRectangle(cornerRadius: 1.5)
-                        .fill(Color(red: 26/255, green: 26/255, blue: 26/255))
+                    // Track - recessed look
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color(red: 20/255, green: 20/255, blue: 24/255))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 1.5)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Color.black.opacity(0.5), Color.clear],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
+                            RoundedRectangle(cornerRadius: 2)
+                                .stroke(Color.black.opacity(0.5), lineWidth: 1)
                         )
 
-                    // KOSMA gradient fill with leading edge glow
+                    // Fill with LED glow effect
                     if value > 0 {
                         RoundedRectangle(cornerRadius: 1.5)
                             .fill(
@@ -76,25 +71,16 @@ public struct UsageProgressBar: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: max(geo.size.width * min(value / 100, 1), 3))
-                            // Leading edge glow
-                            .shadow(
-                                color: Theme.Colors.brand.opacity(0.6),
-                                radius: 8,
-                                x: 4,
-                                y: 0
-                            )
-                            // Leading edge highlight (white cap)
-                            .overlay(alignment: .trailing) {
-                                Rectangle()
-                                    .fill(Color.white.opacity(0.3))
-                                    .frame(width: 2)
-                            }
+                            .frame(width: max(geo.size.width * min(value / 100, 1), 4))
+                            .padding(1)
+                            // LED glow
+                            .shadow(color: Theme.Colors.brand.opacity(0.5), radius: 6, x: 0, y: 0)
+                            .shadow(color: Theme.Colors.brand.opacity(0.3), radius: 12, x: 0, y: 0)
                             .animation(reduceMotion ? nil : .kosma, value: value)
                     }
                 }
             }
-            .frame(height: 3)
+            .frame(height: 4)
 
             // === KOSMA BRACKET METADATA (tight brackets) ===
             if resetsAt != nil || shouldShowTime {

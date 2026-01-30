@@ -8,7 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- (Nothing yet)
+- **Power-Aware Refresh**: Smart refresh scheduling based on battery/power state
+  - AdaptiveRefreshManager with system state monitoring
+  - Longer intervals on battery, shorter when charging
+  - Respects Low Power Mode settings
+- **Premium Design System**: Hybrid McLaren/Teenage Engineering/KOSMA aesthetic
+  - McLaren Papaya orange `#FF7300` as primary brand color
+  - TE-style light typography (300 weight) for elegant technical feel
+  - LED-style indicators with realistic glow effects
+  - McLaren timing curve `cubic-bezier(0.19, 1, 0.22, 1)` for animations
+  - Calculator aesthetic with large monospaced percentages
+  - KOSMA bracket notation `[DISPLAY]` for section headers
+
+### Changed
+- Updated color palette with warmer, more vibrant oranges
+- Progress bars now use LED meter aesthetic with double glow
+- Typography weights reduced for TE-inspired elegance
+- Animation timing updated to McLaren standard (300ms)
+- Section headers use lighter font weights with increased tracking
+
+### Documentation
+- Complete rewrite of `specs/design-system.md`
+- New `specs/BRANDING.MD` with brand identity guidelines
+- Updated `research/inspiration.md` with design sources
+- Updated README with design system section
 
 ## [1.6.0] - 2026-01-26
 

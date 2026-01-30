@@ -16,11 +16,13 @@ A native macOS menu bar application that helps Claude Code users track their API
 - **Detailed Breakdown** - View 5-hour session, 7-day limits, and per-model quotas (Opus/Sonnet)
 - **Burn Rate Indicator** - Know if you're consuming quota at Low/Medium/High/Very High velocity
 - **Time-to-Exhaustion** - Predict when you'll hit your limit based on current consumption rate
+- **Premium Industrial Design** - Hybrid aesthetic inspired by McLaren F1, Teenage Engineering, and KOSMA
 - **Configurable Notifications** - Get warnings at custom thresholds (default 90%)
 - **Auto-Refresh** - Background polling with configurable intervals (1-30 min)
+- **Power-Aware Refresh** - Intelligent refresh scheduling based on battery and power state
 - **Update Checking** - Automatic checks for new versions via GitHub Releases
 - **Launch at Login** - Native SMAppService integration
-- **Dark Mode Support** - Follows system appearance
+- **Dark Mode Support** - Technical dark-first design
 - **Multi-Language Support** - Available in English, Portuguese (Brazil), and Spanish (Latin America)
 
 ## Accessibility
@@ -114,6 +116,26 @@ Comprehensive documentation is available in the [docs/](docs/) folder:
 | [Privacy Policy](docs/privacy.md) | Data handling and privacy information |
 
 For technical specifications, see [specs/](specs/).
+
+## Design System
+
+ClaudeApp features a **premium industrial design** inspired by three world-class design systems:
+
+| Source | Contribution |
+|--------|--------------|
+| **McLaren F1 Playbook** | Papaya orange `#FF7300`, precision animations `cubic-bezier(0.19, 1, 0.22, 1)` |
+| **Teenage Engineering** | Light typography (300 weight), LED indicators with glow, warm accents `#FFC003` |
+| **KOSMA** | `[BRACKET]` notation, uppercase tracking, bold data values, dark-first |
+
+### Key Design Elements
+
+- **LED-style progress bars** with realistic glow effects
+- **Calculator aesthetic** with large monospaced percentages
+- **Technical bracket notation** for section headers: `[DISPLAY]`, `[SETTINGS]`
+- **McLaren timing curve** for smooth, engineered animations
+- **Orange-only accent** - no blue, no purple, pure technical orange
+
+See [specs/design-system.md](specs/design-system.md) for the complete design specification and [specs/BRANDING.MD](specs/BRANDING.MD) for brand guidelines.
 
 ## Architecture
 

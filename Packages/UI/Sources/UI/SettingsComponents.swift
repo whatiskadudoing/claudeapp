@@ -14,23 +14,23 @@ public struct SectionHeader: View {
     }
 
     public var body: some View {
-        HStack(spacing: 8) {
-            // KOSMA tight bracket notation [DISPLAY]
+        HStack(spacing: 10) {
+            // TE-style tight bracket notation [DISPLAY]
             HStack(spacing: 0) {
                 Text("[")
-                    .foregroundStyle(Theme.Colors.accentRed)
+                    .foregroundStyle(Theme.Colors.accentRed.opacity(0.8))
                 Text(title.uppercased())
-                    .foregroundStyle(Theme.Colors.brand.opacity(0.7))
+                    .foregroundStyle(Theme.Colors.brand.opacity(0.8))
                 Text("]")
-                    .foregroundStyle(Theme.Colors.accentRed)
+                    .foregroundStyle(Theme.Colors.accentRed.opacity(0.8))
             }
-            .font(.system(size: 11, weight: .medium, design: .monospaced))
-            .tracking(1.5)
+            .font(.system(size: 10, weight: .light, design: .monospaced))
+            .tracking(2)
 
             if showDivider {
-                // KOSMA divider - barely visible
+                // Subtle divider - barely visible
                 Rectangle()
-                    .fill(Color(red: 26/255, green: 26/255, blue: 26/255))  // #1A1A1A
+                    .fill(Theme.Colors.brand.opacity(0.1))
                     .frame(height: 1)
             }
         }
@@ -57,28 +57,28 @@ public struct CollapsibleSection<Content: View>: View {
             Button {
                 withAnimation(.kosma) { isExpanded.toggle() }
             } label: {
-                HStack(spacing: 8) {
-                    // KOSMA tight bracket notation [DISPLAY]
+                HStack(spacing: 10) {
+                    // TE-style tight bracket notation
                     HStack(spacing: 0) {
                         Text("[")
-                            .foregroundStyle(Theme.Colors.accentRed)
+                            .foregroundStyle(Theme.Colors.accentRed.opacity(0.8))
                         Text(title.uppercased())
-                            .foregroundStyle(Theme.Colors.brand.opacity(0.7))
+                            .foregroundStyle(Theme.Colors.brand.opacity(0.8))
                         Text("]")
-                            .foregroundStyle(Theme.Colors.accentRed)
+                            .foregroundStyle(Theme.Colors.accentRed.opacity(0.8))
                     }
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .tracking(1.5)
+                    .font(.system(size: 10, weight: .light, design: .monospaced))
+                    .tracking(2)
 
-                    // Technical divider - barely visible
+                    // Subtle divider
                     Rectangle()
-                        .fill(Color(red: 26/255, green: 26/255, blue: 26/255))  // #1A1A1A
+                        .fill(Theme.Colors.brand.opacity(0.1))
                         .frame(height: 1)
 
-                    // KOSMA-style chevron
+                    // Chevron indicator
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(Theme.Colors.brand)
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundStyle(Theme.Colors.brand.opacity(0.7))
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                         .animation(.kosma, value: isExpanded)
                 }
@@ -115,16 +115,16 @@ public struct SettingsToggle: View {
 
     public var body: some View {
         HStack(alignment: subtitle != nil ? .top : .center) {
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title.uppercased())
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .font(.system(size: 10, weight: .light, design: .monospaced))
                     .foregroundStyle(Theme.Colors.textOnDark)
-                    .tracking(0.5)
+                    .tracking(1.2)
 
                 if let subtitle {
                     Text(subtitle)
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundStyle(Color(red: 102/255, green: 102/255, blue: 102/255))  // #666666
+                        .font(.system(size: 10, weight: .light))
+                        .foregroundStyle(Theme.Colors.textTertiaryOnDark)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -156,9 +156,9 @@ public struct SettingsPickerRow<SelectionValue: Hashable, Content: View>: View {
     public var body: some View {
         HStack {
             Text(title.uppercased())
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .font(.system(size: 10, weight: .light, design: .monospaced))
                 .foregroundStyle(Theme.Colors.textOnDark)
-                .tracking(0.5)
+                .tracking(1.2)
 
             Spacer()
 
@@ -203,25 +203,25 @@ public struct SettingsSliderRow: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(title.uppercased())
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .font(.system(size: 10, weight: .light, design: .monospaced))
                     .foregroundStyle(Theme.Colors.textOnDark)
-                    .tracking(0.5)
+                    .tracking(1.2)
 
                 Spacer()
 
-                // KOSMA tight bracket value
+                // TE-style bracket value
                 HStack(spacing: 0) {
                     Text("[")
-                        .foregroundStyle(Theme.Colors.accentRed)
+                        .foregroundStyle(Theme.Colors.accentRed.opacity(0.8))
                     Text(valueFormatter(value))
                         .foregroundStyle(Theme.Colors.brand)
                     Text("]")
-                        .foregroundStyle(Theme.Colors.accentRed)
+                        .foregroundStyle(Theme.Colors.accentRed.opacity(0.8))
                 }
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .font(.system(size: 10, weight: .light, design: .monospaced))
             }
 
             Slider(value: $value, in: range, step: step)
@@ -235,7 +235,7 @@ public struct SettingsSliderRow: View {
                     Spacer()
                     Text(maxLabel ?? "")
                 }
-                .font(.system(size: 9, weight: .regular, design: .monospaced))
+                .font(.system(size: 9, weight: .light, design: .monospaced))
                 .foregroundStyle(Theme.Colors.textTertiaryOnDark)
             }
         }

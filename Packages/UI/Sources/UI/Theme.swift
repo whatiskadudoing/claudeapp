@@ -11,53 +11,53 @@ public enum Theme {
     // MARK: - Colors
 
     public enum Colors {
-        // === KOSMA PRIMARY PALETTE (EXACT VALUES) ===
+        // === HYBRID PALETTE: KOSMA + McLaren + Teenage Engineering ===
 
-        /// Primary brand orange - KOSMA signature (#FF4D00)
-        public static let brand = Color(red: 255/255, green: 77/255, blue: 0/255)
+        /// Primary brand orange - McLaren Papaya (#FF7300) - warmer, more vibrant
+        public static let brand = Color(red: 255/255, green: 115/255, blue: 0/255)
 
-        /// Light orange for gradients, hover (#FF6B35)
-        public static let brandLight = Color(red: 255/255, green: 107/255, blue: 53/255)
+        /// Light orange for gradients, hover - TE warm (#FFC003)
+        public static let brandLight = Color(red: 255/255, green: 192/255, blue: 3/255)
 
-        /// Dark orange for shadows, depth (#E04400)
-        public static let brandDark = Color(red: 224/255, green: 68/255, blue: 0/255)
+        /// Dark orange for shadows, depth (#E65100)
+        public static let brandDark = Color(red: 230/255, green: 81/255, blue: 0/255)
 
-        /// Accent red for brackets and emphasis (#FF3300)
+        /// Accent red for brackets - McLaren/KOSMA (#FF3300)
         public static let accentRed = Color(red: 255/255, green: 51/255, blue: 0/255)
 
-        // === KOSMA SURFACE COLORS (EXACT VALUES) ===
+        // === SURFACE COLORS (TE-inspired muted neutrals) ===
 
-        /// Off-white card surface (#F5F5F0)
-        public static let cardSurface = Color(red: 245/255, green: 245/255, blue: 240/255)
+        /// Off-white card surface - TE cream (#F9FAF9)
+        public static let cardSurface = Color(red: 249/255, green: 250/255, blue: 249/255)
 
         /// Pure white for highlights, specular (#FFFFFF)
         public static let pureWhite = Color.white
 
-        /// Deep black canvas background (#0A0A0A)
-        public static let canvasBlack = Color(red: 10/255, green: 10/255, blue: 10/255)
+        /// Deep black canvas - TE near-black (#0F0E12)
+        public static let canvasBlack = Color(red: 15/255, green: 14/255, blue: 18/255)
 
-        /// Card black alternative (#111111)
-        public static let cardBlack = Color(red: 17/255, green: 17/255, blue: 17/255)
+        /// Card black - McLaren Anthracite (#111314)
+        public static let cardBlack = Color(red: 17/255, green: 19/255, blue: 20/255)
 
-        // === KOSMA TEXT COLORS (for dark backgrounds) ===
+        // === TEXT COLORS (TE high-contrast hierarchy) ===
 
-        /// Text primary on dark - bright white
-        public static let textOnDark = Color(red: 245/255, green: 245/255, blue: 240/255)
+        /// Text primary on dark - TE off-white (#F9FAF9)
+        public static let textOnDark = Color(red: 249/255, green: 250/255, blue: 249/255)
 
-        /// Text secondary on dark - muted
-        public static let textSecondaryOnDark = Color(red: 160/255, green: 160/255, blue: 155/255)
+        /// Text secondary on dark - 70% opacity feel (#A8A8A8)
+        public static let textSecondaryOnDark = Color(red: 168/255, green: 168/255, blue: 168/255)
 
-        /// Text tertiary on dark - subtle
-        public static let textTertiaryOnDark = Color(red: 100/255, green: 100/255, blue: 95/255)
+        /// Text tertiary on dark - 50% opacity (#787878)
+        public static let textTertiaryOnDark = Color(red: 120/255, green: 120/255, blue: 120/255)
 
-        /// Text primary on light - dark (#1A1A1A)
-        public static let textPrimary = Color(red: 26/255, green: 26/255, blue: 26/255)
+        /// Text primary on light - TE near-black (#0F0E12)
+        public static let textPrimary = Color(red: 15/255, green: 14/255, blue: 18/255)
 
-        /// Text secondary on light (#666666)
-        public static let textSecondary = Color(red: 102/255, green: 102/255, blue: 102/255)
+        /// Text secondary on light - McLaren mid-grey (#484B50)
+        public static let textSecondary = Color(red: 72/255, green: 75/255, blue: 80/255)
 
-        /// Text tertiary on light (#999999)
-        public static let textTertiary = Color(red: 153/255, green: 153/255, blue: 153/255)
+        /// Text tertiary on light - McLaren subtle (#53565A)
+        public static let textTertiary = Color(red: 83/255, green: 86/255, blue: 90/255)
 
         // === STATUS COLORS (ALL KOSMA ORANGE) ===
         // KOSMA design uses ONLY orange palette - no green, no blue
@@ -179,51 +179,52 @@ public enum Theme {
     }
 
     public enum Typography {
-        // === KOSMA HEADLINE TYPOGRAPHY ===
+        // === TE-INSPIRED LIGHT TYPOGRAPHY ===
+        // Teenage Engineering uses Univers Light (300) - we use SF Pro Light
 
-        /// Large headlines - KOSMA bold style
-        public static let headline = Font.system(size: 14, weight: .bold)
+        /// Large headlines - light weight for elegance
+        public static let headline = Font.system(size: 14, weight: .medium)
 
-        /// Section headers - KOSMA uppercase tracked
-        public static let sectionHeader = Font.system(size: 10, weight: .semibold)
+        /// Section headers - light, tracked
+        public static let sectionHeader = Font.system(size: 10, weight: .medium)
 
-        // === KOSMA DATA TYPOGRAPHY ===
+        // === DATA TYPOGRAPHY (Calculator aesthetic) ===
 
-        /// Large percentage display - KOSMA data emphasis
-        public static let dataValue = Font.system(size: 20, weight: .bold).monospacedDigit()
+        /// Large percentage display - bold for impact
+        public static let dataValue = Font.system(size: 24, weight: .bold, design: .monospaced).monospacedDigit()
 
-        /// Percentage suffix (smaller)
-        public static let dataUnit = Font.system(size: 14, weight: .semibold).monospacedDigit()
+        /// Percentage suffix (smaller, lighter)
+        public static let dataUnit = Font.system(size: 12, weight: .light, design: .monospaced).monospacedDigit()
 
         /// Menu bar percentage
-        public static let menuBar = Font.system(size: 12, weight: .semibold).monospacedDigit()
+        public static let menuBar = Font.system(size: 12, weight: .medium, design: .monospaced).monospacedDigit()
 
-        // === KOSMA BRACKET/TECHNICAL TYPOGRAPHY ===
+        // === TECHNICAL/BRACKET TYPOGRAPHY ===
 
-        /// Bracket metadata text - KOSMA bracket style
-        public static let bracketText = Font.system(size: 11, weight: .medium, design: .monospaced)
+        /// Bracket metadata text - light monospaced
+        public static let bracketText = Font.system(size: 11, weight: .light, design: .monospaced)
 
         /// Small bracket text
-        public static let bracketSmall = Font.system(size: 10, weight: .medium, design: .monospaced)
+        public static let bracketSmall = Font.system(size: 10, weight: .light, design: .monospaced)
 
-        /// Caption/timestamp
-        public static let caption = Font.system(size: 9, weight: .regular, design: .monospaced)
+        /// Caption/timestamp - ultra light
+        public static let caption = Font.system(size: 9, weight: .light, design: .monospaced)
 
         // === STANDARD TYPOGRAPHY ===
 
-        public static let title = Text.title
-        public static let body = Text.body
-        public static let label = Text.label
-        public static let metadata = Text.small
-        public static let tiny = Text.tiny
+        public static let title = Font.system(size: 13, weight: .medium)
+        public static let body = Font.system(size: 12, weight: .light)
+        public static let label = Font.system(size: 11, weight: .light)
+        public static let metadata = Font.system(size: 10, weight: .light)
+        public static let tiny = Font.system(size: 9, weight: .light)
 
-        public static let percentage = Font.system(size: 13, weight: .medium).monospacedDigit()
-        public static let percentageLarge = Font.system(size: 15, weight: .semibold).monospacedDigit()
-        public static let badge = Font.system(size: 9, weight: .semibold)
-        public static let iconSmall = Font.system(size: 10)
-        public static let iconMedium = Font.system(size: 12)
-        public static let iconLarge = Font.system(size: 16)
-        public static let technicalLabel = Font.system(size: 10, weight: .medium, design: .monospaced)
+        public static let percentage = Font.system(size: 13, weight: .medium, design: .monospaced).monospacedDigit()
+        public static let percentageLarge = Font.system(size: 15, weight: .medium, design: .monospaced).monospacedDigit()
+        public static let badge = Font.system(size: 9, weight: .medium)
+        public static let iconSmall = Font.system(size: 10, weight: .light)
+        public static let iconMedium = Font.system(size: 12, weight: .light)
+        public static let iconLarge = Font.system(size: 16, weight: .light)
+        public static let technicalLabel = Font.system(size: 10, weight: .light, design: .monospaced)
     }
 
     // MARK: - Progress Bar
@@ -245,29 +246,32 @@ public enum Theme {
 // MARK: - Animation
 
 public extension Animation {
-    // === KOSMA TIMING CURVES ===
-    // KOSMA uses cubic-bezier(0.4, 0, 0.2, 1) for heavy, weighted feel
+    // === McLAREN TIMING CURVES ===
+    // McLaren uses cubic-bezier(0.19, 1, 0.22, 1) - smooth ease-out with subtle overshoot
 
-    /// KOSMA quick interaction (buttons, toggles) - weighted feel
-    static let quick = Animation.timingCurve(0.4, 0, 0.2, 1, duration: 0.2)
+    /// Quick interaction (buttons, toggles) - 200ms snappy
+    static let quick = Animation.timingCurve(0.19, 1, 0.22, 1, duration: 0.2)
 
-    /// KOSMA gentle transition (panels, sections) - momentum feel
-    static let gentle = Animation.timingCurve(0.4, 0, 0.2, 1, duration: 0.4)
+    /// Standard transition (panels, sections) - 300ms McLaren standard
+    static let gentle = Animation.timingCurve(0.19, 1, 0.22, 1, duration: 0.3)
 
-    /// KOSMA signature animation - heavy with weight and momentum
-    static let kosma = Animation.timingCurve(0.4, 0, 0.2, 1, duration: 0.5)
+    /// Primary animation - 300ms McLaren signature
+    static let kosma = Animation.timingCurve(0.19, 1, 0.22, 1, duration: 0.3)
 
-    /// KOSMA major state transition (dramatic, cinematic)
-    static let kosmaMajor = Animation.timingCurve(0.4, 0, 0.2, 1, duration: 0.8)
+    /// Major state transition - 400ms for dramatic changes
+    static let kosmaMajor = Animation.timingCurve(0.19, 1, 0.22, 1, duration: 0.4)
 
-    /// KOSMA glow pulse - slow, breathing rhythm
-    static let kosmaGlow = Animation.timingCurve(0.4, 0, 0.2, 1, duration: 2.0)
+    /// Glow/pulse animation - slow breathing rhythm
+    static let kosmaGlow = Animation.timingCurve(0.19, 1, 0.22, 1, duration: 1.5)
+
+    /// LED indicator pulse - TE-style subtle glow
+    static let ledPulse = Animation.easeInOut(duration: 0.8).repeatForever(autoreverses: true)
 
     // Legacy aliases
-    static let appInstant = Animation.timingCurve(0.4, 0, 0.2, 1, duration: 0.1)
+    static let appInstant = Animation.timingCurve(0.19, 1, 0.22, 1, duration: 0.15)
     static let appFast = quick
     static let appNormal = gentle
-    static let appSpring = Animation.spring(response: 0.4, dampingFraction: 0.75)  // Heavier spring
+    static let appSpring = Animation.spring(response: 0.35, dampingFraction: 0.8)
 }
 
 // MARK: - KOSMA Button Styles
@@ -550,35 +554,56 @@ public struct StatusIndicators: View {
     }
 }
 
-/// KOSMA-style status knob with glow - like audio equipment indicators
+/// TE-style LED indicator with realistic glow - like audio equipment
 public struct KOSMAStatusKnob: View {
     var isActive: Bool
     var activeColor: Color
-    var size: CGFloat = 8
+    var size: CGFloat = 6
 
-    public init(isActive: Bool, activeColor: Color = Theme.Colors.brand, size: CGFloat = 8) {
+    public init(isActive: Bool, activeColor: Color = Theme.Colors.brand, size: CGFloat = 6) {
         self.isActive = isActive
         self.activeColor = activeColor
         self.size = size
     }
 
     public var body: some View {
-        Circle()
-            .fill(isActive ? activeColor : Color.clear)
-            .frame(width: size, height: size)
-            .overlay(
+        ZStack {
+            // Outer glow (only when active)
+            if isActive {
                 Circle()
-                    .stroke(
-                        isActive ? activeColor.opacity(0.6) : Theme.Colors.textTertiaryOnDark.opacity(0.3),
-                        lineWidth: 1.5
-                    )
-            )
-            .shadow(
-                color: isActive ? activeColor.opacity(0.7) : .clear,
-                radius: 6,
-                x: 0,
-                y: 0
-            )
+                    .fill(activeColor.opacity(0.3))
+                    .frame(width: size * 2.5, height: size * 2.5)
+                    .blur(radius: 4)
+            }
+
+            // LED body
+            Circle()
+                .fill(
+                    isActive
+                        ? RadialGradient(
+                            colors: [activeColor, activeColor.opacity(0.8)],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: size / 2
+                        )
+                        : RadialGradient(
+                            colors: [Color(white: 0.25), Color(white: 0.15)],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: size / 2
+                        )
+                )
+                .frame(width: size, height: size)
+
+            // Specular highlight (small bright spot)
+            if isActive {
+                Circle()
+                    .fill(Color.white.opacity(0.6))
+                    .frame(width: size * 0.3, height: size * 0.3)
+                    .offset(x: -size * 0.15, y: -size * 0.15)
+            }
+        }
+        .frame(width: size * 2.5, height: size * 2.5)
     }
 }
 
