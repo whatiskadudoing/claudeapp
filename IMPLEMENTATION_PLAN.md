@@ -1,80 +1,56 @@
 # Implementation Plan
 
-## Recommended SLC Release: SLC 8 Completion + Polish
+## Recommended SLC Release: SLC 9 - Visualization & Power User Features
 
 **Audience:** Professional developers using Claude Code who run ClaudeApp continuously throughout their workday, demanding passive usage monitoring with zero workflow interruption.
 
-**Value proposition:** Complete the Power-Aware Refresh feature by adding visual power state indicators and polish the existing implementation to deliver a production-ready v1.7.0 release with measurable battery savings.
+**Value proposition:** Add visual usage trends via sparkline charts and enable settings backup/restore for power users who want to understand consumption patterns and migrate configurations across machines.
 
 **Activities included:**
 
 | Activity | Depth | Why Included |
 |----------|-------|--------------|
-| Power State Indicator | Basic | Complete user visibility into power-aware state |
-| Burn Rate Badge in Header | Basic | Show consumption velocity prominently |
-| Update Notification Click | Basic | Fix broken user flow for updates |
-| Technical Debt Cleanup | Basic | Improve reliability and maintainability |
+| Historical Charts | Basic | Most requested visual feature; shows usage trends over time |
+| Settings Export/Import | Basic | Power user feature; enables backup and machine migration |
 
 **What's NOT in this slice:**
-- Historical Charts → SLC 9 (visual enhancement, not core)
-- Settings Export → SLC 9 (power user feature)
-- Terminal Integration → SLC 10 (requires App Group, CLI work)
-- Multi-Account → Future (complex architecture changes)
-- Widgets → Future (blocked by code signing)
-- Sparkle Auto-Updates → Future (requires code signing)
+- Terminal Integration → SLC 10 (requires App Group, ArgumentParser, more complex)
+- Multi-Account → SLC 11 (significant architecture refactoring needed)
+- Widgets → Future (blocked by code signing requirement)
+- Sparkle Auto-Updates → Future (blocked by code signing requirement)
 
 ---
 
 ## Comprehensive Gap Analysis (2026-01-30)
 
-### ✅ FULLY IMPLEMENTED FEATURES
+### ✅ FULLY IMPLEMENTED FEATURES (SLC 1-8 Complete)
 
 | Feature | SLC | Status | Tests | Notes |
 |---------|-----|--------|-------|-------|
-| View Usage (menu bar + dropdown) | 1 | ✅ | 81 | All 4 windows, progress bars, reset times |
-| Refresh Usage (auto + manual) | 1-2 | ✅ | 155 | Configurable interval, debouncing, backoff |
-| Notifications | 2 | ✅ | 320 | Warning, capacity full, reset; hysteresis |
-| Settings (in-popover) | 2 | ✅ | 369 | Display, refresh, notifications, general |
-| Time-to-Exhaustion | 3 | ✅ | 402 | Prediction display, burn rate calculation |
-| Burn Rate Calculation | 3 | ✅ | 489 | 4-level system, color-coded badges |
-| Icon Styles | 3 | ✅ | 552 | All 6 styles: percentage, bar, battery, compact, icon, full |
-| Power-Aware Refresh (core) | 4 | ✅ | 613 | SystemStateMonitor, AdaptiveRefreshManager |
-| Settings UI (smart refresh) | 4 | ✅ | 613 | Smart Refresh toggle, Reduce on Battery |
-| Updates (GitHub Releases) | 3 | ✅ | 613 | Version check, download URL, notification |
-| Accessibility | 4-6 | ✅ | 613 | VoiceOver, keyboard nav, reduce motion, high contrast, dynamic type |
-| Internationalization | 5 | ✅ | 613 | en, pt-BR, es fully localized |
+| View Usage (menu bar + dropdown) | 1 | ✅ | 620 | All 4 windows, progress bars, reset times |
+| Refresh Usage (auto + manual) | 1-2 | ✅ | 620 | Configurable interval, debouncing, backoff |
+| Notifications | 2 | ✅ | 620 | Warning, capacity full, reset; hysteresis |
+| Settings (in-popover) | 2 | ✅ | 620 | Display, refresh, notifications, general |
+| Time-to-Exhaustion | 3 | ✅ | 620 | Prediction display, burn rate calculation |
+| Burn Rate Calculation | 3 | ✅ | 620 | 4-level system, color-coded badges |
+| Icon Styles | 3 | ✅ | 620 | All 6 styles: percentage, bar, battery, compact, icon, full |
+| Updates (GitHub Releases) | 3 | ✅ | 620 | Version check, download URL, notification click |
+| Power-Aware Refresh | 4-8 | ✅ | 620 | SystemStateMonitor, AdaptiveRefreshManager, power indicators |
+| Accessibility | 4-6 | ✅ | 620 | VoiceOver, keyboard nav, reduce motion, high contrast |
+| Internationalization | 5 | ✅ | 620 | en, pt-BR, es fully localized |
+| 100% Warning Badge | 8 | ✅ | 620 | Menu bar warning icon when at capacity |
+| Update Persistence | 8 | ✅ | 620 | lastCheckDate survives app restarts |
 
-### ⚠️ PARTIALLY IMPLEMENTED (Gaps Identified)
+### ❌ NOT IMPLEMENTED (Planned Features)
 
-| Feature | Gap | Impact | Effort |
-|---------|-----|--------|--------|
-| **Burn Rate Badge in Header** | Component exists but NOT displayed in dropdown header | HIGH - Key visibility feature | Small |
-| **Power State Indicator** | No visual indicator in dropdown footer for battery/idle | MEDIUM - User doesn't know when power-aware is active | Small |
-| **Update Notification Click** | Click doesn't open download URL, only activates app | MEDIUM - Broken user flow | Small |
-| **Escape Key to Close** | MenuBarExtra limitation, no escape handler | LOW - Minor UX issue | Small |
-| **100% Warning Badge** | No menu bar badge when at capacity | LOW - Nice to have | Small |
-| **Dynamic Sizing** | Fixed 300px width instead of content-based | LOW - Design choice | N/A |
-
-### ❌ NOT IMPLEMENTED (Future SLC Releases)
-
-| Feature | Spec | Complexity | Blocked By |
-|---------|------|------------|------------|
-| Historical Charts | specs/features/historical-charts.md | Medium | None |
-| Settings Export/Import | specs/features/settings-export.md | Medium | None |
-| Terminal Integration | specs/features/terminal-integration.md | High | App Group setup |
-| Multi-Account | specs/features/multi-account.md | High | Architecture changes |
-| Widgets | specs/features/widgets.md | High | Code signing |
-| Sparkle Auto-Updates | specs/sparkle-updates.md | Medium | Code signing |
-
-### 🔧 Technical Debt
-
-| Item | Priority | Location | Notes |
-|------|----------|----------|-------|
-| Update repo owner/name hardcoded | HIGH | UpdateChecker.swift | Uses placeholder values |
-| User agent version mismatch | LOW | ClaudeAPIClient.swift | Shows "1.2.0" vs actual |
-| No persistent lastCheckDate | LOW | UpdateChecker.swift | Rate limit resets on restart |
-| PlanType detection stub | LOW | ClaudeApp.swift:236 | Hardcoded badge |
-| isStale hardcoded 60s | LOW | UsageManager.swift | Should use refresh interval |
+| Feature | Spec | Complexity | Blocked By | Priority |
+|---------|------|------------|------------|----------|
+| **Historical Charts** | specs/features/historical-charts.md | Medium | None | HIGH |
+| **Settings Export/Import** | specs/features/settings-export.md | Medium | None | HIGH |
+| Terminal Integration | specs/features/terminal-integration.md | High | App Group setup | MEDIUM |
+| Multi-Account | specs/features/multi-account.md | High | Architecture changes | LOW |
+| Widgets | specs/features/widgets.md | High | Code signing | LOW |
+| Sparkle Auto-Updates | specs/sparkle-updates.md | Medium | Code signing | LOW |
 
 ---
 
@@ -84,16 +60,15 @@ Key research documents for this implementation:
 
 | Topic | Document | Why Relevant |
 |-------|----------|--------------|
-| Power-Aware Spec | `specs/features/power-aware-refresh.md` | Power state indicator design |
-| View Usage Spec | `specs/features/view-usage.md` | Burn rate badge placement |
-| Updates Spec | `specs/features/updates.md` | Notification click handling |
-| Competitive Analysis | `research/competitive-analysis.md` | Feature parity reference |
-| API Documentation | `research/apis/anthropic-oauth.md` | Response schemas |
-| Keychain Access | `research/approaches/keychain-access.md` | Auth patterns |
+| Historical Charts Spec | `specs/features/historical-charts.md` | Full feature specification with data model |
+| Settings Export Spec | `specs/features/settings-export.md` | JSON schema, UI design, security considerations |
+| Competitive Analysis | `research/competitive-analysis.md` | ccseva has 7-day charts; Rectangle has JSON export |
+| Swift Chart Libraries | `research/swift-chart-libraries.md` | DSFSparkline vs Swift Charts evaluation |
+| Advanced Settings Patterns | `research/advanced-settings-patterns.md` | Export/import patterns from popular apps |
 
 ---
 <!-- HUMAN VERIFICATION: Does this slice form a coherent, valuable product? -->
-<!-- Answer: YES - Completes SLC 8 and delivers polished v1.7.0 -->
+<!-- Answer: YES - Adds visual analytics and power user settings management -->
 
 ## Phase 0: Build Verification - REQUIRED
 
@@ -103,171 +78,152 @@ Key research documents for this implementation:
 
 - [x] **Verify current build and test status** [file: Makefile]
   - Run `make clean && make build` - must succeed ✅
-  - Run `swift test` - all 613 tests must pass ✅
-  - **Verified:** 2026-01-28 - Build green, 613 tests passing
+  - Run `swift test` - all 620 tests must pass ✅
+  - Run `make release` - verify .app bundle creates successfully ✅
+  - **Verified:** 2026-01-30 - Build clean, all 620 tests pass, release bundle validates
 
 ---
 <!-- CHECKPOINT: Phase 0 must pass before continuing. -->
 
-## Phase 1: Complete Power-Aware UI - CRITICAL
+## Phase 1: Historical Charts Foundation - CRITICAL
 
-**Purpose:** Finish the power-aware refresh feature with visual indicators.
+**Purpose:** Add sparkline chart infrastructure and data persistence.
 
-- [x] **Add power state indicator to dropdown footer** [spec: power-aware-refresh.md] [file: App/ClaudeApp.swift]
-  - ✅ Created `PowerStateIndicator` view showing current power state
-  - ✅ Shows battery icon (`battery.50`) when on battery power
-  - ✅ Shows moon icon (`moon.zzz`) when in idle state
-  - ✅ Displays in dropdown footer near "Updated X ago" text
-  - ✅ Only shows when power-aware refresh is enabled
-  - ✅ Added accessibility labels for VoiceOver
-  - ✅ Added localization strings in en, es, pt-BR: `accessibility.powerState.onBattery`, `accessibility.powerState.idle`
-  - **Completed:** 2026-01-30
-  - **Note:** Also fixed 8 pre-existing broken tests from KOSMA redesign (DiagonalStripes removed, Theme values changed)
-  - **Tests:** 605 tests passing (was 613, some tests removed with DiagonalStripes)
+- [ ] **Create UsageDataPoint model and UsageHistoryManager** [spec: historical-charts.md] [file: Packages/Domain/Sources/Domain/]
+  - Add `UsageDataPoint` struct (utilization: Double, timestamp: Date)
+  - Create `UsageHistoryManager` class (@Observable, @MainActor)
+  - Implement session history (5-min granularity, max 60 points)
+  - Implement weekly history (1-hour granularity, max 168 points)
+  - Add persistence via UserDefaults (JSON encoding)
+  - Add clear history methods
+  - **Research:** `specs/features/historical-charts.md#data-model`
+  - **Tests:** Add 15+ tests for history recording, persistence, trimming
 
-- [x] **Integrate burn rate badge into dropdown header** [spec: view-usage.md] [file: App/ClaudeApp.swift]
-  - ✅ Added header row with "CLAUDE USAGE" title in KOSMA uppercase styling
-  - ✅ Display `BurnRateBadge` in header next to title (only when data available)
-  - ✅ Use `usageManager.overallBurnRateLevel` for badge level
-  - ✅ Added `headerAccessibilityLabel` computed property for VoiceOver support
-  - ✅ Layout matches KOSMA design system with proper spacing and styling
-  - **Completed:** 2026-01-30
-  - **Tests:** 605 tests passing (existing BurnRateBadge and overallBurnRateLevel tests cover component behavior)
+- [ ] **Integrate UsageHistoryManager with UsageManager** [spec: historical-charts.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
+  - Record usage snapshot on each successful refresh
+  - Wire UsageHistoryManager into AppContainer
+  - Expose history data for UI consumption
+  - Clear session history when session window resets
+  - **Research:** `specs/features/historical-charts.md#implementation`
+  - **Tests:** Add integration tests for history recording on refresh
 
 ---
-<!-- CHECKPOINT: Phase 1 delivers visual feedback for power state and burn rate. -->
+<!-- CHECKPOINT: Phase 1 establishes data persistence for charts. -->
 
-## Phase 2: Update Flow Fix
+## Phase 2: Sparkline UI Implementation
 
-**Purpose:** Fix the broken update notification click handling.
+**Purpose:** Add sparkline chart components to dropdown view.
 
-- [x] **Fix notification click to open download URL** [spec: updates.md] [file: App/ClaudeApp.swift]
-  - ✅ Added `userInfo` parameter to `NotificationManager.send()` method
-  - ✅ Updated `checkForUpdatesInBackground()` to pass download URL in userInfo
-  - ✅ Updated `NotificationDelegate.didReceive()` to check for update notifications and open download URL
-  - ✅ Maintains existing behavior (activate app) for all notification types
-  - ✅ Added 4 new tests for userInfo functionality
-  - **Completed:** 2026-01-30
-  - **Tests:** 609 tests passing (was 605, +4 new userInfo tests)
+- [ ] **Add UsageSparkline component using Swift Charts** [spec: historical-charts.md] [file: Packages/UI/Sources/UI/]
+  - Create `UsageSparkline` view using native Swift Charts (macOS 13+)
+  - Implement AreaMark + LineMark with catmullRom interpolation
+  - Color matches progress bar threshold colors
+  - Height: 20px, hidden axes
+  - Support gradient fill under line
+  - Accessibility: mark as decorative (parent provides context)
+  - **Research:** `specs/features/historical-charts.md#option-1-native-swift-charts-recommended`
+  - **Tests:** Add snapshot tests for sparkline rendering at various data points
 
-- [x] **Configure actual GitHub repository in UpdateChecker** [file: Packages/Core/Sources/Core/UpdateChecker.swift]
-  - ✅ Changed `repoOwner` default from "yourname" to "whatiskadudoing"
-  - ✅ Repo name "claudeapp" was already correct
-  - **Completed:** 2026-01-30
-  - **Impact:** Auto-update checks will now work against correct repo (whatiskadudoing/claudeapp)
-  - **Tests:** 609 tests passing (no changes to tests needed)
+- [ ] **Add showSparklines settings toggle** [spec: historical-charts.md] [file: Packages/Domain/Sources/Domain/SettingsKey.swift]
+  - Add `SettingsKey<Bool>("showSparklines", defaultValue: true)`
+  - Add setting toggle in Display section of Settings UI
+  - Wire to UsageProgressBar conditional display
+  - **Research:** `specs/features/historical-charts.md#settings-toggle`
+  - **Tests:** Add tests for setting persistence and UI toggle behavior
 
----
-<!-- CHECKPOINT: Phase 2 fixes the update user flow. -->
-
-## Phase 3: Polish & Technical Debt
-
-**Purpose:** Clean up minor issues and prepare for release.
-
-- [x] **Fix user agent version in ClaudeAPIClient** [file: Packages/Core/Sources/Core/AppContainer.swift]
-  - ✅ Updated AppContainer to pass `userAgent: "ClaudeApp/\(Bundle.main.appVersion)"` to ClaudeAPIClient
-  - ✅ Uses existing `Bundle.appVersion` extension from Core package
-  - ✅ ClaudeAPIClient default still exists for tests/backwards compatibility
-  - **Completed:** 2026-01-30
-  - **Impact:** API requests will report correct version from Info.plist
-  - **Tests:** 609 tests passing (no new tests needed - behavior change only)
-
-- [x] **Add menu bar warning indicator at 100%** [spec: view-usage.md] [file: App/ClaudeApp.swift]
-  - ✅ Added `isAtCapacity` computed property to `UsageData` (returns true when highestUtilization >= 100)
-  - ✅ Modified `MenuBarLabel` to show warning icon when any window at 100%
-  - ✅ Display format: `[✦] 100% ⚠️` using SF Symbol `exclamationmark.triangle.fill`
-  - ✅ Warning icon uses `Theme.Colors.warning` for consistent styling
-  - ✅ Updated accessibility label to use `isAtCapacity` for accurate VoiceOver announcements
-  - **Completed:** 2026-01-30
-  - **Tests:** 616 tests passing (+7 new isAtCapacity tests)
-
-- [x] **Persist UpdateChecker lastCheckDate across restarts** [file: Packages/Core/Sources/Core/UpdateChecker.swift]
-  - ✅ Added `SettingsKey<Date?>` for `lastUpdateCheckDate` in Domain
-  - ✅ Modified `UpdateChecker` to accept optional `SettingsRepository` parameter
-  - ✅ Load persisted check date on init, persist after each check
-  - ✅ Reset clears persisted date when `reset()` is called
-  - ✅ Exposed `SettingsManager.repository` as public for sharing
-  - ✅ Updated `AppContainer` to pass settings repository to `UpdateChecker`
-  - **Completed:** 2026-01-30
-  - **Impact:** Rate limit (24 hours) now survives app restarts
-  - **Tests:** 620 tests passing (+4 new persistence tests)
+- [ ] **Integrate sparklines into UsageProgressBar** [spec: historical-charts.md] [file: App/ClaudeApp.swift]
+  - Add optional historyDataPoints parameter to UsageProgressBar
+  - Display sparkline below progress bar when showSparklines enabled
+  - Pass session history for 5-hour window, weekly history for 7-day windows
+  - Only show sparkline when >= 2 data points available
+  - Add localization strings for "Show Usage Charts" toggle
+  - **Research:** `specs/features/historical-charts.md#integration-with-usageprogressbar`
+  - **Tests:** Add UI tests verifying sparkline visibility conditions
 
 ---
-<!-- CHECKPOINT: Phase 3 completes polish items. -->
+<!-- CHECKPOINT: Phase 2 delivers visual usage trends. -->
 
-## Phase 4: Documentation & Release
+## Phase 3: Settings Export/Import
 
-**Purpose:** Update documentation and prepare v1.7.0 release.
+**Purpose:** Enable backup, restore, and migration of user settings.
 
-- [x] **Update version numbers** [file: various]
-  - ✅ Updated version to 1.7.0 in Info.plist (CFBundleVersion + CFBundleShortVersionString)
-  - ✅ Updated CHANGELOG.md with full SLC 8 release notes (Power-Aware, Burn Rate, Warning Badge, Update Click, Design System)
-  - ✅ Updated specs/features/power-aware-refresh.md acceptance criteria to ✅ Implemented
-  - **Completed:** 2026-01-30
-  - **Tests:** 620 tests passing (no changes to tests needed)
+- [ ] **Create ExportedSettings model and SettingsExportManager** [spec: settings-export.md] [file: Packages/Core/Sources/Core/]
+  - Add `ExportedSettings` struct matching JSON schema (version, exportedAt, appVersion, settings)
+  - Create `SettingsExportManager` class (@MainActor)
+  - Implement `export(includeAccounts:)` method
+  - Implement `exportToFile(url:includeAccounts:)` with pretty-printed JSON
+  - Implement `importFromFile(url:)` and `applySettings(_:)` methods
+  - Implement `createBackup()` to ~/Library/Application Support/ClaudeApp/Backups/
+  - Implement `resetToDefaults()` clearing UserDefaults
+  - **Security:** Never export credentials or authentication data
+  - **Research:** `specs/features/settings-export.md#settings-export-manager`
+  - **Tests:** Add 20+ tests for export, import, backup, reset, validation
 
-- [x] **Final verification** [file: Makefile]
-  - ✅ Run full test suite: 620 tests passing
-  - ✅ Run `make release` to create .app bundle (v1.7.0)
-  - ✅ Manual verification of all new features:
-    - PowerStateIndicator: Implemented in dropdown footer (ClaudeApp.swift:600-645)
-    - BurnRateBadge in header: Implemented next to "CLAUDE USAGE" title (ClaudeApp.swift:369-382)
-    - Notification downloadURL: Opens GitHub release page on click (ClaudeApp.swift:22-62)
-    - isAtCapacity warning: Yellow triangle icon when usage >= 100% (ClaudeApp.swift:118-139)
-    - UpdateChecker persistence: lastCheckDate survives restarts (SettingsKey.swift:74-80)
-  - **Completed:** 2026-01-30
-  - **Success criteria:** All acceptance criteria met ✅
+- [ ] **Add Data section to Settings UI** [spec: settings-export.md] [file: App/ClaudeApp.swift]
+  - Add "Data" section with Export, Import, Reset buttons
+  - Create ExportSettingsSheet with account/history checkboxes
+  - Implement file picker for import (`.json` content type)
+  - Add confirmation dialog before reset to defaults
+  - Show import summary before applying
+  - Add option to create backup before import
+  - Add localization strings for all new UI elements (en, es, pt-BR)
+  - **Research:** `specs/features/settings-export.md#swiftui-integration`
+  - **Tests:** Add UI tests for export/import dialogs
 
 ---
-<!-- CHECKPOINT: Phase 4 completes SLC 8. Ready for v1.7.0 release. -->
+<!-- CHECKPOINT: Phase 3 delivers settings backup/restore. -->
+
+## Phase 4: Polish & Documentation
+
+**Purpose:** Clean up, add documentation, and prepare release.
+
+- [ ] **Update version and documentation** [file: various]
+  - Update version to 1.8.0 in Info.plist
+  - Update CHANGELOG.md with SLC 9 release notes
+  - Update specs/features/historical-charts.md acceptance criteria to ✅
+  - Update specs/features/settings-export.md acceptance criteria to ✅
+  - Update specs/README.md status indicators
+
+- [ ] **Final verification** [file: Makefile]
+  - Run full test suite: target 680+ tests
+  - Run `make release` to create .app bundle (v1.8.0)
+  - Manual verification of all new features:
+    - Sparklines display correctly below progress bars
+    - Settings toggle enables/disables sparklines
+    - Export creates valid JSON file
+    - Import restores settings correctly
+    - Reset clears all settings
+  - **Success criteria:** All acceptance criteria in specs marked ✅
+
+---
+<!-- CHECKPOINT: Phase 4 completes SLC 9. Ready for v1.8.0 release. -->
 
 ## Acceptance Criteria Summary
 
-### SLC 8 Completion Checklist
+### SLC 9 Checklist
 
-**Power-Aware Refresh (from existing plan):**
-- [x] Suspend refresh when screen is off/locked
-- [x] Resume refresh immediately on wake
-- [x] Respect user's refresh interval setting
-- [x] Toggle to enable/disable power-aware refresh
-- [x] Reduce refresh frequency when idle
-- [x] Reduce refresh frequency on battery
-- [x] Increase frequency for critical usage (>90%)
-- [x] **NEW:** Show power state indicator in footer (battery/idle icons) ✅ 2026-01-30
+**Historical Charts:**
+- [ ] Sparkline chart for 5-hour session window
+- [ ] Sparkline chart for 7-day weekly window
+- [ ] Toggle to enable/disable sparklines in settings
+- [ ] Charts update on data refresh
+- [ ] History persists across app restarts
+- [ ] Smooth interpolated line style with gradient fill
+- [ ] Color matches progress bar threshold
 
-**Burn Rate Display:**
-- [x] Burn rate badge component with 4 levels
-- [x] Color-coded for accessibility (shapes + colors)
-- [x] Calculate from highest burn rate across windows
-- [x] **NEW:** Display badge in dropdown header ✅ 2026-01-30
-
-**Update Flow:**
-- [x] Check for updates via GitHub Releases
-- [x] Show notification when update available
-- [x] **NEW:** Notification click opens download URL ✅ 2026-01-30
-
-**Polish:**
-- [x] Fix user agent version string ✅ 2026-01-30
-- [x] Add 100% warning indicator in menu bar ✅ 2026-01-30
-- [x] Persist update check date across restarts ✅ 2026-01-30
+**Settings Export/Import:**
+- [ ] Export settings to JSON file
+- [ ] Import settings from JSON file
+- [ ] Reset to defaults option
+- [ ] Confirmation dialog before import/reset
+- [ ] Create backup before import (optional)
+- [ ] Include/exclude accounts option
+- [ ] Pretty-printed JSON output
+- [ ] Version compatibility check on import
 
 ---
 
 ## Future Work (Outside Current Scope)
-
-### SLC 9: Visualization & Export (Recommended Next)
-
-**Value:** Enable users to see usage patterns over time and backup settings.
-
-| Feature | Spec | Why Deferred |
-|---------|------|--------------|
-| **Historical Charts** | specs/features/historical-charts.md | Visual enhancement, not core monitoring |
-| **Settings Export** | specs/features/settings-export.md | Power user feature, not critical path |
-
-**Prerequisites:**
-- Add Swift Charts dependency (or DSFSparkline)
-- Create UsageHistoryManager for data persistence
-- Implement file picker dialogs
 
 ### SLC 10: Terminal Integration
 
@@ -275,20 +231,37 @@ Key research documents for this implementation:
 
 | Feature | Spec | Why Deferred |
 |---------|------|--------------|
-| **CLI Interface** | specs/features/terminal-integration.md | Requires App Group, ArgumentParser |
+| CLI Interface | specs/features/terminal-integration.md | Requires App Group, ArgumentParser dependency |
 
 **Prerequisites:**
-- Add ArgumentParser dependency
+- Add ArgumentParser dependency to Package.swift
 - Set up App Group for shared UserDefaults
-- Create ClaudeAppCLI command structure
+- Create cache sharing between GUI and CLI
+
+**Research Reference:** `specs/features/terminal-integration.md`
+
+### SLC 11: Multi-Account Support
+
+**Value:** Monitor multiple Claude accounts in one app.
+
+| Feature | Spec | Why Deferred |
+|---------|------|--------------|
+| Account Management | specs/features/multi-account.md | Significant architecture refactoring needed |
+
+**Prerequisites:**
+- Create AccountManager with Account model
+- Create MultiAccountCredentialsRepository
+- Update UsageManager for per-account tracking
+- Design account switcher UI
+
+**Research Reference:** `specs/features/multi-account.md`
 
 ### Future Releases (External Dependencies)
 
 | Feature | Blocker | Notes |
 |---------|---------|-------|
-| Multi-Account | Architecture | Requires significant refactoring |
 | Widgets | Code Signing | WidgetKit requires signed app |
-| Sparkle Auto-Updates | Code Signing | Sparkle requires signed app |
+| Sparkle Auto-Updates | Code Signing | Sparkle requires signed app for auto-install |
 
 ### Technical Debt Backlog
 
@@ -308,18 +281,12 @@ Key research documents for this implementation:
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
-| Domain | 88 | Excellent - models fully tested (+7 isAtCapacity tests) |
+| Domain | 95 | Excellent - models fully tested |
 | Services | 29 | Basic - needs error scenarios |
-| Core | 270 | Comprehensive - business logic (+4 userInfo tests, +4 persistence tests) |
-| UI | 233 | Excellent - accessibility focus |
+| Core | 270 | Comprehensive - business logic |
+| UI | 226 | Excellent - accessibility focus |
 
-**Target for SLC 8:** 620+ tests ✅ ACHIEVED
-
-**Coverage Gaps to Address in Future:**
-- API error response handling (401, 429, 500)
-- Keychain permission denied scenarios
-- Network timeout/retry logic
-- End-to-end integration tests
+**Target for SLC 9:** 680+ tests (60+ new tests)
 
 ---
 
@@ -335,3 +302,4 @@ Key research documents for this implementation:
 | 6 | Advanced Accessibility | 1.5.0 | 489 | ✅ COMPLETE |
 | 7 | Community Ready + Icon Styles | 1.6.0 | 552 | ✅ COMPLETE |
 | 8 | Power-Aware Refresh | 1.7.0 | 620 | ✅ COMPLETE |
+| 9 | Visualization & Power User | 1.8.0 | 680+ | 📋 PLANNED |
