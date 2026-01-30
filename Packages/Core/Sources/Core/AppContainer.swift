@@ -42,6 +42,9 @@ public final class AppContainer {
     /// Checker for app updates via GitHub Releases
     public let updateChecker: UpdateChecker
 
+    /// Manager for usage history (sparkline charts)
+    public let usageHistoryManager: UsageHistoryManager
+
     /// Monitor for system state (sleep, idle, battery)
     public let systemStateMonitor: SystemStateMonitor
 
@@ -95,12 +98,19 @@ public final class AppContainer {
         // Create update checker with settings repository for persisting check date
         self.updateChecker = UpdateChecker(settingsRepository: settings.repository)
 
+        // Create usage history manager for sparkline charts
+        let historyMgr = UsageHistoryManager()
+        self.usageHistoryManager = historyMgr
+
         // Create usage manager
         let usageMgr = UsageManager(usageRepository: apiClient)
         self.usageManager = usageMgr
 
         // Connect notification checker to usage manager
         usageMgr.setNotificationChecker(notificationChecker)
+
+        // Connect usage history manager to usage manager for chart data recording
+        usageMgr.setUsageHistoryManager(historyMgr)
 
         // Create system state monitor for power-aware refresh
         let sysMonitor = SystemStateMonitor()
@@ -236,9 +246,14 @@ public final class AppContainer {
         // Create update checker (uses default settings for tests)
         self.updateChecker = UpdateChecker()
 
+        // Create usage history manager for sparkline charts
+        let historyMgr = UsageHistoryManager()
+        self.usageHistoryManager = historyMgr
+
         let usageMgr = UsageManager(usageRepository: usageRepository)
         self.usageManager = usageMgr
         usageMgr.setNotificationChecker(notificationChecker)
+        usageMgr.setUsageHistoryManager(historyMgr)
 
         // Create system state monitor for power-aware refresh
         let sysMonitor = systemStateMonitor ?? SystemStateMonitor()

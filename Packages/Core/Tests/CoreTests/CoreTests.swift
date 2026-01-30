@@ -1028,6 +1028,207 @@ struct UsageManagerTests {
         #expect(manager.usageData?.fiveHour.resetsAt == fiveHourReset)
         #expect(manager.usageData?.sevenDay.resetsAt == sevenDayReset)
     }
+
+    // MARK: - UsageHistoryManager Integration Tests
+
+    @Test("setUsageHistoryManager connects history manager")
+    @MainActor
+    func setUsageHistoryManagerConnectsManager() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        let suiteName = "com.claudeapp.test.history.integration.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        let historyManager = UsageHistoryManager(userDefaults: defaults)
+
+        manager.setUsageHistoryManager(historyManager)
+
+        // Refresh should record to history manager
+        await manager.refresh()
+
+        #expect(historyManager.sessionPointCount == 1)
+        #expect(historyManager.weeklyPointCount == 1)
+        #expect(historyManager.sessionHistory.first?.utilization == 45.0)
+        #expect(historyManager.weeklyHistory.first?.utilization == 72.0)
+    }
+
+    @Test("refresh records correct utilization values to history")
+    @MainActor
+    func refreshRecordsCorrectValuesToHistory() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 55.5, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 88.8, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        let suiteName = "com.claudeapp.test.history.values.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        let historyManager = UsageHistoryManager(userDefaults: defaults)
+        manager.setUsageHistoryManager(historyManager)
+
+        await manager.refresh()
+
+        #expect(historyManager.sessionHistory.first?.utilization == 55.5)
+        #expect(historyManager.weeklyHistory.first?.utilization == 88.8)
+    }
+
+    @Test("refresh does not record to history on failure")
+    @MainActor
+    func refreshDoesNotRecordOnFailure() async {
+        let mockRepo = MockUsageRepository(error: .notAuthenticated)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        let suiteName = "com.claudeapp.test.history.failure.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        let historyManager = UsageHistoryManager(userDefaults: defaults)
+        manager.setUsageHistoryManager(historyManager)
+
+        await manager.refresh()
+
+        #expect(historyManager.sessionPointCount == 0)
+        #expect(historyManager.weeklyPointCount == 0)
+    }
+
+    @Test("session reset clears session history")
+    @MainActor
+    func sessionResetClearsSessionHistory() async {
+        // Initial data with reset time 1 hour from now
+        let initialResetTime = Date().addingTimeInterval(3600)
+        let initialData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: initialResetTime),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: initialData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        let suiteName = "com.claudeapp.test.history.reset.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        let historyManager = UsageHistoryManager(userDefaults: defaults)
+        manager.setUsageHistoryManager(historyManager)
+
+        // First refresh - records to history
+        await manager.refresh()
+        #expect(historyManager.sessionPointCount == 1)
+        #expect(historyManager.weeklyPointCount == 1)
+
+        // New data with reset time 2 hours from now (window reset happened)
+        let newResetTime = Date().addingTimeInterval(7200)
+        let newData = UsageData(
+            fiveHour: UsageWindow(utilization: 10.0, resetsAt: newResetTime),
+            sevenDay: UsageWindow(utilization: 75.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        await mockRepo.setUsageData(newData)
+
+        // Second refresh - detects session reset, clears session, records new point
+        await manager.refresh()
+
+        // Session history was cleared, then new point added
+        #expect(historyManager.sessionPointCount == 1)
+        #expect(historyManager.sessionHistory.first?.utilization == 10.0)
+        // Weekly history should have both points (not cleared)
+        #expect(historyManager.weeklyPointCount == 1) // Still 1 due to interval
+    }
+
+    @Test("session reset also clears burn rate history")
+    @MainActor
+    func sessionResetClearsBurnRateHistory() async {
+        // Initial data with reset time 1 hour from now
+        let initialResetTime = Date().addingTimeInterval(3600)
+        let initialData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: initialResetTime),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: initialData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        // First refresh - builds up burn rate history
+        await manager.refresh()
+        #expect(manager.usageHistoryCount == 1)
+
+        // New data with reset time 2 hours from now (window reset happened)
+        let newResetTime = Date().addingTimeInterval(7200)
+        let newData = UsageData(
+            fiveHour: UsageWindow(utilization: 10.0, resetsAt: newResetTime),
+            sevenDay: UsageWindow(utilization: 75.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        await mockRepo.setUsageData(newData)
+
+        // Second refresh - detects session reset, clears burn rate history
+        await manager.refresh()
+
+        // Burn rate history was cleared, then new snapshot added
+        #expect(manager.usageHistoryCount == 1)
+    }
+
+    @Test("no session reset when resetsAt time stays same")
+    @MainActor
+    func noSessionResetWhenTimeSame() async {
+        let resetTime = Date().addingTimeInterval(3600)
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: resetTime),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        let suiteName = "com.claudeapp.test.history.noreset.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        let historyManager = UsageHistoryManager(userDefaults: defaults)
+        manager.setUsageHistoryManager(historyManager)
+
+        // First refresh
+        await manager.refresh()
+        #expect(historyManager.sessionPointCount == 1)
+
+        // Update data with same reset time (no reset happened)
+        let updatedData = UsageData(
+            fiveHour: UsageWindow(utilization: 50.0, resetsAt: resetTime),
+            sevenDay: UsageWindow(utilization: 74.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        await mockRepo.setUsageData(updatedData)
+
+        // Second refresh - no reset detected, point not added due to interval
+        await manager.refresh()
+
+        #expect(historyManager.sessionPointCount == 1) // Same due to interval
+        #expect(manager.usageHistoryCount == 2) // Burn rate history grows
+    }
+
+    @Test("history recording works without history manager set")
+    @MainActor
+    func historyRecordingWorksWithoutManager() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+
+        // Don't set history manager - should not crash
+        await manager.refresh()
+
+        #expect(manager.usageData != nil)
+        #expect(manager.usageHistoryCount == 1) // Burn rate history still works
+    }
 }
 
 // MARK: - AppContainer Tests
@@ -1058,6 +1259,11 @@ struct AppContainerTests {
         // Verify notification infrastructure exists by checking types (non-optional)
         let _: UsageNotificationChecker = container.notificationChecker
         let _: NotificationManager = container.notificationManager
+
+        // Verify usage history manager is created
+        let _: UsageHistoryManager = container.usageHistoryManager
+        #expect(container.usageHistoryManager.sessionPointCount == 0) // Initially empty
+        #expect(container.usageHistoryManager.weeklyPointCount == 0)
     }
 
     @Test("AppContainer test init does not start auto-refresh by default")

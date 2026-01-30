@@ -99,13 +99,13 @@ Key research documents for this implementation:
   - **Research:** `specs/features/historical-charts.md#data-model`
   - **Tests:** Add 15+ tests for history recording, persistence, trimming - ✅ 34 new tests (12 UsageDataPoint + 22 UsageHistoryManager)
 
-- [ ] **Integrate UsageHistoryManager with UsageManager** [spec: historical-charts.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
-  - Record usage snapshot on each successful refresh
-  - Wire UsageHistoryManager into AppContainer
-  - Expose history data for UI consumption
-  - Clear session history when session window resets
+- [x] **Integrate UsageHistoryManager with UsageManager** [spec: historical-charts.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
+  - Record usage snapshot on each successful refresh - ✅ in refresh() method
+  - Wire UsageHistoryManager into AppContainer - ✅ created and connected to UsageManager
+  - Expose history data for UI consumption - ✅ via container.usageHistoryManager
+  - Clear session history when session window resets - ✅ checkAndHandleSessionReset() method
   - **Research:** `specs/features/historical-charts.md#implementation`
-  - **Tests:** Add integration tests for history recording on refresh
+  - **Tests:** Add integration tests for history recording on refresh - ✅ 9 new tests added
 
 ---
 <!-- CHECKPOINT: Phase 1 establishes data persistence for charts. -->
@@ -277,13 +277,13 @@ Key research documents for this implementation:
 
 ## Test Coverage Summary
 
-**Current:** 652 tests across 4 packages
+**Current:** 659 tests across 4 packages
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
 | Domain | 107 | Excellent - models fully tested (+12 UsageDataPoint tests) |
 | Services | 29 | Basic - needs error scenarios |
-| Core | 290 | Comprehensive - business logic (+22 UsageHistoryManager tests) |
+| Core | 297 | Comprehensive - business logic (+31 UsageHistoryManager/integration tests) |
 | UI | 226 | Excellent - accessibility focus |
 
 **Target for SLC 9:** 680+ tests (28+ more tests needed)

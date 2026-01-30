@@ -44,6 +44,7 @@ public final class UsageManager {
 
     private let usageRepository: UsageRepository
     private var notificationChecker: UsageNotificationChecker?
+    private var usageHistoryManager: UsageHistoryManager?
     private let accessibilityAnnouncer: AccessibilityAnnouncerProtocol
 
     // MARK: - Burn Rate State
@@ -75,6 +76,11 @@ public final class UsageManager {
     /// Maximum retry interval in seconds (15 minutes)
     private static let maxRetryInterval: TimeInterval = 900
 
+    // MARK: - Session Reset Tracking
+
+    /// Previous session reset timestamp for detecting session resets
+    private var previousSessionResetTime: Date?
+
     // MARK: - Sleep/Wake State
 
     /// Whether auto-refresh was running before sleep
@@ -99,6 +105,13 @@ public final class UsageManager {
     /// - Parameter checker: The notification checker to use
     public func setNotificationChecker(_ checker: UsageNotificationChecker) {
         self.notificationChecker = checker
+    }
+
+    /// Sets the usage history manager for recording sparkline chart data.
+    /// This should be called after initialization when the manager is available.
+    /// - Parameter manager: The usage history manager to use
+    public func setUsageHistoryManager(_ manager: UsageHistoryManager) {
+        self.usageHistoryManager = manager
     }
 
     // MARK: - Computed Properties
@@ -166,8 +179,17 @@ public final class UsageManager {
                 await checker.check(current: newData, previous: usageData)
             }
 
+            // Detect session reset and clear session history if needed
+            checkAndHandleSessionReset(newData)
+
             // Record snapshot for burn rate calculation
             recordSnapshot(newData)
+
+            // Record to usage history manager for sparkline charts
+            usageHistoryManager?.record(
+                sessionUtilization: newData.fiveHour.utilization,
+                weeklyUtilization: newData.sevenDay.utilization
+            )
 
             // Enrich data with burn rates and time-to-exhaustion
             let enrichedData = enrichWithBurnRates(newData)
@@ -335,6 +357,27 @@ public final class UsageManager {
     /// Useful for testing or when resetting state.
     public func clearHistory() {
         usageHistory.removeAll()
+    }
+
+    /// Checks if the 5-hour session window has reset and clears session history if so.
+    /// A session reset is detected when the resetsAt timestamp changes to a later time.
+    /// - Parameter data: The current usage data to check
+    private func checkAndHandleSessionReset(_ data: UsageData) {
+        let currentResetTime = data.fiveHour.resetsAt
+
+        // If we have a previous reset time and the current one is later,
+        // the session has reset (new window started)
+        if let previous = previousSessionResetTime,
+           let current = currentResetTime,
+           current > previous {
+            // Session has reset - clear session history
+            usageHistoryManager?.clearSessionHistory()
+            // Also clear burn rate history since it's a new session
+            usageHistory.removeAll()
+        }
+
+        // Update tracked reset time
+        previousSessionResetTime = currentResetTime
     }
 
     /// Starts automatic refresh at the specified interval.
