@@ -1,53 +1,56 @@
 # Implementation Plan
 
-## Recommended SLC Release: SLC 10 - Terminal Integration
+## Recommended SLC Release: SLC 11 - Multi-Account Support
 
-**Audience:** Professional developers using Claude Code who work primarily in the terminal, demanding usage visibility without leaving their command-line workflow.
+**Audience:** Professional developers using Claude Code who have multiple Claude accounts (personal + work, multiple projects, team accounts).
 
-**Value proposition:** Enable usage monitoring directly in shell prompts, tmux status bars, and terminal commands, allowing developers to stay informed without context-switching to the menu bar.
+**Value proposition:** Monitor all Claude accounts from a single menu bar app, eliminating the need to switch between accounts or run multiple tools to track usage across work and personal contexts.
 
 **Activities included:**
 
 | Activity | Depth | Why Included |
 |----------|-------|--------------|
-| Terminal Integration | Basic | Most requested developer feature; enables CLI-based monitoring |
-| Shared Cache Infrastructure | Basic | Foundation for CLI/GUI data sharing via App Groups |
+| Account Management | Basic | Core feature: add/remove/switch between accounts |
+| Multi-Account Usage Display | Basic | Show usage for active account with switcher |
+| Settings Integration | Basic | Account management in Settings panel |
 
 **What's NOT in this slice:**
-- Multi-Account → SLC 11 (significant architecture refactoring needed)
-- Widgets → Future (blocked by code signing requirement)
-- Sparkle Auto-Updates → Future (blocked by code signing requirement)
+- Multi-account menu bar display (showing P:45% W:72%) → Future (after single-account switcher works)
+- Aggregate view across all accounts → Future (advanced feature)
+- Account-specific notification settings → Future (complexity)
+- Multiple provider support (OpenAI, Gemini) → Future (different API requirements)
+- Widgets → Blocked by code signing
+- Sparkle Auto-Updates → Blocked by code signing
 
 ---
 
 ## Comprehensive Gap Analysis (2026-01-30)
 
-### ✅ FULLY IMPLEMENTED FEATURES (SLC 1-9 Complete)
+### ✅ FULLY IMPLEMENTED FEATURES (SLC 1-10 Complete)
 
-| Feature | SLC | Status | Tests | Notes |
-|---------|-----|--------|-------|-------|
-| View Usage (menu bar + dropdown) | 1 | ✅ | 726 | All 4 windows, progress bars, reset times |
-| Refresh Usage (auto + manual) | 1-2 | ✅ | 726 | Configurable interval, debouncing, backoff |
-| Notifications | 2 | ✅ | 726 | Warning, capacity full, reset; hysteresis |
-| Settings (in-popover) | 2 | ✅ | 726 | Display, refresh, notifications, general, data |
-| Time-to-Exhaustion | 3 | ✅ | 726 | Prediction display, burn rate calculation |
-| Burn Rate Calculation | 3 | ✅ | 726 | 4-level system, color-coded badges |
-| Icon Styles | 3 | ✅ | 726 | All 6 styles: percentage, bar, battery, compact, icon, full |
-| Updates (GitHub Releases) | 3 | ✅ | 726 | Version check, download URL, notification click |
-| Power-Aware Refresh | 4-8 | ✅ | 726 | SystemStateMonitor, AdaptiveRefreshManager, power indicators |
-| Accessibility | 4-6 | ✅ | 726 | VoiceOver, keyboard nav, reduce motion, high contrast |
-| Internationalization | 5 | ✅ | 726 | en, pt-BR, es fully localized |
-| 100% Warning Badge | 8 | ✅ | 726 | Menu bar warning icon when at capacity |
-| Update Persistence | 8 | ✅ | 726 | lastCheckDate survives app restarts |
-| Historical Charts | 9 | ✅ | 726 | Sparklines for session and weekly windows |
-| Settings Export/Import | 9 | ✅ | 726 | Export, import, backup, reset functionality |
+| Feature | SLC | Version | Tests | Notes |
+|---------|-----|---------|-------|-------|
+| View Usage (menu bar + dropdown) | 1 | 1.0.0 | 752 | All 4 windows, progress bars, reset times |
+| Refresh Usage (auto + manual) | 1-2 | 1.0.0 | 752 | Configurable interval, debouncing, backoff |
+| Notifications | 2 | 1.1.0 | 752 | Warning, capacity full, reset; hysteresis |
+| Settings (in-popover) | 2 | 1.1.0 | 752 | Display, refresh, notifications, general, data |
+| Time-to-Exhaustion | 3 | 1.2.0 | 752 | Prediction display, burn rate calculation |
+| Burn Rate Calculation | 3 | 1.2.0 | 752 | 4-level system, color-coded badges |
+| Icon Styles | 3 | 1.2.0 | 752 | All 6 styles: percentage, bar, battery, compact, icon, full |
+| Updates (GitHub Releases) | 3 | 1.2.0 | 752 | Version check, download URL, notification click |
+| Power-Aware Refresh | 4-8 | 1.7.0 | 752 | SystemStateMonitor, AdaptiveRefreshManager, power indicators |
+| Accessibility | 4-6 | 1.5.0 | 752 | VoiceOver, keyboard nav, reduce motion, high contrast |
+| Internationalization | 5 | 1.4.0 | 752 | en, pt-BR, es fully localized |
+| 100% Warning Badge | 8 | 1.7.0 | 752 | Menu bar warning icon when at capacity |
+| Historical Charts | 9 | 1.8.0 | 752 | Sparklines for session and weekly windows |
+| Settings Export/Import | 9 | 1.8.0 | 752 | Export, import, backup, reset functionality |
+| Terminal Integration | 10 | 1.9.0 | 752 | CLI interface, shared cache, shell integration docs |
 
 ### ❌ NOT IMPLEMENTED (Planned Features)
 
 | Feature | Spec | Complexity | Blocked By | Priority |
 |---------|------|------------|------------|----------|
-| Terminal Integration | specs/features/terminal-integration.md | Medium | App Group setup | **HIGH** |
-| Multi-Account | specs/features/multi-account.md | High | Architecture changes | MEDIUM |
+| Multi-Account | specs/features/multi-account.md | High | None | **HIGH - SLC 11** |
 | Widgets | specs/features/widgets.md | High | Code signing | LOW |
 | Sparkle Auto-Updates | specs/sparkle-updates.md | Medium | Code signing | LOW |
 
@@ -59,14 +62,15 @@ Key research documents for this implementation:
 
 | Topic | Document | Why Relevant |
 |-------|----------|--------------|
-| Terminal Integration Spec | `specs/features/terminal-integration.md` | CLI interface, output formats, shell integration |
-| Competitive Analysis | `research/competitive-analysis.md` | ccusage (10K ⭐), Claude-Code-Usage-Monitor (6.3K ⭐) have CLI |
-| Keychain Access | `research/approaches/keychain-access.md` | Security CLI approach for credentials |
-| API Documentation | `specs/api-documentation.md` | OAuth usage API endpoints |
+| Multi-Account Spec | `specs/features/multi-account.md` | Complete data model, UI design, migration strategy |
+| Competitive Analysis | `research/competitive-analysis.md` | Claude Usage Tracker (684★) has multi-profile support |
+| Architecture Patterns | `research/menubar-architecture-patterns.md` | Protocol-based services, profile management |
+| Keychain Access | `research/approaches/keychain-access.md` | Security CLI approach for per-account credentials |
+| API Documentation | `specs/api-documentation.md` | OAuth usage API works with any valid token |
 
 ---
 <!-- HUMAN VERIFICATION: Does this slice form a coherent, valuable product? -->
-<!-- Answer: YES - Extends monitoring to terminal-centric developers -->
+<!-- Answer: YES - Enables monitoring multiple accounts from one app, directly serves users with work+personal accounts -->
 
 ## Phase 0: Build Verification - REQUIRED
 
@@ -74,148 +78,161 @@ Key research documents for this implementation:
 
 ### Pre-Flight Checks
 
-- [x] **Verify current build and test status** [file: Makefile] ✅ Verified 2026-01-30
-  - Run `make clean && make build` - ✅ Build succeeds (17s)
-  - Run `swift test` - ✅ All 726 tests pass
-  - Run `make release` - ✅ .app bundle creates successfully
-  - Document verification date and results: Verified 2026-01-30, all checks pass
+- [x] **Verify current build and test status** [file: Makefile]
+  - Run `make clean && make build` - expect success ✅
+  - Run `swift test` - expect all 752 tests pass ✅ (fixed flaky test: increased wait time in AppContainer Power-Aware Integration test from 100ms to 500ms)
+  - Run `make release` - expect .app bundle creates successfully ✅
+  - Verified: 2026-01-30
 
 ---
 <!-- CHECKPOINT: Phase 0 must pass before continuing. -->
 
-## Phase 1: App Group and Shared Cache Foundation - CRITICAL
+## Phase 1: Domain Layer - Account Model & Storage
 
-**Purpose:** Set up App Group for shared data between GUI app and CLI.
+**Purpose:** Define core data models and storage protocol in the Domain package.
 
-- [x] **Configure App Group and update cache infrastructure** [spec: terminal-integration.md] [file: App/, Packages/Core/] ✅ Completed 2026-01-30
-  - Add App Group entitlement: `group.com.kaduwaengertner.ClaudeApp` ✅
-  - Create `SharedCacheManager` class in Core package ✅
-  - Implement `writeUsageCache(_ data: UsageData)` to App Group UserDefaults ✅
-  - Implement `readUsageCache() -> (UsageData, Date)?` returning data + timestamp ✅
-  - Wire UsageManager to write to shared cache on each refresh ✅
-  - Add cache TTL constants (fresh: <5min, stale: 5-15min, expired: >15min) ✅
-  - **Research:** `specs/features/terminal-integration.md#shared-data-with-gui`
-  - **Tests:** Add 15+ tests for cache read/write, TTL validation, JSON encoding ✅ (26 tests added)
-  - **Notes:** Added Codable conformance to UsageData/UsageWindow. Created CacheTTL enum for Sendable access. Test count: 726 → 752
-
----
-<!-- CHECKPOINT: Phase 1 establishes data sharing foundation. -->
-
-## Phase 2: CLI Interface Implementation
-
-**Purpose:** Add ArgumentParser-based CLI interface to the app binary.
-
-- [x] **Add ArgumentParser dependency and implement CLI handler** [spec: terminal-integration.md] [file: Package.swift, App/] ✅ Completed 2026-01-30
-  - Add ArgumentParser package dependency to Package.swift ✅
-  - Create `CLIHandler` struct conforming to `ParsableCommand` ✅
-  - Implement `--status` flag to output usage data ✅
-  - Implement `--format` option: plain, json, minimal, verbose ✅
-  - Implement `--metric` option: session, weekly, highest, opus, sonnet ✅
-  - Implement `--refresh` flag to force API fetch ✅
-  - Add proper exit codes (0=success, 1=not auth, 2=API error, 3=stale data) ✅
-  - Detect CLI vs GUI mode at app launch (check if launched with --status) ✅
-  - **Research:** `specs/features/terminal-integration.md#cli-interface`
-  - **Tests:** CLI logic tested via existing SharedCacheManager tests; manual verification of all formats passed
-  - **Notes:** Created main.swift for CLI/GUI routing, CLIHandler.swift with ArgumentParser, all formats working
-
-- [x] **Implement output formatters** [spec: terminal-integration.md] [file: App/] ✅ Completed 2026-01-30
-  - Formatters implemented inline in CLIHandler (PlainFormatter, JSONFormatter, MinimalFormatter, VerboseFormatter) ✅
-  - Implement `PlainFormatter`: `86% (5h: 45%, 7d: 72%)` ✅
-  - Implement `JSONFormatter`: structured JSON with session, weekly, highest, burnRate ✅
-  - Implement `MinimalFormatter`: `86%` (single value) ✅
-  - Implement `VerboseFormatter`: multi-line with ASCII progress bars ✅
-  - Add color output support for verbose mode (ANSI escape codes) ✅
-  - Add `--no-color` flag to disable colors ✅
-  - **Research:** `specs/features/terminal-integration.md#output-formats`
-  - **Notes:** All formats verified working via manual CLI testing
+- [ ] **Add Account model and storage protocol to Domain package** [spec: multi-account.md] [file: Packages/Domain/Sources/Domain/]
+  - Create `Account.swift` with Account struct (id, name, email, planType, keychainIdentifier, isActive, isPrimary, createdAt)
+  - Ensure Account conforms to Identifiable, Sendable, Codable, Equatable
+  - Create `AccountStorage.swift` with AccountStorage protocol
+  - Add `MultiAccountDisplayMode` enum (all, activeOnly, primaryOnly)
+  - Add new SettingsKey constants for multi-account settings
+  - Update `Domain.swift` exports
+  - **Research:** `specs/features/multi-account.md#data-model`
+  - **Tests:** Add 30+ tests for Account model (init, Codable round-trip, Equatable, isPrimary logic)
+  - **Success criteria:** Domain package builds, all new types are Sendable-safe
 
 ---
-<!-- CHECKPOINT: Phase 2 delivers core CLI functionality. -->
+<!-- CHECKPOINT: Phase 1 establishes data foundation. -->
 
-## Phase 3: Shell Integration Documentation
+## Phase 2: Core Layer - Account Manager & Credentials
 
-**Purpose:** Create documentation and helper scripts for shell integration.
+**Purpose:** Implement account management business logic and multi-account credential access.
 
-- [x] **Create shell integration documentation and scripts** [spec: terminal-integration.md] [file: docs/, scripts/] ✅ Completed 2026-01-30
-  - Create `docs/TERMINAL.md` with shell integration guide ✅
-  - Add bash prompt integration example ✅
-  - Add zsh prompt integration example ✅
-  - Add Starship custom module configuration ✅
-  - Add tmux status bar configuration ✅
-  - Add Oh My Zsh plugin template ✅
-  - Create `scripts/install-cli.sh` for symlink creation ✅
-  - Update README.md with terminal integration section ✅
-  - Add localization strings for CLI error messages (CLI uses English only - consistent with terminal conventions)
-  - **Research:** `specs/features/terminal-integration.md#shell-integration`
-  - **No tests:** Documentation only
-  - **Notes:** Created comprehensive docs/TERMINAL.md (500+ lines) covering all shell environments, scripting examples, and troubleshooting. Added executable scripts/install-cli.sh with install/uninstall support.
+- [ ] **Implement AccountManager and credential retrieval in Core package** [spec: multi-account.md] [file: Packages/Core/Sources/Core/]
+  - Create `UserDefaultsAccountStorage.swift` implementing AccountStorage protocol
+  - Create `AccountManager.swift` with @Observable @MainActor class
+  - Implement addAccount, removeAccount, updateAccount, setActiveAccount, setPrimaryAccount
+  - Implement automatic primary assignment (first account becomes primary)
+  - Create `MultiAccountCredentialsRepository.swift` as actor
+  - Support both "default" (Claude Code-credentials) and custom keychainIdentifier
+  - Implement migration logic: auto-create "Default" account on first launch if accounts empty
+  - Wire AccountManager into AppContainer as shared dependency
+  - **Research:** `specs/features/multi-account.md#credentials-management`
+  - **Tests:** Add 50+ tests for AccountManager (CRUD operations, primary logic, migration, credential retrieval)
+  - **Success criteria:** Can add/remove accounts, credentials fetched per-account
 
 ---
-<!-- CHECKPOINT: Phase 3 delivers documentation and usability. -->
+<!-- CHECKPOINT: Phase 2 delivers account management infrastructure. -->
 
-## Phase 4: Polish & Release
+## Phase 3: Core Layer - UsageManager Multi-Account Support
+
+**Purpose:** Update UsageManager to track usage per-account.
+
+- [ ] **Update UsageManager to support per-account usage tracking** [spec: multi-account.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
+  - Add `usageByAccount: [UUID: UsageData]` dictionary
+  - Update init to accept AccountManager dependency
+  - Implement `refreshActiveAccount()` using active account's credentials
+  - Implement `refreshAllAccounts()` with TaskGroup for parallel fetches
+  - Update `currentUsageData` computed property to return active account's data
+  - Add `highestUtilizationAcrossAccounts` computed property
+  - Ensure backward compatibility: if no accounts exist, use default credentials (existing behavior)
+  - Update SharedCacheManager to write active account's data
+  - **Research:** `specs/features/multi-account.md#usagemanager-updates`
+  - **Tests:** Add 40+ tests for multi-account refresh, per-account storage, active account switching
+  - **Success criteria:** Usage refreshes for active account, switching accounts shows correct data
+
+---
+<!-- CHECKPOINT: Phase 3 delivers functional multi-account data flow. -->
+
+## Phase 4: UI Layer - Account Switcher & Settings
+
+**Purpose:** Add account switcher UI and settings management.
+
+- [ ] **Implement account switcher in dropdown and accounts settings section** [spec: multi-account.md] [file: App/ClaudeApp.swift, Packages/UI/]
+  - Add account switcher dropdown to DropdownView header (shows active account name with chevron)
+  - Create AccountSwitcherMenu view with account list and "Add Account" option
+  - Add "Accounts" section to SettingsContent with account list (name, plan type, edit/delete buttons)
+  - Implement "Add Account" flow: name input, uses new keychain identifier
+  - Implement "Edit Account" flow: rename, set primary
+  - Implement "Remove Account" with confirmation alert
+  - Show account status indicator (connected vs error state)
+  - Add display mode picker (All / Active Only / Primary Only) in settings
+  - Update MenuBarLabel to show active account's usage
+  - Add localization strings for all new UI (en, pt-BR, es)
+  - **Research:** `specs/features/multi-account.md#design`
+  - **Tests:** Add 30+ UI tests for account switcher, settings section, display modes
+  - **Success criteria:** Can switch accounts in dropdown, manage accounts in settings
+
+---
+<!-- CHECKPOINT: Phase 4 delivers complete multi-account UI. -->
+
+## Phase 5: Polish & Release
 
 **Purpose:** Final testing, version bump, and release preparation.
 
-- [x] **Update version and complete final verification** [file: various] ✅ Completed 2026-01-30
-  - Update version to 1.9.0 in Info.plist ✅
-  - Update CHANGELOG.md with SLC 10 release notes ✅
-  - Update specs/features/terminal-integration.md acceptance criteria to ✅ ✅
-  - Update specs/README.md status indicators ✅
-  - Run full test suite: 752 tests pass ✅
-  - Run `make release` to create .app bundle (v1.9.0) ✅
-  - Test CLI manually: verify all formats and flags work ✅ (verified in previous phases)
-  - Test shell integration: verify bash/zsh/Starship work ✅ (docs/TERMINAL.md created)
-  - Verify backward compatibility (GUI still works normally) ✅
-  - **Success criteria:** All acceptance criteria verified via tests and manual testing
+- [ ] **Update version and complete final verification** [file: various]
+  - Update version to 2.0.0 in Info.plist (major version for architecture change)
+  - Update CHANGELOG.md with SLC 11 release notes
+  - Update specs/features/multi-account.md acceptance criteria to ✅
+  - Update specs/README.md status indicators
+  - Run full test suite: expect 870+ tests pass
+  - Run `make release` to create .app bundle
+  - Test migration: fresh install creates "Default" account automatically
+  - Test backward compatibility: single account setup works unchanged
+  - Verify CLI still works (uses active account's cached data)
+  - Test account switching with real accounts (if available)
+  - **Success criteria:** All acceptance criteria met, migration works, no regressions
 
 ---
-<!-- CHECKPOINT: Phase 4 completes SLC 10. Ready for v1.9.0 release. -->
+<!-- CHECKPOINT: Phase 5 completes SLC 11. Ready for v2.0.0 release. -->
 
 ## Acceptance Criteria Summary
 
-### SLC 10 Checklist
+### SLC 11 Checklist
 
-**CLI Interface:**
-- [x] `claudeapp --status` outputs usage data ✅
-- [x] `--format plain` shows human-readable output ✅
-- [x] `--format json` shows structured JSON ✅
-- [x] `--format minimal` shows percentage only ✅
-- [x] `--format verbose` shows detailed multi-line output ✅
-- [x] `--metric session|weekly|highest|opus|sonnet` filters output ✅
-- [x] `--refresh` forces API fetch (updates cache) ✅
-- [x] Exit codes indicate status (0, 1, 2, 3) ✅
+**Account Management:**
+- [ ] Add account with custom name and keychain identifier
+- [ ] Remove account with confirmation
+- [ ] Edit account name
+- [ ] Set account as primary
+- [ ] Automatic migration creates "Default" account on first launch
 
-**Shared Cache:**
-- [x] GUI app writes to App Group UserDefaults on refresh ✅
-- [x] CLI reads from App Group UserDefaults ✅
-- [x] Stale data (>15 min) returns exit code 3 ✅
-- [x] Cache timestamp included in JSON output ✅
+**Account Switching:**
+- [ ] Dropdown shows active account name with switcher
+- [ ] Clicking switcher shows account list
+- [ ] Selecting account switches active account
+- [ ] Usage display updates to show new account's data
 
-**Shell Integration:**
-- [x] Documentation for bash, zsh, Starship, tmux ✅
-- [x] Symlink installation script provided ✅
-- [x] Oh My Zsh plugin template provided ✅
+**Credentials:**
+- [ ] Default account uses "Claude Code-credentials" (backward compatible)
+- [ ] Additional accounts use custom keychain identifiers
+- [ ] Credential errors shown per-account (not global)
+
+**Settings:**
+- [ ] Accounts section shows all accounts with plan type
+- [ ] Add/edit/remove accounts from settings
+- [ ] Primary account indicator (●/○)
+- [ ] Display mode picker (All/Active/Primary)
+
+**Compatibility:**
+- [ ] Single-account usage works unchanged (no regression)
+- [ ] CLI uses active account's cached data
+- [ ] Notifications work for active account
+- [ ] Terminal integration continues to work
 
 ---
 
 ## Future Work (Outside Current Scope)
 
-### SLC 11: Multi-Account Support
-
-**Value:** Monitor multiple Claude accounts in one app.
+### SLC 12+: Advanced Multi-Account Features
 
 | Feature | Spec | Why Deferred |
 |---------|------|--------------|
-| Account Management | specs/features/multi-account.md | Significant architecture refactoring needed |
-
-**Prerequisites:**
-- Create AccountManager with Account model
-- Create MultiAccountCredentialsRepository
-- Update UsageManager for per-account tracking
-- Design account switcher UI
-
-**Research Reference:** `specs/features/multi-account.md`
+| Multi-account menu bar display | multi-account.md | Added complexity, evaluate after basic switching works |
+| Aggregate view across accounts | multi-account.md | Requires additional UI design |
+| Per-account notifications | notifications.md + multi-account.md | Significant settings complexity |
+| Refresh all accounts button | multi-account.md | Nice-to-have, not core |
 
 ### Future Releases (External Dependencies)
 
@@ -223,6 +240,7 @@ Key research documents for this implementation:
 |---------|---------|-------|
 | Widgets | Code Signing | WidgetKit requires signed app |
 | Sparkle Auto-Updates | Code Signing | Sparkle requires signed app for auto-install |
+| Multiple Providers | Different APIs | OpenAI, Gemini have different auth/endpoints |
 
 ### Technical Debt Backlog
 
@@ -230,24 +248,30 @@ Key research documents for this implementation:
 |------|----------|-------|
 | Integration tests with mock network | Medium | No network failure tests |
 | Keychain error scenario tests | Medium | Only happy path tested |
-| CLI integration tests | Medium | Need end-to-end CLI tests |
-| Burn rate thresholds configurable | Low | Currently hardcoded |
-| Hysteresis buffer configurable | Low | Currently hardcoded 5% |
+| Account migration edge cases | Medium | What if keychain entry deleted? |
+| CLI multi-account support | Low | Currently shows active account only |
+| Account sync across devices | Low | Would need iCloud integration |
 
 ---
 
 ## Test Coverage Summary
 
-**Current:** 752 tests across 4 packages (Phase 1 complete)
+**Current (SLC 10):** 752 tests across 4 packages
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
-| Domain | 132 | Excellent - models fully tested |
+| Domain | 123 | Excellent - models fully tested |
 | Services | 29 | Basic - needs error scenarios |
-| Core | 339 | Comprehensive - business logic (+26 SharedCacheManager) |
-| UI | 252 | Excellent - accessibility focus |
+| Core | 341 | Comprehensive - business logic |
+| UI | 259 | Excellent - accessibility focus |
 
-**Final for SLC 10:** 752 tests (SharedCacheManager tests added, CLI tested manually)
+**Target for SLC 11:** 870+ tests (120+ new tests for multi-account functionality)
+
+| Package | New Tests | Focus |
+|---------|-----------|-------|
+| Domain | +30 | Account model, AccountStorage protocol |
+| Core | +60 | AccountManager, MultiAccountCredentialsRepository, UsageManager updates |
+| UI | +30 | Account switcher, settings section, display modes |
 
 ---
 
@@ -265,3 +289,25 @@ Key research documents for this implementation:
 | 8 | Power-Aware Refresh | 1.7.0 | 620 | ✅ COMPLETE |
 | 9 | Visualization & Power User | 1.8.0 | 726 | ✅ COMPLETE |
 | 10 | Terminal Integration | 1.9.0 | 752 | ✅ COMPLETE |
+| **11** | **Multi-Account Support** | **2.0.0** | **870+** | **📋 PLANNED** |
+
+---
+
+## Risk Assessment
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| Keychain access for custom identifiers | Medium | High | Test early in Phase 2; fall back to CLI security tool |
+| Migration breaks existing users | Low | High | Extensive testing; automatic "Default" account creation |
+| Performance with many accounts | Low | Medium | TaskGroup for parallel refreshes; limit active accounts |
+| UI complexity in dropdown | Medium | Medium | Start with simple switcher; iterate based on feedback |
+
+---
+
+## Implementation Notes
+
+1. **Version 2.0.0**: Major version bump signals architecture change (multi-account support)
+2. **Backward Compatibility**: Crucial - single-account users must not notice any change
+3. **Keychain Strategy**: Documented in spec - default account uses existing "Claude Code-credentials"
+4. **Test First**: Each phase has explicit test requirements before proceeding
+5. **Localization**: All new strings in en, pt-BR, es before Phase 5

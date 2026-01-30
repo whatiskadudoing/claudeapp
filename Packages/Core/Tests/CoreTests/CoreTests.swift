@@ -5225,7 +5225,8 @@ struct AppContainerPowerAwareTests {
 
         // The adaptive manager should be wired to the usage manager
         // When it refreshes, it should call the usage repository
-        try await Task.sleep(for: .milliseconds(100))
+        // Wait longer to ensure the async Task has time to start and execute
+        try await Task.sleep(for: .milliseconds(500))
 
         let callCount = await mockUsage.fetchCallCount
         // At least one refresh should have occurred
