@@ -164,11 +164,13 @@ Key research documents for this implementation:
 
 **Purpose:** Clean up minor issues and prepare for release.
 
-- [ ] **Fix user agent version in ClaudeAPIClient** [file: Packages/Services/Sources/Services/ClaudeAPIClient.swift]
-  - Update hardcoded "1.2.0" to read from Bundle.appVersion
-  - Or: Define version constant in Domain package for consistency
-  - **Impact:** API requests will report correct version
-  - **Target:** No new tests needed (behavior verification)
+- [x] **Fix user agent version in ClaudeAPIClient** [file: Packages/Core/Sources/Core/AppContainer.swift]
+  - ✅ Updated AppContainer to pass `userAgent: "ClaudeApp/\(Bundle.main.appVersion)"` to ClaudeAPIClient
+  - ✅ Uses existing `Bundle.appVersion` extension from Core package
+  - ✅ ClaudeAPIClient default still exists for tests/backwards compatibility
+  - **Completed:** 2026-01-30
+  - **Impact:** API requests will report correct version from Info.plist
+  - **Tests:** 609 tests passing (no new tests needed - behavior change only)
 
 - [ ] **Add menu bar warning indicator at 100%** [spec: view-usage.md] [file: App/ClaudeApp.swift]
   - Modify `MenuBarLabel` to show warning icon when any window at 100%
@@ -233,7 +235,7 @@ Key research documents for this implementation:
 - [x] **NEW:** Notification click opens download URL ✅ 2026-01-30
 
 **Polish:**
-- [ ] Fix user agent version string
+- [x] Fix user agent version string ✅ 2026-01-30
 - [ ] Add 100% warning indicator in menu bar
 - [ ] Persist update check date across restarts
 

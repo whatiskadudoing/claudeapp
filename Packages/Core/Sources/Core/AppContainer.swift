@@ -70,7 +70,10 @@ public final class AppContainer {
         let keychainRepo = KeychainCredentialsRepository()
         self.credentialsRepository = keychainRepo
 
-        let apiClient = ClaudeAPIClient(credentialsRepository: keychainRepo)
+        let apiClient = ClaudeAPIClient(
+            credentialsRepository: keychainRepo,
+            userAgent: "ClaudeApp/\(Bundle.main.appVersion)"
+        )
         self.usageRepository = apiClient
 
         // Create settings manager first (other managers may depend on it)
