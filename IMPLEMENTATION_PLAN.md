@@ -91,16 +91,17 @@ Key research documents for this implementation:
 
 **Purpose:** Define core data models and storage protocol in the Domain package.
 
-- [ ] **Add Account model and storage protocol to Domain package** [spec: multi-account.md] [file: Packages/Domain/Sources/Domain/]
-  - Create `Account.swift` with Account struct (id, name, email, planType, keychainIdentifier, isActive, isPrimary, createdAt)
-  - Ensure Account conforms to Identifiable, Sendable, Codable, Equatable
-  - Create `AccountStorage.swift` with AccountStorage protocol
-  - Add `MultiAccountDisplayMode` enum (all, activeOnly, primaryOnly)
-  - Add new SettingsKey constants for multi-account settings
-  - Update `Domain.swift` exports
+- [x] **Add Account model and storage protocol to Domain package** [spec: multi-account.md] [file: Packages/Domain/Sources/Domain/]
+  - Create `Account.swift` with Account struct (id, name, email, planType, keychainIdentifier, isActive, isPrimary, createdAt) ✅
+  - Ensure Account conforms to Identifiable, Sendable, Codable, Equatable ✅
+  - Create `AccountStorage.swift` with AccountStorage protocol ✅
+  - Add `MultiAccountDisplayMode` enum (all, activeOnly, primaryOnly) ✅
+  - Add new SettingsKey constants for multi-account settings (multiAccountDisplayMode, showAccountLabels) ✅
+  - Update `Domain.swift` exports (version bumped to 2.0.0) ✅
   - **Research:** `specs/features/multi-account.md#data-model`
-  - **Tests:** Add 30+ tests for Account model (init, Codable round-trip, Equatable, isPrimary logic)
-  - **Success criteria:** Domain package builds, all new types are Sendable-safe
+  - **Tests:** Added 45 new tests (797 total, was 752) - Account model, MultiAccountDisplayMode, SettingsKey tests ✅
+  - **Success criteria:** Domain package builds, all new types are Sendable-safe ✅
+  - **Completed:** 2026-01-30
 
 ---
 <!-- CHECKPOINT: Phase 1 establishes data foundation. -->

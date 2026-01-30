@@ -6,7 +6,7 @@ import Testing
 struct DomainTests {
     @Test("Domain version is correct")
     func domainVersion() {
-        #expect(Domain.version == "1.6.0")
+        #expect(Domain.version == "2.0.0")
     }
 }
 
@@ -1734,5 +1734,500 @@ struct ExportedSettingsUsageHistoryPayloadTests {
 
         #expect(history.sessionHistory.isEmpty)
         #expect(history.weeklyHistory.isEmpty)
+    }
+}
+
+// MARK: - Account Tests
+
+@Suite("Account Tests")
+struct AccountTests {
+    // MARK: - Initialization Tests
+
+    @Test("Account initializes with name only")
+    func initWithNameOnly() {
+        let account = Account(name: "Personal")
+
+        #expect(account.name == "Personal")
+        #expect(account.email == nil)
+        #expect(account.planType == nil)
+        #expect(account.keychainIdentifier == "default")
+        #expect(account.isActive == true)
+        #expect(account.isPrimary == false)
+    }
+
+    @Test("Account initializes with all fields")
+    func initWithAllFields() {
+        let id = UUID()
+        let createdAt = Date()
+        let account = Account(
+            id: id,
+            name: "Work",
+            email: "work@company.com",
+            planType: .max20x,
+            keychainIdentifier: "work-account",
+            isActive: true,
+            isPrimary: true,
+            createdAt: createdAt
+        )
+
+        #expect(account.id == id)
+        #expect(account.name == "Work")
+        #expect(account.email == "work@company.com")
+        #expect(account.planType == .max20x)
+        #expect(account.keychainIdentifier == "work-account")
+        #expect(account.isActive == true)
+        #expect(account.isPrimary == true)
+        #expect(account.createdAt == createdAt)
+    }
+
+    @Test("Account generates unique ID when not provided")
+    func generatesUniqueId() {
+        let account1 = Account(name: "Account 1")
+        let account2 = Account(name: "Account 2")
+
+        #expect(account1.id != account2.id)
+    }
+
+    @Test("Account sets createdAt to now when not provided")
+    func setsCreatedAtToNow() {
+        let before = Date()
+        let account = Account(name: "Test")
+        let after = Date()
+
+        #expect(account.createdAt >= before)
+        #expect(account.createdAt <= after)
+    }
+
+    // MARK: - Computed Properties Tests
+
+    @Test("usesDefaultCredentials returns true for default identifier")
+    func usesDefaultCredentialsDefault() {
+        let account = Account(name: "Default", keychainIdentifier: "default")
+
+        #expect(account.usesDefaultCredentials == true)
+    }
+
+    @Test("usesDefaultCredentials returns false for custom identifier")
+    func usesDefaultCredentialsCustom() {
+        let account = Account(name: "Custom", keychainIdentifier: "custom-id")
+
+        #expect(account.usesDefaultCredentials == false)
+    }
+
+    @Test("keychainServiceName returns Claude Code credentials for default")
+    func keychainServiceNameDefault() {
+        let account = Account(name: "Default", keychainIdentifier: "default")
+
+        #expect(account.keychainServiceName == "Claude Code-credentials")
+    }
+
+    @Test("keychainServiceName returns custom name for non-default")
+    func keychainServiceNameCustom() {
+        let account = Account(name: "Custom", keychainIdentifier: "my-account")
+
+        #expect(account.keychainServiceName == "ClaudeApp-account-my-account")
+    }
+
+    @Test("displayNameWithPlan includes plan when available")
+    func displayNameWithPlanIncludesPlan() {
+        let account = Account(name: "Personal", planType: .pro)
+
+        #expect(account.displayNameWithPlan == "Personal (Pro)")
+    }
+
+    @Test("displayNameWithPlan returns name only when no plan")
+    func displayNameWithPlanNoPlan() {
+        let account = Account(name: "Personal", planType: nil)
+
+        #expect(account.displayNameWithPlan == "Personal")
+    }
+
+    @Test("displayNameWithPlan shows Max 5x correctly")
+    func displayNameWithPlanMax5x() {
+        let account = Account(name: "Work", planType: .max5x)
+
+        #expect(account.displayNameWithPlan == "Work (Max (5x))")
+    }
+
+    @Test("displayNameWithPlan shows Max 20x correctly")
+    func displayNameWithPlanMax20x() {
+        let account = Account(name: "Enterprise", planType: .max20x)
+
+        #expect(account.displayNameWithPlan == "Enterprise (Max (20x))")
+    }
+
+    // MARK: - Identifiable Tests
+
+    @Test("Account conforms to Identifiable")
+    func identifiable() {
+        let id = UUID()
+        let account = Account(id: id, name: "Test")
+
+        let accountId: UUID = account.id
+        #expect(accountId == id)
+    }
+
+    // MARK: - Equatable Tests
+
+    @Test("Account is Equatable with same values")
+    func equatableSameValues() {
+        let id = UUID()
+        let createdAt = Date()
+        let account1 = Account(id: id, name: "Test", keychainIdentifier: "test", createdAt: createdAt)
+        let account2 = Account(id: id, name: "Test", keychainIdentifier: "test", createdAt: createdAt)
+
+        #expect(account1 == account2)
+    }
+
+    @Test("Account is Equatable with different names")
+    func equatableDifferentNames() {
+        let id = UUID()
+        let createdAt = Date()
+        let account1 = Account(id: id, name: "Test1", keychainIdentifier: "test", createdAt: createdAt)
+        let account2 = Account(id: id, name: "Test2", keychainIdentifier: "test", createdAt: createdAt)
+
+        #expect(account1 != account2)
+    }
+
+    @Test("Account is Equatable with different IDs")
+    func equatableDifferentIds() {
+        let account1 = Account(name: "Test")
+        let account2 = Account(name: "Test")
+
+        #expect(account1 != account2)
+    }
+
+    @Test("Account equality considers all fields")
+    func equalityConsidersAllFields() {
+        let id = UUID()
+        let createdAt = Date()
+        let account1 = Account(
+            id: id,
+            name: "Test",
+            email: "test@test.com",
+            planType: .pro,
+            keychainIdentifier: "test",
+            isActive: true,
+            isPrimary: false,
+            createdAt: createdAt
+        )
+        let account2 = Account(
+            id: id,
+            name: "Test",
+            email: "test@test.com",
+            planType: .pro,
+            keychainIdentifier: "test",
+            isActive: true,
+            isPrimary: true,  // Different
+            createdAt: createdAt
+        )
+
+        #expect(account1 != account2)
+    }
+
+    // MARK: - Codable Tests
+
+    @Test("Account is Codable")
+    func codable() throws {
+        let id = UUID()
+        let createdAt = Date()
+        let account = Account(
+            id: id,
+            name: "Work",
+            email: "work@company.com",
+            planType: .max5x,
+            keychainIdentifier: "work",
+            isActive: true,
+            isPrimary: true,
+            createdAt: createdAt
+        )
+
+        let data = try JSONEncoder().encode(account)
+        let decoded = try JSONDecoder().decode(Account.self, from: data)
+
+        #expect(decoded == account)
+        #expect(decoded.id == id)
+        #expect(decoded.name == "Work")
+        #expect(decoded.email == "work@company.com")
+        #expect(decoded.planType == .max5x)
+        #expect(decoded.keychainIdentifier == "work")
+        #expect(decoded.isActive == true)
+        #expect(decoded.isPrimary == true)
+    }
+
+    @Test("Account Codable round-trip preserves all fields")
+    func codableRoundTrip() throws {
+        let account = Account(
+            name: "Test",
+            email: nil,
+            planType: nil,
+            keychainIdentifier: "default",
+            isActive: false,
+            isPrimary: false
+        )
+
+        let data = try JSONEncoder().encode(account)
+        let decoded = try JSONDecoder().decode(Account.self, from: data)
+
+        #expect(decoded.name == account.name)
+        #expect(decoded.email == account.email)
+        #expect(decoded.planType == account.planType)
+        #expect(decoded.keychainIdentifier == account.keychainIdentifier)
+        #expect(decoded.isActive == account.isActive)
+        #expect(decoded.isPrimary == account.isPrimary)
+    }
+
+    // MARK: - Sendable Tests
+
+    @Test("Account is Sendable")
+    func sendable() async {
+        let account = Account(name: "Test", planType: .pro)
+
+        let result = await Task.detached {
+            account.name
+        }.value
+
+        #expect(result == "Test")
+    }
+
+    @Test("Account can be passed across actor boundaries")
+    func sendableAcrossActors() async {
+        let account = Account(
+            name: "Work",
+            email: "work@test.com",
+            planType: .max20x,
+            keychainIdentifier: "work-123"
+        )
+
+        let result = await Task.detached {
+            (account.displayNameWithPlan, account.keychainServiceName)
+        }.value
+
+        #expect(result.0 == "Work (Max (20x))")
+        #expect(result.1 == "ClaudeApp-account-work-123")
+    }
+
+    // MARK: - Mutability Tests
+
+    @Test("Account name is mutable")
+    func nameMutable() {
+        var account = Account(name: "Original")
+        account.name = "Updated"
+
+        #expect(account.name == "Updated")
+    }
+
+    @Test("Account email is mutable")
+    func emailMutable() {
+        var account = Account(name: "Test")
+        account.email = "new@email.com"
+
+        #expect(account.email == "new@email.com")
+    }
+
+    @Test("Account planType is mutable")
+    func planTypeMutable() {
+        var account = Account(name: "Test", planType: .pro)
+        account.planType = .max20x
+
+        #expect(account.planType == .max20x)
+    }
+
+    @Test("Account isActive is mutable")
+    func isActiveMutable() {
+        var account = Account(name: "Test", isActive: true)
+        account.isActive = false
+
+        #expect(account.isActive == false)
+    }
+
+    @Test("Account isPrimary is mutable")
+    func isPrimaryMutable() {
+        var account = Account(name: "Test", isPrimary: false)
+        account.isPrimary = true
+
+        #expect(account.isPrimary == true)
+    }
+
+    @Test("Account id is immutable")
+    func idImmutable() {
+        let account = Account(name: "Test")
+        // Verify id is let (immutable) - this is a compile-time check
+        // We just verify we can read it
+        #expect(account.id != UUID())
+    }
+
+    @Test("Account keychainIdentifier is immutable")
+    func keychainIdentifierImmutable() {
+        let account = Account(name: "Test", keychainIdentifier: "test-id")
+        // Verify keychainIdentifier is let (immutable) - this is a compile-time check
+        #expect(account.keychainIdentifier == "test-id")
+    }
+
+    @Test("Account createdAt is immutable")
+    func createdAtImmutable() {
+        let createdAt = Date()
+        let account = Account(name: "Test", createdAt: createdAt)
+        // Verify createdAt is let (immutable) - this is a compile-time check
+        #expect(account.createdAt == createdAt)
+    }
+}
+
+// MARK: - MultiAccountDisplayMode Tests
+
+@Suite("MultiAccountDisplayMode Tests")
+struct MultiAccountDisplayModeTests {
+    @Test("MultiAccountDisplayMode raw values are correct")
+    func rawValues() {
+        #expect(MultiAccountDisplayMode.all.rawValue == "all")
+        #expect(MultiAccountDisplayMode.activeOnly.rawValue == "activeOnly")
+        #expect(MultiAccountDisplayMode.primaryOnly.rawValue == "primaryOnly")
+    }
+
+    @Test("MultiAccountDisplayMode conforms to CaseIterable")
+    func caseIterable() {
+        let allCases = MultiAccountDisplayMode.allCases
+        #expect(allCases.count == 3)
+        #expect(allCases.contains(.all))
+        #expect(allCases.contains(.activeOnly))
+        #expect(allCases.contains(.primaryOnly))
+    }
+
+    @Test("MultiAccountDisplayMode is Equatable")
+    func equatable() {
+        #expect(MultiAccountDisplayMode.all == MultiAccountDisplayMode.all)
+        #expect(MultiAccountDisplayMode.all != MultiAccountDisplayMode.activeOnly)
+        #expect(MultiAccountDisplayMode.activeOnly != MultiAccountDisplayMode.primaryOnly)
+    }
+
+    @Test("MultiAccountDisplayMode is Codable")
+    func codable() throws {
+        let mode = MultiAccountDisplayMode.activeOnly
+        let data = try JSONEncoder().encode(mode)
+        let decoded = try JSONDecoder().decode(MultiAccountDisplayMode.self, from: data)
+        #expect(decoded == mode)
+    }
+
+    @Test("MultiAccountDisplayMode is Sendable")
+    func sendable() async {
+        let mode = MultiAccountDisplayMode.primaryOnly
+
+        let result = await Task.detached {
+            mode.rawValue
+        }.value
+
+        #expect(result == "primaryOnly")
+    }
+
+    @Test("MultiAccountDisplayMode localization keys follow naming convention")
+    func localizationKeys() {
+        #expect(MultiAccountDisplayMode.all.localizationKey == "multiAccountDisplayMode.all")
+        #expect(MultiAccountDisplayMode.activeOnly.localizationKey == "multiAccountDisplayMode.activeOnly")
+        #expect(MultiAccountDisplayMode.primaryOnly.localizationKey == "multiAccountDisplayMode.primaryOnly")
+    }
+
+    @Test("MultiAccountDisplayMode all cases have localization keys")
+    func allCasesHaveKeys() {
+        for mode in MultiAccountDisplayMode.allCases {
+            #expect(!mode.localizationKey.isEmpty)
+            #expect(mode.localizationKey.hasPrefix("multiAccountDisplayMode."))
+        }
+    }
+
+    @Test("MultiAccountDisplayMode localization keys are unique")
+    func keysAreUnique() {
+        var seenKeys = Set<String>()
+        for mode in MultiAccountDisplayMode.allCases {
+            let key = mode.localizationKey
+            #expect(!seenKeys.contains(key), "Duplicate key found: \(key)")
+            seenKeys.insert(key)
+        }
+    }
+
+    @Test("MultiAccountDisplayMode localization keys do not contain spaces")
+    func keysNoSpaces() {
+        for mode in MultiAccountDisplayMode.allCases {
+            #expect(!mode.localizationKey.contains(" "), "Key should not contain spaces: \(mode.localizationKey)")
+        }
+    }
+
+    @Test("MultiAccountDisplayMode display names are human readable")
+    func displayNames() {
+        #expect(MultiAccountDisplayMode.all.displayName == "All Accounts")
+        #expect(MultiAccountDisplayMode.activeOnly.displayName == "Active Only")
+        #expect(MultiAccountDisplayMode.primaryOnly.displayName == "Primary Only")
+    }
+
+    @Test("MultiAccountDisplayMode all cases have display names")
+    func allCasesHaveDisplayNames() {
+        for mode in MultiAccountDisplayMode.allCases {
+            #expect(!mode.displayName.isEmpty)
+        }
+    }
+}
+
+// MARK: - Multi-Account SettingsKey Tests
+
+@Suite("Multi-Account SettingsKey Tests")
+struct MultiAccountSettingsKeyTests {
+    @Test("multiAccountDisplayMode default is primaryOnly")
+    func multiAccountDisplayModeDefault() {
+        let key = SettingsKey.multiAccountDisplayMode
+        #expect(key.defaultValue == .primaryOnly)
+        #expect(key.key == "multiAccountDisplayMode")
+    }
+
+    @Test("showAccountLabels default is false")
+    func showAccountLabelsDefault() {
+        let key = SettingsKey.showAccountLabels
+        #expect(key.defaultValue == false)
+        #expect(key.key == "showAccountLabels")
+    }
+
+    @Test("Multi-account keys are distinct")
+    func keysAreDistinct() {
+        #expect(SettingsKey.multiAccountDisplayMode.key != SettingsKey.showAccountLabels.key)
+    }
+
+    @Test("Multi-account keys do not conflict with other keys")
+    func keysDoNotConflict() {
+        let multiAccountKeys = [
+            SettingsKey.multiAccountDisplayMode.key,
+            SettingsKey.showAccountLabels.key
+        ]
+
+        // Check against other boolean keys
+        let otherBoolKeys = [
+            SettingsKey.showPlanBadge.key,
+            SettingsKey.showPercentage.key,
+            SettingsKey.showSparklines.key,
+            SettingsKey.notificationsEnabled.key,
+            SettingsKey.warningEnabled.key,
+            SettingsKey.capacityFullEnabled.key,
+            SettingsKey.resetCompleteEnabled.key,
+            SettingsKey.enablePowerAwareRefresh.key,
+            SettingsKey.reduceRefreshOnBattery.key,
+            SettingsKey.launchAtLogin.key,
+            SettingsKey.checkForUpdates.key
+        ]
+
+        for multiAccountKey in multiAccountKeys {
+            for otherKey in otherBoolKeys {
+                #expect(multiAccountKey != otherKey, "Key collision: \(multiAccountKey) == \(otherKey)")
+            }
+        }
+    }
+
+    @Test("multiAccountDisplayMode key supports all enum cases")
+    func multiAccountDisplayModeAllCases() throws {
+        for mode in MultiAccountDisplayMode.allCases {
+            let key = SettingsKey<MultiAccountDisplayMode>(
+                key: "testKey",
+                defaultValue: mode
+            )
+            let data = try JSONEncoder().encode(key.defaultValue)
+            let decoded = try JSONDecoder().decode(MultiAccountDisplayMode.self, from: data)
+            #expect(decoded == mode)
+        }
     }
 }

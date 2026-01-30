@@ -79,3 +79,19 @@ public extension SettingsKey where Value == Date? {
         defaultValue: nil
     )
 }
+
+public extension SettingsKey where Value == MultiAccountDisplayMode {
+    // Multi-Account Settings
+    static let multiAccountDisplayMode = SettingsKey<MultiAccountDisplayMode>(
+        key: "multiAccountDisplayMode",
+        defaultValue: .primaryOnly
+    )
+}
+
+public extension SettingsKey where Value == Bool {
+    // Multi-Account Settings
+    static let showAccountLabels = SettingsKey<Bool>(
+        key: "showAccountLabels",
+        defaultValue: false
+    )
+}
