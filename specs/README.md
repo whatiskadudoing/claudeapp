@@ -113,7 +113,7 @@ UI → Core → Services → Domain
 | [features/icon-styles.md](./features/icon-styles.md) | Multiple menu bar display styles | ✅ Implemented |
 | [features/historical-charts.md](./features/historical-charts.md) | Sparkline usage charts | ✅ Implemented |
 | [features/power-aware-refresh.md](./features/power-aware-refresh.md) | Battery-optimized refresh | ✅ Implemented |
-| [features/multi-account.md](./features/multi-account.md) | Multiple Claude accounts | 📋 Planned |
+| [features/multi-account.md](./features/multi-account.md) | Multiple Claude accounts | ✅ Implemented |
 | [features/widgets.md](./features/widgets.md) | macOS Notification Center widgets | 📋 Planned |
 | [features/settings-export.md](./features/settings-export.md) | JSON export/import of settings | ✅ Implemented |
 | [features/terminal-integration.md](./features/terminal-integration.md) | Shell prompt integration | ✅ Implemented |
@@ -132,7 +132,7 @@ UI → Core → Services → Domain
 
 ## Key Features
 
-### Implemented (v1.9.0)
+### Implemented (v2.0.0)
 
 | Feature | Description |
 |---------|-------------|
@@ -151,13 +151,13 @@ UI → Core → Services → Domain
 | **Historical Charts** | Sparkline usage trends below progress bars |
 | **Settings Export** | JSON backup, restore, and reset of configurations |
 | **Terminal Integration** | CLI for shell prompts, tmux, Starship with shared cache |
+| **Multi-Account** | Monitor multiple Claude accounts from one app |
 
-### Planned (v2.0.0+)
+### Planned (v2.1.0+)
 
 | Feature | Priority | Spec |
 |---------|----------|------|
 | **Sparkle Updates** | High | [sparkle-updates.md](./sparkle-updates.md) |
-| **Multi-Account** | Medium | [multi-account.md](./features/multi-account.md) |
 | **Widgets** | Low | [widgets.md](./features/widgets.md) |
 
 ---

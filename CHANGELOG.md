@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-01-30
+
+### Added
+- **Multi-Account Support**: Monitor multiple Claude accounts from a single menu bar app
+  - Add, edit, and remove accounts from Settings → Accounts section
+  - Switch between accounts via dropdown header (click account name)
+  - Each account fetches usage independently via its own credentials
+  - Primary account indicator (●/○) for default account selection
+  - Automatic migration: creates "Default" account on first launch for existing users
+- **Account Switcher**: Dropdown header now shows active account name with chevron
+  - Click to open account picker menu
+  - Quick account switching without opening Settings
+  - "Add Account" option directly from switcher menu
+- **Per-Account Usage Tracking**: UsageManager now tracks usage per-account
+  - `usageByAccount` dictionary stores usage data keyed by account ID
+  - `refreshAllAccounts()` fetches usage for all active accounts in parallel
+  - `highestUtilizationAcrossAccounts` computed property for aggregate view
+  - Per-account error tracking with `errorByAccount` dictionary
+  - Per-account usage history for independent burn rate calculation
+- **Display Mode Settings**: Control which accounts appear in menu bar
+  - All Accounts / Active Only / Primary Only options
+  - Show Account Labels toggle for multi-account menu bar display (future)
+
+### Changed
+- Major version bump (2.0.0) for architectural change to multi-account support
+- Domain package version bumped to 2.0.0 with new Account model
+- UsageManager maintains full backward compatibility with single-account setup
+- SharedCacheManager writes active account's data for CLI integration
+- AppContainer now wires AccountManager as shared dependency
+
+### Technical
+- Added `Account` model (Identifiable, Sendable, Codable, Equatable)
+- Added `AccountStorage` protocol and `UserDefaultsAccountStorage` implementation
+- Added `AccountManager` (@Observable, @MainActor) for account CRUD operations
+- Added `MultiAccountCredentialsRepository` actor for per-account credential access
+- Added `MultiAccountDisplayMode` enum (all, activeOnly, primaryOnly)
+- Added 27 localization strings for account UI (en, pt-BR, es)
+- 101 new tests across Domain (+45), Core (+42), UI (+14)
+- Total test count: 853 tests passing
+
 ## [1.9.0] - 2026-01-30
 
 ### Added
@@ -243,7 +283,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - macOS 14 (Sonoma) required
 - 81 tests passing
 
-[Unreleased]: https://github.com/kaduwaengertner/claudeapp/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/kaduwaengertner/claudeapp/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.9.0...v2.0.0
 [1.9.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.6.0...v1.7.0
