@@ -150,12 +150,12 @@ Key research documents for this implementation:
   - **Completed:** 2026-01-30
   - **Tests:** 609 tests passing (was 605, +4 new userInfo tests)
 
-- [ ] **Configure actual GitHub repository in UpdateChecker** [file: Packages/Core/Sources/Core/UpdateChecker.swift]
-  - Change `repoOwner` default from "yourname" to actual owner
-  - Change `repoName` default from "claudeapp" to actual repo name
-  - Or: Make configurable via App/Info.plist if not ready to publish
-  - **Impact:** Auto-update checks will work against correct repo
-  - **Target:** Verify existing tests still pass
+- [x] **Configure actual GitHub repository in UpdateChecker** [file: Packages/Core/Sources/Core/UpdateChecker.swift]
+  - ✅ Changed `repoOwner` default from "yourname" to "whatiskadudoing"
+  - ✅ Repo name "claudeapp" was already correct
+  - **Completed:** 2026-01-30
+  - **Impact:** Auto-update checks will now work against correct repo (whatiskadudoing/claudeapp)
+  - **Tests:** 609 tests passing (no changes to tests needed)
 
 ---
 <!-- CHECKPOINT: Phase 2 fixes the update user flow. -->

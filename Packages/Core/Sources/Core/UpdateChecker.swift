@@ -124,12 +124,12 @@ public actor UpdateChecker {
 
     /// Creates an UpdateChecker for a specific GitHub repository
     /// - Parameters:
-    ///   - repoOwner: GitHub repository owner (e.g., "yourname")
+    ///   - repoOwner: GitHub repository owner (e.g., "whatiskadudoing")
     ///   - repoName: GitHub repository name (e.g., "claudeapp")
     ///   - session: URLSession for network requests (defaults to .shared)
     ///   - currentVersionProvider: Closure that returns the current app version
     public init(
-        repoOwner: String = "yourname",
+        repoOwner: String = "whatiskadudoing",
         repoName: String = "claudeapp",
         session: URLSession = .shared,
         currentVersionProvider: @escaping @Sendable () -> String = { Bundle.main.appVersion }
