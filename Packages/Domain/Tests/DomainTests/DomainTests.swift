@@ -913,6 +913,144 @@ struct PowerAwareRefreshSettingsKeyTests {
     }
 }
 
+// MARK: - UsageDataPoint Tests
+
+@Suite("UsageDataPoint Tests")
+struct UsageDataPointTests {
+    @Test("UsageDataPoint initializes with utilization and timestamp")
+    func initWithUtilizationAndTimestamp() {
+        let timestamp = Date()
+        let point = UsageDataPoint(utilization: 45.5, timestamp: timestamp)
+
+        #expect(point.utilization == 45.5)
+        #expect(point.timestamp == timestamp)
+    }
+
+    @Test("UsageDataPoint defaults timestamp to now")
+    func defaultTimestamp() {
+        let before = Date()
+        let point = UsageDataPoint(utilization: 50.0)
+        let after = Date()
+
+        #expect(point.timestamp >= before)
+        #expect(point.timestamp <= after)
+    }
+
+    @Test("UsageDataPoint id equals timestamp")
+    func idEqualsTimestamp() {
+        let timestamp = Date()
+        let point = UsageDataPoint(utilization: 45.5, timestamp: timestamp)
+
+        #expect(point.id == timestamp)
+    }
+
+    @Test("UsageDataPoint is Equatable")
+    func equatable() {
+        let timestamp = Date()
+        let point1 = UsageDataPoint(utilization: 45.5, timestamp: timestamp)
+        let point2 = UsageDataPoint(utilization: 45.5, timestamp: timestamp)
+        let point3 = UsageDataPoint(utilization: 50.0, timestamp: timestamp)
+
+        #expect(point1 == point2)
+        #expect(point1 != point3)
+    }
+
+    @Test("UsageDataPoint is Comparable by timestamp")
+    func comparable() {
+        let earlier = Date().addingTimeInterval(-60)
+        let later = Date()
+        let point1 = UsageDataPoint(utilization: 45.5, timestamp: earlier)
+        let point2 = UsageDataPoint(utilization: 50.0, timestamp: later)
+
+        #expect(point1 < point2)
+        #expect(point2 > point1)
+    }
+
+    @Test("UsageDataPoint sorts chronologically")
+    func sortsChronologically() {
+        let now = Date()
+        let points = [
+            UsageDataPoint(utilization: 30.0, timestamp: now.addingTimeInterval(-120)),
+            UsageDataPoint(utilization: 50.0, timestamp: now),
+            UsageDataPoint(utilization: 40.0, timestamp: now.addingTimeInterval(-60))
+        ]
+
+        let sorted = points.sorted()
+
+        #expect(sorted[0].utilization == 30.0)
+        #expect(sorted[1].utilization == 40.0)
+        #expect(sorted[2].utilization == 50.0)
+    }
+
+    @Test("UsageDataPoint is Codable")
+    func codable() throws {
+        let timestamp = Date()
+        let point = UsageDataPoint(utilization: 45.5, timestamp: timestamp)
+
+        let data = try JSONEncoder().encode(point)
+        let decoded = try JSONDecoder().decode(UsageDataPoint.self, from: data)
+
+        #expect(decoded == point)
+        #expect(decoded.utilization == 45.5)
+    }
+
+    @Test("UsageDataPoint is Sendable")
+    func sendable() async {
+        let point = UsageDataPoint(utilization: 45.5)
+
+        // Verify it can be passed across actor boundaries
+        let result = await Task.detached {
+            point.utilization
+        }.value
+
+        #expect(result == 45.5)
+    }
+
+    @Test("UsageDataPoint handles edge values")
+    func edgeValues() {
+        let point1 = UsageDataPoint(utilization: 0.0)
+        let point2 = UsageDataPoint(utilization: 100.0)
+
+        #expect(point1.utilization == 0.0)
+        #expect(point2.utilization == 100.0)
+    }
+
+    @Test("UsageDataPoint equality considers timestamp")
+    func equalityConsidersTimestamp() {
+        let timestamp1 = Date()
+        let timestamp2 = timestamp1.addingTimeInterval(1)
+        let point1 = UsageDataPoint(utilization: 45.5, timestamp: timestamp1)
+        let point2 = UsageDataPoint(utilization: 45.5, timestamp: timestamp2)
+
+        #expect(point1 != point2)
+    }
+
+    @Test("UsageDataPoint conforms to Identifiable")
+    func identifiable() {
+        let timestamp = Date()
+        let point = UsageDataPoint(utilization: 45.5, timestamp: timestamp)
+
+        // Identifiable requirement: id should be accessible
+        let id: Date = point.id
+        #expect(id == timestamp)
+    }
+
+    @Test("Array of UsageDataPoint can be used in ForEach")
+    func arrayUsableInForEach() {
+        let now = Date()
+        let points = [
+            UsageDataPoint(utilization: 30.0, timestamp: now.addingTimeInterval(-2)),
+            UsageDataPoint(utilization: 40.0, timestamp: now.addingTimeInterval(-1)),
+            UsageDataPoint(utilization: 50.0, timestamp: now)
+        ]
+
+        // Verify unique IDs (timestamps serve as IDs)
+        let ids = points.map { $0.id }
+        let uniqueIds = Set(ids)
+        #expect(uniqueIds.count == 3)
+    }
+}
+
 @Suite("AppError Tests")
 struct AppErrorTests {
     @Test("AppError cases are distinct")

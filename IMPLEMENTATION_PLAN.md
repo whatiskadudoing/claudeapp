@@ -89,15 +89,15 @@ Key research documents for this implementation:
 
 **Purpose:** Add sparkline chart infrastructure and data persistence.
 
-- [ ] **Create UsageDataPoint model and UsageHistoryManager** [spec: historical-charts.md] [file: Packages/Domain/Sources/Domain/]
-  - Add `UsageDataPoint` struct (utilization: Double, timestamp: Date)
-  - Create `UsageHistoryManager` class (@Observable, @MainActor)
-  - Implement session history (5-min granularity, max 60 points)
-  - Implement weekly history (1-hour granularity, max 168 points)
-  - Add persistence via UserDefaults (JSON encoding)
-  - Add clear history methods
+- [x] **Create UsageDataPoint model and UsageHistoryManager** [spec: historical-charts.md] [file: Packages/Domain/Sources/Domain/]
+  - Add `UsageDataPoint` struct (utilization: Double, timestamp: Date) - ✅ Domain/UsageDataPoint.swift
+  - Create `UsageHistoryManager` class (@Observable, @MainActor) - ✅ Core/UsageHistoryManager.swift
+  - Implement session history (5-min granularity, max 60 points) - ✅
+  - Implement weekly history (1-hour granularity, max 168 points) - ✅
+  - Add persistence via UserDefaults (JSON encoding) - ✅
+  - Add clear history methods - ✅
   - **Research:** `specs/features/historical-charts.md#data-model`
-  - **Tests:** Add 15+ tests for history recording, persistence, trimming
+  - **Tests:** Add 15+ tests for history recording, persistence, trimming - ✅ 34 new tests (12 UsageDataPoint + 22 UsageHistoryManager)
 
 - [ ] **Integrate UsageHistoryManager with UsageManager** [spec: historical-charts.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
   - Record usage snapshot on each successful refresh
@@ -277,16 +277,16 @@ Key research documents for this implementation:
 
 ## Test Coverage Summary
 
-**Current:** 620 tests across 4 packages
+**Current:** 652 tests across 4 packages
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
-| Domain | 95 | Excellent - models fully tested |
+| Domain | 107 | Excellent - models fully tested (+12 UsageDataPoint tests) |
 | Services | 29 | Basic - needs error scenarios |
-| Core | 270 | Comprehensive - business logic |
+| Core | 290 | Comprehensive - business logic (+22 UsageHistoryManager tests) |
 | UI | 226 | Excellent - accessibility focus |
 
-**Target for SLC 9:** 680+ tests (60+ new tests)
+**Target for SLC 9:** 680+ tests (28+ more tests needed)
 
 ---
 

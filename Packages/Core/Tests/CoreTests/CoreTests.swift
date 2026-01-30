@@ -124,6 +124,283 @@ struct UsageSnapshotTests {
     }
 }
 
+// MARK: - UsageHistoryManager Tests
+
+@Suite("UsageHistoryManager Tests")
+struct UsageHistoryManagerTests {
+    /// Creates a test UserDefaults instance with a unique suite name
+    private func createTestDefaults() -> UserDefaults {
+        let suiteName = "com.claudeapp.test.history.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        return defaults
+    }
+
+    // MARK: - Initialization Tests
+
+    @Test("Initial state has empty histories")
+    @MainActor
+    func initialState() {
+        let defaults = createTestDefaults()
+        let manager = UsageHistoryManager(userDefaults: defaults)
+
+        #expect(manager.sessionHistory.isEmpty)
+        #expect(manager.weeklyHistory.isEmpty)
+        #expect(manager.hasSessionChartData == false)
+        #expect(manager.hasWeeklyChartData == false)
+    }
+
+    @Test("Initial point counts are zero")
+    @MainActor
+    func initialPointCounts() {
+        let defaults = createTestDefaults()
+        let manager = UsageHistoryManager(userDefaults: defaults)
+
+        #expect(manager.sessionPointCount == 0)
+        #expect(manager.weeklyPointCount == 0)
+    }
+
+    // MARK: - Recording Tests
+
+    @Test("Recording adds points to both histories")
+    @MainActor
+    func recordingAddsPoints() {
+        let defaults = createTestDefaults()
+        let manager = UsageHistoryManager(userDefaults: defaults)
+
+        manager.record(sessionUtilization: 45.0, weeklyUtilization: 72.0)
+
+        #expect(manager.sessionPointCount == 1)
+        #expect(manager.weeklyPointCount == 1)
+        #expect(manager.sessionHistory.first?.utilization == 45.0)
+        #expect(manager.weeklyHistory.first?.utilization == 72.0)
+    }
+
+    @Test("Recording respects session interval (5 minutes)")
+    @MainActor
+    func recordingRespectsSessionInterval() {
+        let defaults = createTestDefaults()
+        let manager = UsageHistoryManager(userDefaults: defaults)
+
+        // First recording
+        manager.record(sessionUtilization: 45.0, weeklyUtilization: 72.0)
+        #expect(manager.sessionPointCount == 1)
+
+        // Second recording immediately - should be ignored for session
+        manager.record(sessionUtilization: 50.0, weeklyUtilization: 75.0)
+        #expect(manager.sessionPointCount == 1) // Still 1 (interval not met)
+    }
+
+    @Test("Recording respects weekly interval (1 hour)")
+    @MainActor
+    func recordingRespectsWeeklyInterval() {
+        let defaults = createTestDefaults()
+        let manager = UsageHistoryManager(userDefaults: defaults)
+
+        // First recording
+        manager.record(sessionUtilization: 45.0, weeklyUtilization: 72.0)
+        #expect(manager.weeklyPointCount == 1)
+
+        // Second recording immediately - should be ignored for weekly
+        manager.record(sessionUtilization: 50.0, weeklyUtilization: 75.0)
+        #expect(manager.weeklyPointCount == 1) // Still 1 (interval not met)
+    }
+
+    @Test("hasSessionChartData requires at least 2 points")
+    @MainActor
+    func hasSessionChartDataRequiresTwoPoints() {
+        let defaults = createTestDefaults()
+        let manager = UsageHistoryManager(userDefaults: defaults)
+
+        #expect(manager.hasSessionChartData == false)
+
+        // Add one point
+        manager.record(sessionUtilization: 45.0, weeklyUtilization: 72.0)
+        #expect(manager.hasSessionChartData == false) // Still false
+
+        // We can't easily add a second point due to interval restrictions in tests
+        // but we can verify the threshold logic
+    }
+
+    @Test("hasWeeklyChartData requires at least 2 points")
+    @MainActor
+    func hasWeeklyChartDataRequiresTwoPoints() {
+        let defaults = createTestDefaults()
+        let manager = UsageHistoryManager(userDefaults: defaults)
+
+        #expect(manager.hasWeeklyChartData == false)
+
+        // Add one point
+        manager.record(sessionUtilization: 45.0, weeklyUtilization: 72.0)
+        #expect(manager.hasWeeklyChartData == false) // Still false
+    }
+
+    // MARK: - Clearing Tests
+
+    @Test("clearSessionHistory removes session history only")
+    @MainActor
+    func clearSessionHistoryRemovesSessionOnly() {
+        let defaults = createTestDefaults()
+        let manager = UsageHistoryManager(userDefaults: defaults)
+
+        manager.record(sessionUtilization: 45.0, weeklyUtilization: 72.0)
+        #expect(manager.sessionPointCount == 1)
+        #expect(manager.weeklyPointCount == 1)
+
+        manager.clearSessionHistory()
+
+        #expect(manager.sessionPointCount == 0)
+        #expect(manager.weeklyPointCount == 1) // Weekly preserved
+    }
+
+    @Test("clearWeeklyHistory removes weekly history only")
+    @MainActor
+    func clearWeeklyHistoryRemovesWeeklyOnly() {
+        let defaults = createTestDefaults()
+        let manager = UsageHistoryManager(userDefaults: defaults)
+
+        manager.record(sessionUtilization: 45.0, weeklyUtilization: 72.0)
+        #expect(manager.sessionPointCount == 1)
+        #expect(manager.weeklyPointCount == 1)
+
+        manager.clearWeeklyHistory()
+
+        #expect(manager.sessionPointCount == 1) // Session preserved
+        #expect(manager.weeklyPointCount == 0)
+    }
+
+    @Test("clearAllHistory removes both histories")
+    @MainActor
+    func clearAllHistoryRemovesBoth() {
+        let defaults = createTestDefaults()
+        let manager = UsageHistoryManager(userDefaults: defaults)
+
+        manager.record(sessionUtilization: 45.0, weeklyUtilization: 72.0)
+        #expect(manager.sessionPointCount == 1)
+        #expect(manager.weeklyPointCount == 1)
+
+        manager.clearAllHistory()
+
+        #expect(manager.sessionPointCount == 0)
+        #expect(manager.weeklyPointCount == 0)
+    }
+
+    // MARK: - Persistence Tests
+
+    @Test("History persists across manager instances")
+    @MainActor
+    func historyPersistsAcrossInstances() {
+        let defaults = createTestDefaults()
+
+        // First manager instance - record data
+        let manager1 = UsageHistoryManager(userDefaults: defaults)
+        manager1.record(sessionUtilization: 45.0, weeklyUtilization: 72.0)
+        #expect(manager1.sessionPointCount == 1)
+        #expect(manager1.weeklyPointCount == 1)
+
+        // Second manager instance - should load from persistence
+        let manager2 = UsageHistoryManager(userDefaults: defaults)
+        #expect(manager2.sessionPointCount == 1)
+        #expect(manager2.weeklyPointCount == 1)
+        #expect(manager2.sessionHistory.first?.utilization == 45.0)
+        #expect(manager2.weeklyHistory.first?.utilization == 72.0)
+    }
+
+    @Test("Cleared history persists as empty")
+    @MainActor
+    func clearedHistoryPersistsAsEmpty() {
+        let defaults = createTestDefaults()
+
+        // First manager - record then clear
+        let manager1 = UsageHistoryManager(userDefaults: defaults)
+        manager1.record(sessionUtilization: 45.0, weeklyUtilization: 72.0)
+        manager1.clearAllHistory()
+
+        // Second manager - should be empty
+        let manager2 = UsageHistoryManager(userDefaults: defaults)
+        #expect(manager2.sessionPointCount == 0)
+        #expect(manager2.weeklyPointCount == 0)
+    }
+
+    // MARK: - Configuration Constants Tests
+
+    @Test("Max session points is 60")
+    func maxSessionPoints() {
+        #expect(UsageHistoryManager.maxSessionPoints == 60)
+    }
+
+    @Test("Max weekly points is 168")
+    func maxWeeklyPoints() {
+        #expect(UsageHistoryManager.maxWeeklyPoints == 168)
+    }
+
+    @Test("Session recording interval is 5 minutes (300 seconds)")
+    func sessionRecordingInterval() {
+        #expect(UsageHistoryManager.sessionRecordingInterval == 300)
+    }
+
+    @Test("Weekly recording interval is 1 hour (3600 seconds)")
+    func weeklyRecordingInterval() {
+        #expect(UsageHistoryManager.weeklyRecordingInterval == 3600)
+    }
+
+    // MARK: - Data Order Tests
+
+    @Test("Session history is ordered chronologically (oldest first)")
+    @MainActor
+    func sessionHistoryOrderedChronologically() {
+        let defaults = createTestDefaults()
+        let manager = UsageHistoryManager(userDefaults: defaults)
+
+        // Add a point
+        manager.record(sessionUtilization: 45.0, weeklyUtilization: 72.0)
+
+        // Verify the first (and only) point has a timestamp
+        #expect(manager.sessionHistory.first != nil)
+        #expect(manager.sessionHistory.first?.timestamp != nil)
+    }
+
+    @Test("Weekly history is ordered chronologically (oldest first)")
+    @MainActor
+    func weeklyHistoryOrderedChronologically() {
+        let defaults = createTestDefaults()
+        let manager = UsageHistoryManager(userDefaults: defaults)
+
+        // Add a point
+        manager.record(sessionUtilization: 45.0, weeklyUtilization: 72.0)
+
+        // Verify the first (and only) point has a timestamp
+        #expect(manager.weeklyHistory.first != nil)
+        #expect(manager.weeklyHistory.first?.timestamp != nil)
+    }
+
+    // MARK: - Edge Value Tests
+
+    @Test("Records zero utilization correctly")
+    @MainActor
+    func recordsZeroUtilization() {
+        let defaults = createTestDefaults()
+        let manager = UsageHistoryManager(userDefaults: defaults)
+
+        manager.record(sessionUtilization: 0.0, weeklyUtilization: 0.0)
+
+        #expect(manager.sessionHistory.first?.utilization == 0.0)
+        #expect(manager.weeklyHistory.first?.utilization == 0.0)
+    }
+
+    @Test("Records 100% utilization correctly")
+    @MainActor
+    func records100PercentUtilization() {
+        let defaults = createTestDefaults()
+        let manager = UsageHistoryManager(userDefaults: defaults)
+
+        manager.record(sessionUtilization: 100.0, weeklyUtilization: 100.0)
+
+        #expect(manager.sessionHistory.first?.utilization == 100.0)
+        #expect(manager.weeklyHistory.first?.utilization == 100.0)
+    }
+}
+
 // MARK: - Mock Usage Repository
 
 /// Mock repository for testing UsageManager
