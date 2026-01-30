@@ -86,10 +86,12 @@ struct ClaudeAppMain: App {
                 .environment(container.systemStateMonitor)
                 .environment(container.usageHistoryManager)
                 .environment(container.settingsExportManager)
+                .environment(container.accountManager)
         } label: {
             MenuBarLabel(detectedPlanType: container.detectedPlanType)
                 .environment(container.usageManager)
                 .environment(container.settingsManager)
+                .environment(container.accountManager)
         }
         .menuBarExtraStyle(.window)
     }
@@ -295,6 +297,7 @@ struct DropdownView: View {
     @Environment(UsageManager.self) private var usageManager
     @Environment(SettingsManager.self) private var settings
     @Environment(SystemStateMonitor.self) private var systemStateMonitor
+    @Environment(AccountManager.self) private var accountManager
     @Environment(\.sizeCategory) private var sizeCategory
 
     /// Whether to show settings instead of usage
@@ -369,12 +372,17 @@ struct DropdownView: View {
                 } else {
                     // Main content with header
                     VStack(alignment: .leading, spacing: Theme.KOSMASpace.elementGap) {
-                        // Header: Title + Burn Rate Badge
+                        // Header: Title + Account Switcher + Burn Rate Badge
                         HStack(spacing: 8) {
                             Text(L("usage.header.title").uppercased())
                                 .font(Theme.Typography.sectionHeader)
                                 .foregroundStyle(Theme.Colors.brand.opacity(0.9))
                                 .tracking(1.2)
+
+                            // Account switcher (shows when multiple accounts exist)
+                            if accountManager.accounts.count > 1 {
+                                AccountSwitcherMenu()
+                            }
 
                             // Burn rate badge (only shown when data available)
                             if let burnRateLevel = usageManager.overallBurnRateLevel {
@@ -975,6 +983,7 @@ struct EmptyStateView: View {
 struct SettingsContent: View {
     let updateChecker: UpdateChecker
 
+    @AppStorage("settings.section.accounts.expanded") private var accountsExpanded = false
     @AppStorage("settings.section.display.expanded") private var displayExpanded = true
     @AppStorage("settings.section.refresh.expanded") private var refreshExpanded = true
     @AppStorage("settings.section.notifications.expanded") private var notificationsExpanded = true
@@ -985,6 +994,10 @@ struct SettingsContent: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: Theme.Space.lg) {
+                CollapsibleSection(title: L("settings.accounts"), isExpanded: $accountsExpanded) {
+                    AccountsSectionContent()
+                }
+
                 CollapsibleSection(title: L("settings.display"), isExpanded: $displayExpanded) {
                     DisplaySectionContent()
                 }
@@ -2260,5 +2273,537 @@ struct CompactAboutSection: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Account Switcher Menu
+
+/// Dropdown menu for switching between accounts.
+/// Shows the active account name with a chevron, and a menu of all accounts when clicked.
+struct AccountSwitcherMenu: View {
+    @Environment(AccountManager.self) private var accountManager
+    @Environment(UsageManager.self) private var usageManager
+
+    /// Whether to show the add account sheet
+    @State private var showingAddAccount = false
+
+    var body: some View {
+        if accountManager.accounts.count > 1 {
+            // Multi-account: show switcher dropdown
+            Menu {
+                ForEach(accountManager.accounts) { account in
+                    Button {
+                        accountManager.setActiveAccount(account.id)
+                        Task { await usageManager.refresh() }
+                    } label: {
+                        HStack {
+                            if account.isPrimary {
+                                Image(systemName: "star.fill")
+                            }
+                            Text(account.name)
+                            if account.id == accountManager.activeAccountId {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+
+                Divider()
+
+                Button {
+                    showingAddAccount = true
+                } label: {
+                    Label(L("accounts.add"), systemImage: "plus")
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(accountManager.activeAccount?.name ?? L("accounts.default"))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Theme.Colors.textSecondaryOnDark)
+
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 8, weight: .semibold))
+                        .foregroundStyle(Theme.Colors.textTertiaryOnDark)
+                }
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .sheet(isPresented: $showingAddAccount) {
+                AddAccountSheet()
+            }
+        } else {
+            // Single account: just show name (no dropdown needed)
+            if let account = accountManager.activeAccount {
+                Text(account.name)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Theme.Colors.textSecondaryOnDark)
+            }
+        }
+    }
+}
+
+// MARK: - Add Account Sheet
+
+/// Sheet for adding a new account.
+struct AddAccountSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(AccountManager.self) private var accountManager
+
+    @State private var accountName = ""
+    @State private var keychainIdentifier = ""
+    @State private var errorMessage: String?
+
+    var body: some View {
+        VStack(spacing: 20) {
+            // Header
+            HStack {
+                Text(L("accounts.add.title").uppercased())
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Theme.Colors.brand)
+                    .tracking(1.5)
+
+                Spacer()
+
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Theme.Colors.textTertiaryOnDark)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Divider()
+                .background(Theme.Colors.brand.opacity(0.2))
+
+            VStack(alignment: .leading, spacing: 16) {
+                // Account name input
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L("accounts.name").uppercased())
+                        .font(.system(size: 10, weight: .light, design: .monospaced))
+                        .foregroundStyle(Theme.Colors.textOnDark)
+                        .tracking(1.2)
+
+                    TextField(L("accounts.name.placeholder"), text: $accountName)
+                        .textFieldStyle(.roundedBorder)
+                }
+
+                // Keychain identifier (for advanced users)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L("accounts.keychainId").uppercased())
+                        .font(.system(size: 10, weight: .light, design: .monospaced))
+                        .foregroundStyle(Theme.Colors.textOnDark)
+                        .tracking(1.2)
+
+                    TextField(L("accounts.keychainId.placeholder"), text: $keychainIdentifier)
+                        .textFieldStyle(.roundedBorder)
+
+                    Text(L("accounts.keychainId.hint"))
+                        .font(.system(size: 9, weight: .light))
+                        .foregroundStyle(Theme.Colors.textTertiaryOnDark)
+                }
+
+                if let error = errorMessage {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                            .font(.system(size: 10))
+                        Text(error)
+                            .font(.system(size: 10))
+                            .foregroundStyle(.orange)
+                    }
+                }
+            }
+
+            Spacer()
+
+            // Buttons
+            HStack(spacing: 12) {
+                Button(L("button.cancel")) {
+                    dismiss()
+                }
+                .buttonStyle(KOSMAGhostButtonStyle())
+
+                Button(L("accounts.add.button")) {
+                    addAccount()
+                }
+                .buttonStyle(KOSMAPrimaryButtonStyle())
+                .disabled(accountName.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(width: 320, height: 320)
+        .background(Theme.Colors.background)
+    }
+
+    private func addAccount() {
+        let trimmedName = accountName.trimmingCharacters(in: .whitespaces)
+        guard !trimmedName.isEmpty else {
+            errorMessage = L("accounts.error.emptyName")
+            return
+        }
+
+        // Check for duplicate names
+        if accountManager.accounts.contains(where: { $0.name.lowercased() == trimmedName.lowercased() }) {
+            errorMessage = L("accounts.error.duplicateName")
+            return
+        }
+
+        let identifier = keychainIdentifier.trimmingCharacters(in: .whitespaces)
+        let account = Account(
+            name: trimmedName,
+            keychainIdentifier: identifier.isEmpty ? UUID().uuidString : identifier
+        )
+
+        accountManager.addAccount(account)
+        dismiss()
+    }
+}
+
+// MARK: - Account Row
+
+/// A single account row in the accounts settings list.
+struct AccountRow: View {
+    let account: Account
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+    let onSetPrimary: () -> Void
+
+    @Environment(AccountManager.self) private var accountManager
+    @Environment(UsageManager.self) private var usageManager
+
+    /// Whether this account has an error
+    private var hasError: Bool {
+        usageManager.errorByAccount[account.id] != nil
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            // Primary indicator
+            Button {
+                onSetPrimary()
+            } label: {
+                Image(systemName: account.isPrimary ? "star.fill" : "star")
+                    .font(.system(size: 10))
+                    .foregroundStyle(account.isPrimary ? Theme.Colors.brand : Theme.Colors.textTertiaryOnDark)
+            }
+            .buttonStyle(.plain)
+            .help(account.isPrimary ? L("accounts.primary.current") : L("accounts.primary.set"))
+
+            // Account info
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(account.name)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Theme.Colors.textOnDark)
+
+                    if let planType = account.planType {
+                        Text("(\(planType.displayName))")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Theme.Colors.textSecondaryOnDark)
+                    }
+
+                    // Status indicator
+                    if hasError {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(Theme.Colors.warning)
+                    } else if account.id == accountManager.activeAccountId {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(Theme.Colors.safe)
+                    }
+                }
+
+                if account.usesDefaultCredentials {
+                    Text(L("accounts.credentials.default"))
+                        .font(.system(size: 9))
+                        .foregroundStyle(Theme.Colors.textTertiaryOnDark)
+                }
+            }
+
+            Spacer()
+
+            // Action buttons
+            HStack(spacing: 8) {
+                Button {
+                    onEdit()
+                } label: {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Theme.Colors.brand.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+                .help(L("accounts.edit"))
+
+                // Don't allow deleting the only account
+                if accountManager.accounts.count > 1 {
+                    Button {
+                        onDelete()
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Theme.Colors.critical.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                    .help(L("accounts.delete"))
+                }
+            }
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(account.id == accountManager.activeAccountId
+                    ? Theme.Colors.brand.opacity(0.08)
+                    : Color.clear)
+        )
+    }
+}
+
+// MARK: - Accounts Section Content
+
+/// Accounts settings content for the Settings panel.
+/// Shows list of accounts with add/edit/remove functionality.
+struct AccountsSectionContent: View {
+    @Environment(AccountManager.self) private var accountManager
+    @Environment(UsageManager.self) private var usageManager
+    @Environment(SettingsManager.self) private var settings
+
+    @State private var showingAddAccount = false
+    @State private var showingDeleteConfirmation = false
+    @State private var accountToDelete: Account?
+    @State private var showingEditAccount = false
+    @State private var accountToEdit: Account?
+    @State private var editedName = ""
+
+    var body: some View {
+        @Bindable var settings = settings
+
+        VStack(alignment: .leading, spacing: 12) {
+            // Account list
+            VStack(spacing: 4) {
+                ForEach(accountManager.accounts) { account in
+                    AccountRow(
+                        account: account,
+                        onEdit: {
+                            accountToEdit = account
+                            editedName = account.name
+                            showingEditAccount = true
+                        },
+                        onDelete: {
+                            accountToDelete = account
+                            showingDeleteConfirmation = true
+                        },
+                        onSetPrimary: {
+                            accountManager.setPrimaryAccount(account.id)
+                        }
+                    )
+                }
+            }
+            .padding(8)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Theme.Colors.cardBlack)
+            )
+
+            // Add account button
+            Button {
+                showingAddAccount = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 10))
+                    Text(L("accounts.add"))
+                        .font(.system(size: 10, weight: .light, design: .monospaced))
+                        .tracking(1.0)
+                }
+                .foregroundStyle(Theme.Colors.brand)
+            }
+            .buttonStyle(.plain)
+
+            Divider()
+                .background(Theme.Colors.brand.opacity(0.1))
+
+            // Display mode picker (for when multiple accounts exist)
+            if accountManager.accounts.count > 1 {
+                SettingsPickerRow(
+                    title: L("accounts.displayMode"),
+                    selection: $settings.multiAccountDisplayMode
+                ) {
+                    ForEach(MultiAccountDisplayMode.allCases, id: \.self) { mode in
+                        Text(L(mode.localizationKey)).tag(mode)
+                    }
+                }
+
+                SettingsToggle(
+                    title: L("accounts.showLabels"),
+                    isOn: $settings.showAccountLabels,
+                    subtitle: L("accounts.showLabels.subtitle")
+                )
+            }
+        }
+        .sheet(isPresented: $showingAddAccount) {
+            AddAccountSheet()
+        }
+        .sheet(isPresented: $showingEditAccount) {
+            if let account = accountToEdit {
+                EditAccountSheet(
+                    account: account,
+                    editedName: $editedName,
+                    onSave: {
+                        var updated = account
+                        updated.name = editedName.trimmingCharacters(in: .whitespaces)
+                        accountManager.updateAccount(updated)
+                        showingEditAccount = false
+                        accountToEdit = nil
+                    },
+                    onCancel: {
+                        showingEditAccount = false
+                        accountToEdit = nil
+                    }
+                )
+            }
+        }
+        .confirmationDialog(
+            L("accounts.delete.confirm.title"),
+            isPresented: $showingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(L("accounts.delete.confirm.button"), role: .destructive) {
+                if let account = accountToDelete {
+                    accountManager.removeAccount(account)
+                }
+                accountToDelete = nil
+            }
+            Button(L("button.cancel"), role: .cancel) {
+                accountToDelete = nil
+            }
+        } message: {
+            if let account = accountToDelete {
+                Text(L("accounts.delete.confirm.message", account.name))
+            }
+        }
+    }
+}
+
+// MARK: - Edit Account Sheet
+
+/// Sheet for editing an existing account.
+struct EditAccountSheet: View {
+    let account: Account
+    @Binding var editedName: String
+    let onSave: () -> Void
+    let onCancel: () -> Void
+
+    @Environment(AccountManager.self) private var accountManager
+
+    @State private var errorMessage: String?
+
+    var body: some View {
+        VStack(spacing: 20) {
+            // Header
+            HStack {
+                Text(L("accounts.edit.title").uppercased())
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Theme.Colors.brand)
+                    .tracking(1.5)
+
+                Spacer()
+
+                Button {
+                    onCancel()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Theme.Colors.textTertiaryOnDark)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Divider()
+                .background(Theme.Colors.brand.opacity(0.2))
+
+            VStack(alignment: .leading, spacing: 16) {
+                // Account name input
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L("accounts.name").uppercased())
+                        .font(.system(size: 10, weight: .light, design: .monospaced))
+                        .foregroundStyle(Theme.Colors.textOnDark)
+                        .tracking(1.2)
+
+                    TextField(L("accounts.name.placeholder"), text: $editedName)
+                        .textFieldStyle(.roundedBorder)
+                }
+
+                // Keychain info (read-only)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L("accounts.keychainId").uppercased())
+                        .font(.system(size: 10, weight: .light, design: .monospaced))
+                        .foregroundStyle(Theme.Colors.textOnDark)
+                        .tracking(1.2)
+
+                    Text(account.usesDefaultCredentials ? "Claude Code-credentials" : account.keychainIdentifier)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Theme.Colors.textSecondaryOnDark)
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Theme.Colors.cardBlack)
+                        )
+                }
+
+                if let error = errorMessage {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                            .font(.system(size: 10))
+                        Text(error)
+                            .font(.system(size: 10))
+                            .foregroundStyle(.orange)
+                    }
+                }
+            }
+
+            Spacer()
+
+            // Buttons
+            HStack(spacing: 12) {
+                Button(L("button.cancel")) {
+                    onCancel()
+                }
+                .buttonStyle(KOSMAGhostButtonStyle())
+
+                Button(L("button.save")) {
+                    saveChanges()
+                }
+                .buttonStyle(KOSMAPrimaryButtonStyle())
+                .disabled(editedName.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(width: 320, height: 280)
+        .background(Theme.Colors.background)
+    }
+
+    private func saveChanges() {
+        let trimmedName = editedName.trimmingCharacters(in: .whitespaces)
+        guard !trimmedName.isEmpty else {
+            errorMessage = L("accounts.error.emptyName")
+            return
+        }
+
+        // Check for duplicate names (excluding current account)
+        if accountManager.accounts.contains(where: {
+            $0.id != account.id && $0.name.lowercased() == trimmedName.lowercased()
+        }) {
+            errorMessage = L("accounts.error.duplicateName")
+            return
+        }
+
+        onSave()
     }
 }

@@ -142,6 +142,18 @@ public final class SettingsManager {
         didSet { save(.checkForUpdates, value: checkForUpdates) }
     }
 
+    // MARK: - Multi-Account Settings
+
+    /// Display mode for multiple accounts in menu bar
+    public var multiAccountDisplayMode: MultiAccountDisplayMode {
+        didSet { save(.multiAccountDisplayMode, value: multiAccountDisplayMode) }
+    }
+
+    /// Whether to show account labels in menu bar (when multiple accounts)
+    public var showAccountLabels: Bool {
+        didSet { save(.showAccountLabels, value: showAccountLabels) }
+    }
+
     // MARK: - Dependencies
 
     /// The settings repository used for persistence (exposed for sharing with other managers)
@@ -171,6 +183,8 @@ public final class SettingsManager {
         resetCompleteEnabled = repository.get(.resetCompleteEnabled)
         launchAtLogin = repository.get(.launchAtLogin)
         checkForUpdates = repository.get(.checkForUpdates)
+        multiAccountDisplayMode = repository.get(.multiAccountDisplayMode)
+        showAccountLabels = repository.get(.showAccountLabels)
     }
 
     // MARK: - Computed Properties
