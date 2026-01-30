@@ -51,6 +51,9 @@ public final class AppContainer {
     /// Manager for power-aware adaptive refresh scheduling
     public let adaptiveRefreshManager: AdaptiveRefreshManager
 
+    /// Manager for settings export, import, backup, and reset
+    public let settingsExportManager: SettingsExportManager
+
     /// The detected subscription plan type from credentials
     public private(set) var detectedPlanType: PlanType = .pro
 
@@ -123,6 +126,13 @@ public final class AppContainer {
             settingsManager: settings
         )
         self.adaptiveRefreshManager = adaptiveRefresh
+
+        // Create settings export manager
+        self.settingsExportManager = SettingsExportManager(
+            settingsManager: settings,
+            launchAtLoginManager: self.launchAtLoginManager,
+            usageHistoryManager: historyMgr
+        )
 
         // Configure settings callback to update refresh interval
         // When power-aware is enabled, AdaptiveRefreshManager handles intervals automatically
@@ -264,6 +274,13 @@ public final class AppContainer {
             systemStateMonitor: sysMonitor,
             usageManager: usageMgr,
             settingsManager: settings
+        )
+
+        // Create settings export manager
+        self.settingsExportManager = SettingsExportManager(
+            settingsManager: settings,
+            launchAtLoginManager: self.launchAtLoginManager,
+            usageHistoryManager: historyMgr
         )
 
         if startAutoRefresh {

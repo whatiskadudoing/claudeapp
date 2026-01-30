@@ -16,6 +16,7 @@ import Foundation
 /// - Never exports credentials or authentication data
 /// - Validates imported data before applying
 @MainActor
+@Observable
 public final class SettingsExportManager {
     // MARK: - Dependencies
 

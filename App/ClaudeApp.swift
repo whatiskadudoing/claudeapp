@@ -84,6 +84,7 @@ struct ClaudeApp: App {
                 .environment(container.notificationPermissionManager)
                 .environment(container.systemStateMonitor)
                 .environment(container.usageHistoryManager)
+                .environment(container.settingsExportManager)
         } label: {
             MenuBarLabel(detectedPlanType: container.detectedPlanType)
                 .environment(container.usageManager)
@@ -977,6 +978,7 @@ struct SettingsContent: View {
     @AppStorage("settings.section.refresh.expanded") private var refreshExpanded = true
     @AppStorage("settings.section.notifications.expanded") private var notificationsExpanded = true
     @AppStorage("settings.section.general.expanded") private var generalExpanded = true
+    @AppStorage("settings.section.data.expanded") private var dataExpanded = false
     @AppStorage("settings.section.about.expanded") private var aboutExpanded = false
 
     var body: some View {
@@ -996,6 +998,10 @@ struct SettingsContent: View {
 
                 CollapsibleSection(title: L("settings.general"), isExpanded: $generalExpanded) {
                     GeneralSectionContent()
+                }
+
+                CollapsibleSection(title: L("settings.data"), isExpanded: $dataExpanded) {
+                    DataSectionContent()
                 }
 
                 CollapsibleSection(title: L("settings.about"), isExpanded: $aboutExpanded) {
@@ -1485,6 +1491,487 @@ struct GeneralSectionContent: View {
     private func openLoginItemsSettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
             NSWorkspace.shared.open(url)
+        }
+    }
+}
+
+// MARK: - Data Section
+
+/// Data section for settings export, import, and reset.
+struct DataSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: L("settings.data"))
+            DataSectionContent()
+        }
+    }
+}
+
+/// Data settings content for export, import, backup, and reset functionality.
+/// Provides buttons for:
+/// - Export: Save settings to JSON file
+/// - Import: Load settings from JSON file
+/// - Reset: Reset all settings to defaults
+struct DataSectionContent: View {
+    @Environment(SettingsExportManager.self) private var exportManager
+
+    @State private var showExportSheet = false
+    @State private var showImportPicker = false
+    @State private var showResetConfirmation = false
+    @State private var showImportConfirmation = false
+    @State private var importedSettings: ExportedSettings?
+    @State private var importError: String?
+    @State private var exportSuccess = false
+    @State private var importSuccess = false
+    @State private var resetSuccess = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Export button
+            DataActionButton(
+                title: L("settings.data.export"),
+                subtitle: L("settings.data.export.subtitle"),
+                icon: "square.and.arrow.up",
+                showSuccess: exportSuccess
+            ) {
+                showExportSheet = true
+            }
+
+            // Import button
+            DataActionButton(
+                title: L("settings.data.import"),
+                subtitle: L("settings.data.import.subtitle"),
+                icon: "square.and.arrow.down",
+                showSuccess: importSuccess
+            ) {
+                showImportPicker = true
+            }
+
+            // Reset button (destructive)
+            DataActionButton(
+                title: L("settings.data.reset"),
+                subtitle: L("settings.data.reset.subtitle"),
+                icon: "arrow.counterclockwise",
+                isDestructive: true,
+                showSuccess: resetSuccess
+            ) {
+                showResetConfirmation = true
+            }
+
+            // Error display
+            if let error = importError {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.system(size: 10))
+                    Text(error)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.orange)
+                }
+                .padding(.top, 4)
+            }
+        }
+        .sheet(isPresented: $showExportSheet) {
+            ExportSettingsSheet(
+                exportManager: exportManager,
+                onExportSuccess: {
+                    withAnimation(.kosma) { exportSuccess = true }
+                    Task {
+                        try? await Task.sleep(for: .seconds(2))
+                        await MainActor.run { exportSuccess = false }
+                    }
+                }
+            )
+        }
+        .fileImporter(
+            isPresented: $showImportPicker,
+            allowedContentTypes: [.json],
+            onCompletion: handleImportFile
+        )
+        .sheet(isPresented: $showImportConfirmation) {
+            if let settings = importedSettings {
+                ImportConfirmationSheet(
+                    importedSettings: settings,
+                    exportManager: exportManager,
+                    onImportSuccess: {
+                        importedSettings = nil
+                        withAnimation(.kosma) { importSuccess = true }
+                        Task {
+                            try? await Task.sleep(for: .seconds(2))
+                            await MainActor.run { importSuccess = false }
+                        }
+                    },
+                    onCancel: {
+                        importedSettings = nil
+                    }
+                )
+            }
+        }
+        .confirmationDialog(
+            L("settings.data.reset.confirm.title"),
+            isPresented: $showResetConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(L("settings.data.reset.confirm.button"), role: .destructive) {
+                performReset()
+            }
+            Button(L("button.cancel"), role: .cancel) {}
+        } message: {
+            Text(L("settings.data.reset.confirm.message"))
+        }
+    }
+
+    private func handleImportFile(_ result: Result<URL, Error>) {
+        importError = nil
+
+        switch result {
+        case .success(let url):
+            // Start accessing security-scoped resource
+            guard url.startAccessingSecurityScopedResource() else {
+                importError = L("settings.data.import.error.access")
+                return
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+
+            do {
+                let settings = try exportManager.importFromFile(url: url)
+
+                // Validate settings
+                let validation = settings.validate()
+                if !validation.isValid {
+                    importError = validation.messages.first ?? L("settings.data.import.error.invalid")
+                    return
+                }
+
+                // Show confirmation dialog
+                importedSettings = settings
+                showImportConfirmation = true
+            } catch {
+                importError = L("settings.data.import.error.parse")
+            }
+
+        case .failure:
+            importError = L("settings.data.import.error.read")
+        }
+    }
+
+    private func performReset() {
+        exportManager.resetToDefaults(clearHistory: false)
+        withAnimation(.kosma) { resetSuccess = true }
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            await MainActor.run { resetSuccess = false }
+        }
+    }
+}
+
+/// Button for data actions (export, import, reset) with KOSMA styling.
+struct DataActionButton: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    var isDestructive: Bool = false
+    var showSuccess: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: showSuccess ? "checkmark" : icon)
+                    .font(.system(size: 11))
+                    .foregroundStyle(showSuccess ? Theme.Colors.safe : (isDestructive ? Theme.Colors.critical : Theme.Colors.brand))
+                    .frame(width: 16)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title.uppercased())
+                        .font(.system(size: 10, weight: .light, design: .monospaced))
+                        .foregroundStyle(isDestructive ? Theme.Colors.critical : Theme.Colors.textOnDark)
+                        .tracking(1.2)
+
+                    Text(subtitle)
+                        .font(.system(size: 10, weight: .light))
+                        .foregroundStyle(Theme.Colors.textTertiaryOnDark)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 8))
+                    .foregroundStyle(Theme.Colors.textTertiaryOnDark)
+            }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isDestructive ? Theme.Colors.critical.opacity(0.08) : Theme.Colors.brand.opacity(0.05))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Sheet for export options.
+struct ExportSettingsSheet: View {
+    let exportManager: SettingsExportManager
+    let onExportSuccess: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var includeUsageHistory = false
+    @State private var exportError: String?
+
+    var body: some View {
+        VStack(spacing: 20) {
+            // Header
+            HStack {
+                Text(L("settings.data.export.sheet.title").uppercased())
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Theme.Colors.brand)
+                    .tracking(1.5)
+
+                Spacer()
+
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Theme.Colors.textTertiaryOnDark)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Divider()
+                .background(Theme.Colors.brand.opacity(0.2))
+
+            // Options
+            VStack(alignment: .leading, spacing: 12) {
+                SettingsToggle(
+                    title: L("settings.data.export.includeHistory"),
+                    isOn: $includeUsageHistory,
+                    subtitle: L("settings.data.export.includeHistory.subtitle")
+                )
+            }
+
+            if let error = exportError {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.system(size: 10))
+                    Text(error)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.orange)
+                }
+            }
+
+            Spacer()
+
+            // Buttons
+            HStack(spacing: 12) {
+                Button(L("button.cancel")) {
+                    dismiss()
+                }
+                .buttonStyle(KOSMAGhostButtonStyle())
+
+                Button(L("settings.data.export.button")) {
+                    performExport()
+                }
+                .buttonStyle(KOSMAPrimaryButtonStyle())
+            }
+        }
+        .padding(20)
+        .frame(width: 280, height: 220)
+        .background(Theme.Colors.background)
+    }
+
+    private func performExport() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.nameFieldStringValue = "ClaudeApp-Settings.json"
+        panel.title = L("settings.data.export.panel.title")
+
+        if panel.runModal() == .OK, let url = panel.url {
+            do {
+                try exportManager.exportToFile(url: url, includeUsageHistory: includeUsageHistory)
+                onExportSuccess()
+                dismiss()
+            } catch {
+                exportError = L("settings.data.export.error")
+            }
+        }
+    }
+}
+
+/// Sheet for import confirmation with settings preview.
+struct ImportConfirmationSheet: View {
+    let importedSettings: ExportedSettings
+    let exportManager: SettingsExportManager
+    let onImportSuccess: () -> Void
+    let onCancel: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var createBackup = true
+    @State private var includeUsageHistory = false
+    @State private var importError: String?
+
+    private var summary: ExportedSettings.ImportSummary {
+        importedSettings.validate().summary ?? ExportedSettings.ImportSummary(
+            displaySettingsCount: 0,
+            refreshSettingsCount: 0,
+            notificationSettingsCount: 0,
+            generalSettingsCount: 0,
+            includesUsageHistory: false,
+            sessionHistoryPoints: 0,
+            weeklyHistoryPoints: 0
+        )
+    }
+
+    /// Total number of settings being imported
+    private var totalSettingsCount: Int {
+        summary.displaySettingsCount + summary.refreshSettingsCount +
+        summary.notificationSettingsCount + summary.generalSettingsCount
+    }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            // Header
+            HStack {
+                Text(L("settings.data.import.sheet.title").uppercased())
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Theme.Colors.brand)
+                    .tracking(1.5)
+
+                Spacer()
+
+                Button {
+                    onCancel()
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Theme.Colors.textTertiaryOnDark)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Divider()
+                .background(Theme.Colors.brand.opacity(0.2))
+
+            // Import summary
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L("settings.data.import.summary").uppercased())
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Theme.Colors.textSecondaryOnDark)
+                    .tracking(1)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    ImportSummaryRow(label: L("settings.data.import.summary.version"), value: importedSettings.appVersion)
+                    ImportSummaryRow(label: L("settings.data.import.summary.exported"), value: formattedDate(importedSettings.exportedAt))
+                    ImportSummaryRow(label: L("settings.data.import.summary.settings"), value: "\(totalSettingsCount)")
+                    if summary.includesUsageHistory {
+                        ImportSummaryRow(label: L("settings.data.import.summary.history"), value: L("settings.data.import.summary.history.included"))
+                    }
+                }
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Theme.Colors.cardBlack)
+                )
+            }
+
+            // Options
+            VStack(alignment: .leading, spacing: 10) {
+                SettingsToggle(
+                    title: L("settings.data.import.createBackup"),
+                    isOn: $createBackup,
+                    subtitle: L("settings.data.import.createBackup.subtitle")
+                )
+
+                if summary.includesUsageHistory {
+                    SettingsToggle(
+                        title: L("settings.data.import.includeHistory"),
+                        isOn: $includeUsageHistory,
+                        subtitle: L("settings.data.import.includeHistory.subtitle")
+                    )
+                }
+            }
+
+            if let error = importError {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.system(size: 10))
+                    Text(error)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.orange)
+                }
+            }
+
+            Spacer()
+
+            // Warning text
+            Text(L("settings.data.import.warning"))
+                .font(.system(size: 10))
+                .foregroundStyle(Theme.Colors.textTertiaryOnDark)
+                .multilineTextAlignment(.center)
+
+            // Buttons
+            HStack(spacing: 12) {
+                Button(L("button.cancel")) {
+                    onCancel()
+                    dismiss()
+                }
+                .buttonStyle(KOSMAGhostButtonStyle())
+
+                Button(L("settings.data.import.button")) {
+                    performImport()
+                }
+                .buttonStyle(KOSMAPrimaryButtonStyle())
+            }
+        }
+        .padding(20)
+        .frame(width: 300, height: 380)
+        .background(Theme.Colors.background)
+    }
+
+    private func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+
+    private func performImport() {
+        do {
+            // Create backup if requested
+            if createBackup {
+                _ = try exportManager.createBackup()
+            }
+
+            // Apply settings
+            exportManager.applySettings(importedSettings, includeUsageHistory: includeUsageHistory)
+
+            onImportSuccess()
+            dismiss()
+        } catch {
+            importError = L("settings.data.import.error.apply")
+        }
+    }
+}
+
+/// Row in import summary showing label and value.
+struct ImportSummaryRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 10, weight: .light))
+                .foregroundStyle(Theme.Colors.textTertiaryOnDark)
+            Spacer()
+            Text(value)
+                .font(.system(size: 10, weight: .light, design: .monospaced))
+                .foregroundStyle(Theme.Colors.textOnDark)
         }
     }
 }

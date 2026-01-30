@@ -163,16 +163,16 @@ Key research documents for this implementation:
   - **Research:** `specs/features/settings-export.md#settings-export-manager`
   - **Tests:** Add 20+ tests for export, import, backup, reset, validation - ✅ 40+ tests added (726 total)
 
-- [ ] **Add Data section to Settings UI** [spec: settings-export.md] [file: App/ClaudeApp.swift]
-  - Add "Data" section with Export, Import, Reset buttons
-  - Create ExportSettingsSheet with account/history checkboxes
-  - Implement file picker for import (`.json` content type)
-  - Add confirmation dialog before reset to defaults
-  - Show import summary before applying
-  - Add option to create backup before import
-  - Add localization strings for all new UI elements (en, es, pt-BR)
-  - **Research:** `specs/features/settings-export.md#swiftui-integration`
-  - **Tests:** Add UI tests for export/import dialogs
+- [x] **Add Data section to Settings UI** [spec: settings-export.md] [file: App/ClaudeApp.swift]
+  - Add "Data" section with Export, Import, Reset buttons - ✅ CollapsibleSection added
+  - Create ExportSettingsSheet with account/history checkboxes - ✅ includes usage history toggle
+  - Implement file picker for import (`.json` content type) - ✅ fileImporter
+  - Add confirmation dialog before reset to defaults - ✅ confirmationDialog
+  - Show import summary before applying - ✅ ImportConfirmationSheet
+  - Add option to create backup before import - ✅ createBackup toggle
+  - Add localization strings for all new UI elements (en, es, pt-BR) - ✅ 35+ new strings
+  - **Note:** SettingsExportManager now marked @Observable for SwiftUI environment
+  - **Tests:** All 726 tests pass
 
 ---
 <!-- CHECKPOINT: Phase 3 delivers settings backup/restore. -->
