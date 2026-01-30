@@ -1,3 +1,4 @@
+import Domain
 import Foundation
 
 // MARK: - GitHub API Models
@@ -115,6 +116,7 @@ public actor UpdateChecker {
     private let repoName: String
     private let session: URLSession
     private let currentVersionProvider: @Sendable () -> String
+    private let settingsRepository: SettingsRepository?
 
     private var lastCheckDate: Date?
     private var lastNotifiedVersion: String?
@@ -127,17 +129,25 @@ public actor UpdateChecker {
     ///   - repoOwner: GitHub repository owner (e.g., "whatiskadudoing")
     ///   - repoName: GitHub repository name (e.g., "claudeapp")
     ///   - session: URLSession for network requests (defaults to .shared)
+    ///   - settingsRepository: Repository to persist check date (defaults to nil for backward compatibility)
     ///   - currentVersionProvider: Closure that returns the current app version
     public init(
         repoOwner: String = "whatiskadudoing",
         repoName: String = "claudeapp",
         session: URLSession = .shared,
+        settingsRepository: SettingsRepository? = nil,
         currentVersionProvider: @escaping @Sendable () -> String = { Bundle.main.appVersion }
     ) {
         self.repoOwner = repoOwner
         self.repoName = repoName
         self.session = session
+        self.settingsRepository = settingsRepository
         self.currentVersionProvider = currentVersionProvider
+
+        // Load persisted check date if available
+        if let repo = settingsRepository {
+            self.lastCheckDate = repo.get(.lastUpdateCheckDate)
+        }
     }
 
     /// Checks for updates from GitHub Releases
@@ -190,7 +200,12 @@ public actor UpdateChecker {
             return nil
         }
 
-        lastCheckDate = Date()
+        let now = Date()
+        lastCheckDate = now
+
+        // Persist the check date to survive app restarts
+        settingsRepository?.set(.lastUpdateCheckDate, value: now)
+
         return await check()
     }
 
@@ -217,9 +232,11 @@ public actor UpdateChecker {
     }
 
     /// Resets the check state (useful for testing)
+    /// Also clears persisted check date if settings repository is provided
     public func reset() {
         lastCheckDate = nil
         lastNotifiedVersion = nil
+        settingsRepository?.set(.lastUpdateCheckDate, value: nil)
     }
 
     // MARK: - Private Methods

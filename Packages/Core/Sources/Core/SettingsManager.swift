@@ -139,7 +139,8 @@ public final class SettingsManager {
 
     // MARK: - Dependencies
 
-    private let repository: SettingsRepository
+    /// The settings repository used for persistence (exposed for sharing with other managers)
+    public let repository: SettingsRepository
 
     // MARK: - Initialization
 

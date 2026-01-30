@@ -70,3 +70,11 @@ public extension SettingsKey where Value == IconStyle {
         defaultValue: .percentage
     )
 }
+
+public extension SettingsKey where Value == Date? {
+    // Update Checker Settings
+    static let lastUpdateCheckDate = SettingsKey<Date?>(
+        key: "lastUpdateCheckDate",
+        defaultValue: nil
+    )
+}

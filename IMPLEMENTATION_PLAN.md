@@ -181,12 +181,16 @@ Key research documents for this implementation:
   - **Completed:** 2026-01-30
   - **Tests:** 616 tests passing (+7 new isAtCapacity tests)
 
-- [ ] **Persist UpdateChecker lastCheckDate across restarts** [file: Packages/Core/Sources/Core/UpdateChecker.swift]
-  - Save `lastCheckDate` to UserDefaults on successful check
-  - Load on init to maintain 24-hour rate limit across app restarts
-  - Use SettingsRepository pattern for consistency
-  - **Impact:** Won't re-check immediately after restart
-  - **Target:** 2+ new tests (629+ total)
+- [x] **Persist UpdateChecker lastCheckDate across restarts** [file: Packages/Core/Sources/Core/UpdateChecker.swift]
+  - ✅ Added `SettingsKey<Date?>` for `lastUpdateCheckDate` in Domain
+  - ✅ Modified `UpdateChecker` to accept optional `SettingsRepository` parameter
+  - ✅ Load persisted check date on init, persist after each check
+  - ✅ Reset clears persisted date when `reset()` is called
+  - ✅ Exposed `SettingsManager.repository` as public for sharing
+  - ✅ Updated `AppContainer` to pass settings repository to `UpdateChecker`
+  - **Completed:** 2026-01-30
+  - **Impact:** Rate limit (24 hours) now survives app restarts
+  - **Tests:** 620 tests passing (+4 new persistence tests)
 
 ---
 <!-- CHECKPOINT: Phase 3 completes polish items. -->
@@ -238,7 +242,7 @@ Key research documents for this implementation:
 **Polish:**
 - [x] Fix user agent version string ✅ 2026-01-30
 - [x] Add 100% warning indicator in menu bar ✅ 2026-01-30
-- [ ] Persist update check date across restarts
+- [x] Persist update check date across restarts ✅ 2026-01-30
 
 ---
 
@@ -293,16 +297,16 @@ Key research documents for this implementation:
 
 ## Test Coverage Summary
 
-**Current:** 616 tests across 4 packages
+**Current:** 620 tests across 4 packages
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
 | Domain | 88 | Excellent - models fully tested (+7 isAtCapacity tests) |
 | Services | 29 | Basic - needs error scenarios |
-| Core | 266 | Comprehensive - business logic (+4 userInfo tests) |
+| Core | 270 | Comprehensive - business logic (+4 userInfo tests, +4 persistence tests) |
 | UI | 233 | Excellent - accessibility focus |
 
-**Target for SLC 8:** 620+ tests (adjusted after cleanup)
+**Target for SLC 8:** 620+ tests ✅ ACHIEVED
 
 **Coverage Gaps to Address in Future:**
 - API error response handling (401, 429, 500)

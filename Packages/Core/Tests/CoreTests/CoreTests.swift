@@ -3532,6 +3532,88 @@ struct UpdateCheckerTests {
 
         #expect(crossedAsset.name == "app.dmg")
     }
+
+    // MARK: - Persistence Tests
+
+    @Test("UpdateChecker loads persisted lastCheckDate on init")
+    func loadsPersistedLastCheckDate() async {
+        let mockRepo = MockSettingsRepository()
+        let persistedDate = Date().addingTimeInterval(-3600) // 1 hour ago
+
+        // Pre-populate the repository with a check date
+        mockRepo.set(.lastUpdateCheckDate, value: persistedDate)
+
+        let checker = UpdateChecker(
+            settingsRepository: mockRepo,
+            currentVersionProvider: { "1.0.0" }
+        )
+
+        let loadedDate = await checker.getLastCheckDate()
+        #expect(loadedDate != nil)
+        // Compare within 1 second tolerance due to encoding/decoding
+        #expect(abs(loadedDate!.timeIntervalSince(persistedDate)) < 1)
+    }
+
+    @Test("UpdateChecker persists lastCheckDate after background check")
+    func persistsLastCheckDateAfterBackgroundCheck() async {
+        let mockRepo = MockSettingsRepository()
+        let checker = UpdateChecker(
+            settingsRepository: mockRepo,
+            currentVersionProvider: { "1.0.0" }
+        )
+
+        // Verify no date persisted initially
+        let initialDate: Date? = mockRepo.get(.lastUpdateCheckDate)
+        #expect(initialDate == nil)
+
+        // Perform a background check (will fail network but still sets date)
+        _ = await checker.checkInBackground()
+
+        // Verify date is now persisted
+        let persistedDate: Date? = mockRepo.get(.lastUpdateCheckDate)
+        #expect(persistedDate != nil)
+    }
+
+    @Test("UpdateChecker clears persisted lastCheckDate on reset")
+    func clearsPersistedLastCheckDateOnReset() async {
+        let mockRepo = MockSettingsRepository()
+        let checker = UpdateChecker(
+            settingsRepository: mockRepo,
+            currentVersionProvider: { "1.0.0" }
+        )
+
+        // Perform a check to set the date
+        _ = await checker.checkInBackground()
+
+        // Verify date is persisted
+        let persistedDate: Date? = mockRepo.get(.lastUpdateCheckDate)
+        #expect(persistedDate != nil)
+
+        // Reset the checker
+        await checker.reset()
+
+        // Verify date is cleared
+        let clearedDate: Date? = mockRepo.get(.lastUpdateCheckDate)
+        #expect(clearedDate == nil)
+    }
+
+    @Test("UpdateChecker skips check when persisted date is recent")
+    func skipsCheckWhenPersistedDateIsRecent() async {
+        let mockRepo = MockSettingsRepository()
+        let recentDate = Date().addingTimeInterval(-3600) // 1 hour ago (within 24 hour limit)
+
+        // Pre-populate with a recent check date
+        mockRepo.set(.lastUpdateCheckDate, value: recentDate)
+
+        let checker = UpdateChecker(
+            settingsRepository: mockRepo,
+            currentVersionProvider: { "1.0.0" }
+        )
+
+        // Background check should be skipped due to recent date
+        let result = await checker.checkInBackground()
+        #expect(result == nil)
+    }
 }
 
 // MARK: - Mock Accessibility Announcer

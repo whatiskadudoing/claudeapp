@@ -92,8 +92,8 @@ public final class AppContainer {
             settingsManager: settings
         )
 
-        // Create update checker
-        self.updateChecker = UpdateChecker()
+        // Create update checker with settings repository for persisting check date
+        self.updateChecker = UpdateChecker(settingsRepository: settings.repository)
 
         // Create usage manager
         let usageMgr = UsageManager(usageRepository: apiClient)
