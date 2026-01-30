@@ -181,12 +181,12 @@ Key research documents for this implementation:
 
 **Purpose:** Clean up, add documentation, and prepare release.
 
-- [ ] **Update version and documentation** [file: various]
-  - Update version to 1.8.0 in Info.plist
-  - Update CHANGELOG.md with SLC 9 release notes
+- [x] **Update version and documentation** [file: various]
+  - Update version to 1.8.0 in Info.plist ✅
+  - Update CHANGELOG.md with SLC 9 release notes ✅
   - Update specs/features/historical-charts.md acceptance criteria to ✅
   - Update specs/features/settings-export.md acceptance criteria to ✅
-  - Update specs/README.md status indicators
+  - Update specs/README.md status indicators ✅
 
 - [ ] **Final verification** [file: Makefile]
   - Run full test suite: target 680+ tests

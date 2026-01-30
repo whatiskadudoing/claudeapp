@@ -110,12 +110,12 @@ UI → Core → Services → Domain
 | [features/notifications.md](./features/notifications.md) | Warning alerts with hysteresis | ✅ Implemented |
 | [features/settings.md](./features/settings.md) | In-popover settings UI | ✅ Implemented |
 | [features/updates.md](./features/updates.md) | GitHub Releases version checking | ✅ Implemented |
-| [features/icon-styles.md](./features/icon-styles.md) | Multiple menu bar display styles | 📋 Planned |
-| [features/historical-charts.md](./features/historical-charts.md) | Sparkline usage charts | 📋 Planned |
+| [features/icon-styles.md](./features/icon-styles.md) | Multiple menu bar display styles | ✅ Implemented |
+| [features/historical-charts.md](./features/historical-charts.md) | Sparkline usage charts | ✅ Implemented |
 | [features/power-aware-refresh.md](./features/power-aware-refresh.md) | Battery-optimized refresh | ✅ Implemented |
 | [features/multi-account.md](./features/multi-account.md) | Multiple Claude accounts | 📋 Planned |
 | [features/widgets.md](./features/widgets.md) | macOS Notification Center widgets | 📋 Planned |
-| [features/settings-export.md](./features/settings-export.md) | JSON export/import of settings | 📋 Planned |
+| [features/settings-export.md](./features/settings-export.md) | JSON export/import of settings | ✅ Implemented |
 | [features/terminal-integration.md](./features/terminal-integration.md) | Shell prompt integration | 📋 Planned |
 
 ### System Specifications
@@ -132,7 +132,7 @@ UI → Core → Services → Domain
 
 ## Key Features
 
-### Implemented (v1.6.0)
+### Implemented (v1.8.0)
 
 | Feature | Description |
 |---------|-------------|
@@ -147,15 +147,15 @@ UI → Core → Services → Domain
 | **Accessibility** | VoiceOver, keyboard nav, Dynamic Type, color-blind safe |
 | **Multi-Language** | English, Portuguese (Brazil), Spanish (Latin America) |
 | **Premium Design** | Hybrid McLaren/TE/KOSMA design system |
+| **Icon Styles** | 6 customizable menu bar display styles |
+| **Historical Charts** | Sparkline usage trends below progress bars |
+| **Settings Export** | JSON backup, restore, and reset of configurations |
 
-### Planned (v1.7.0+)
+### Planned (v1.9.0+)
 
 | Feature | Priority | Spec |
 |---------|----------|------|
-| **Icon Styles** | High | [icon-styles.md](./features/icon-styles.md) |
 | **Sparkle Updates** | High | [sparkle-updates.md](./sparkle-updates.md) |
-| **Historical Charts** | Medium | [historical-charts.md](./features/historical-charts.md) |
-| **Settings Export** | Medium | [settings-export.md](./features/settings-export.md) |
 | **Terminal Integration** | Medium | [terminal-integration.md](./features/terminal-integration.md) |
 | **Multi-Account** | Low | [multi-account.md](./features/multi-account.md) |
 | **Widgets** | Low | [widgets.md](./features/widgets.md) |

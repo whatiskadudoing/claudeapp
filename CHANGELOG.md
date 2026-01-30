@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-01-30
+
+### Added
+- **Historical Sparkline Charts**: Visual usage trends below progress bars
+  - UsageSparkline component using native Swift Charts
+  - Session history (5-min granularity, up to 60 points)
+  - Weekly history (1-hour granularity, up to 168 points)
+  - Smooth catmullRom interpolation with gradient fill
+  - LED glow effect matching KOSMA design system
+- **UsageHistoryManager**: Persistent history tracking with UserDefaults
+  - Automatic session history clearing on window reset
+  - History data exposed via SwiftUI environment
+- **Show Usage Charts Toggle**: Settings option to enable/disable sparklines
+- **Settings Export/Import**: Backup and restore user configurations
+  - ExportedSettings model with version, timestamp, and full settings payload
+  - SettingsExportManager for export, import, backup, and reset operations
+  - Pretty-printed JSON output with ISO 8601 dates
+  - Validation and import summary before applying settings
+  - Automatic backup creation before import (optional)
+- **Data Section in Settings**: Export, Import, and Reset to Defaults buttons
+  - Export sheet with usage history inclusion toggle
+  - Import confirmation with settings summary
+  - Reset confirmation dialog with destructive action
+
+### Changed
+- UsageManager now records usage snapshots to UsageHistoryManager on each refresh
+- Dropdown view displays sparklines below each usage window (when enabled)
+- Settings UI now includes Data section for backup/restore operations
+
+### Technical
+- Added UsageDataPoint model in Domain package (Sendable, Equatable, Codable)
+- Added ExportedSettings model with nested settings payload structures
+- UsageHistoryManager integrated into AppContainer dependency injection
+- Total test count: 726 tests passing
+
 ## [1.7.0] - 2026-01-30
 
 ### Added
@@ -174,7 +209,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - macOS 14 (Sonoma) required
 - 81 tests passing
 
-[Unreleased]: https://github.com/kaduwaengertner/claudeapp/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/kaduwaengertner/claudeapp/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.4.0...v1.5.0
