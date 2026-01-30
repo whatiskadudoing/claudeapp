@@ -132,18 +132,22 @@ Key research documents for this implementation:
 
 **Purpose:** Update UsageManager to track usage per-account.
 
-- [ ] **Update UsageManager to support per-account usage tracking** [spec: multi-account.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
-  - Add `usageByAccount: [UUID: UsageData]` dictionary
-  - Update init to accept AccountManager dependency
-  - Implement `refreshActiveAccount()` using active account's credentials
-  - Implement `refreshAllAccounts()` with TaskGroup for parallel fetches
-  - Update `currentUsageData` computed property to return active account's data
-  - Add `highestUtilizationAcrossAccounts` computed property
-  - Ensure backward compatibility: if no accounts exist, use default credentials (existing behavior)
-  - Update SharedCacheManager to write active account's data
+- [x] **Update UsageManager to support per-account usage tracking** [spec: multi-account.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
+  - Added `usageByAccount: [UUID: UsageData]` dictionary ✅
+  - Added `setAccountManager()` for optional AccountManager dependency (maintains backward compat) ✅
+  - Implemented `refreshActiveAccount()` using active account's credentials ✅
+  - Implemented `refreshAllAccounts()` with TaskGroup for parallel fetches ✅
+  - Updated `usageData` computed property to return active account's data or legacy data ✅
+  - Added `highestUtilizationAcrossAccounts` computed property ✅
+  - Full backward compatibility: legacy mode works when AccountManager not set ✅
+  - SharedCacheManager writes active account's data ✅
+  - Added per-account error tracking with `errorByAccount` dictionary ✅
+  - Added per-account usage history for burn rate calculation ✅
+  - Updated AppContainer to wire AccountManager and auto-migrate on first launch ✅
   - **Research:** `specs/features/multi-account.md#usagemanager-updates`
-  - **Tests:** Add 40+ tests for multi-account refresh, per-account storage, active account switching
-  - **Success criteria:** Usage refreshes for active account, switching accounts shows correct data
+  - **Tests:** Added 14 new tests (853 total, was 839) - multi-account storage, per-account refresh, account switching, burn rates per account, backward compatibility ✅
+  - **Success criteria:** Usage refreshes for active account, switching accounts shows correct data ✅
+  - **Completed:** 2026-01-30
 
 ---
 <!-- CHECKPOINT: Phase 3 delivers functional multi-account data flow. -->
@@ -259,21 +263,20 @@ Key research documents for this implementation:
 
 ## Test Coverage Summary
 
-**Current (Phase 2 complete):** 839 tests across 4 packages (+87 from SLC 10)
+**Current (Phase 3 complete):** 853 tests across 4 packages (+14 from Phase 2)
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
 | Domain | 168 | Excellent - models fully tested (+45 from Phase 1) |
 | Services | 29 | Basic - needs error scenarios |
-| Core | 383 | Comprehensive - business logic (+42 from Phase 2) |
+| Core | 397 | Comprehensive - business logic (+14 from Phase 3: multi-account UsageManager) |
 | UI | 259 | Excellent - accessibility focus |
 
-**Target for SLC 11:** 870+ tests (31+ more tests needed for UsageManager and UI)
+**Target for SLC 11:** 870+ tests (17+ more tests needed for UI)
 
 | Package | Remaining Tests | Focus |
 |---------|-----------------|-------|
-| Core | +20 | UsageManager multi-account integration |
-| UI | +30 | Account switcher, settings section, display modes |
+| UI | +20 | Account switcher, settings section, display modes |
 
 ---
 

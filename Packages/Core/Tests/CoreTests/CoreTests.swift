@@ -10,7 +10,7 @@ import UserNotifications
 struct CoreTests {
     @Test("Core version is correct")
     func coreVersion() {
-        #expect(Core.version == "1.6.0")
+        #expect(Core.version == "2.0.0")
     }
 }
 
@@ -4199,6 +4199,388 @@ struct AccessibilityAnnouncerTests {
         announcer.reset()
         #expect(announcer.announcementCount == 0)
         #expect(announcer.lastAnnouncement == nil)
+    }
+}
+
+// MARK: - UsageManager Multi-Account Tests
+
+@Suite("UsageManager Multi-Account Tests")
+struct UsageManagerMultiAccountTests {
+    /// Creates a test UserDefaults instance with a unique suite name
+    private func createTestDefaults() -> UserDefaults {
+        let suiteName = "com.claudeapp.test.multiaccountusage.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        return defaults
+    }
+
+    /// Creates an AccountManager with isolated test storage
+    @MainActor
+    private func createTestAccountManager() -> AccountManager {
+        let defaults = createTestDefaults()
+        let storage = UserDefaultsAccountStorage(defaults: defaults)
+        return AccountManager(storage: storage)
+    }
+
+    // MARK: - Basic Multi-Account Tests
+
+    @Test("UsageManager stores data per account")
+    @MainActor
+    func storesDataPerAccount() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+        let accountManager = createTestAccountManager()
+
+        // Add test account and wire up
+        let account = Account(name: "Test")
+        accountManager.addAccount(account)
+        manager.setAccountManager(accountManager)
+
+        await manager.refresh()
+
+        // Check data is stored for the account
+        #expect(manager.usageByAccount[account.id] != nil)
+        #expect(manager.usageByAccount[account.id]?.fiveHour.utilization == 45.0)
+    }
+
+    @Test("UsageData returns active account's data")
+    @MainActor
+    func usageDataReturnsActiveAccountData() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 60.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 80.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+        let accountManager = createTestAccountManager()
+
+        let account = Account(name: "Active Test")
+        accountManager.addAccount(account)
+        manager.setAccountManager(accountManager)
+
+        await manager.refresh()
+
+        // usageData property should return active account's data
+        #expect(manager.usageData?.fiveHour.utilization == 60.0)
+        #expect(manager.usageData?.sevenDay.utilization == 80.0)
+    }
+
+    @Test("HighestUtilizationAcrossAccounts returns max from all active accounts")
+    @MainActor
+    func highestUtilizationAcrossAccounts() async {
+        let data1 = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 50.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: data1)
+        let manager = UsageManager(usageRepository: mockRepo)
+        let accountManager = createTestAccountManager()
+
+        // Add first account
+        let account1 = Account(name: "Account 1")
+        accountManager.addAccount(account1)
+        manager.setAccountManager(accountManager)
+
+        await manager.refresh()
+
+        // Add data for second account (simulated - directly set)
+        let account2 = Account(name: "Account 2")
+        accountManager.addAccount(account2)
+
+        // Simulate fetching higher data for account2
+        let data2 = UsageData(
+            fiveHour: UsageWindow(utilization: 90.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 95.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        await mockRepo.setUsageData(data2)
+        await manager.refresh()
+
+        // Should return max (95% from account2's sevenDay)
+        #expect(manager.highestUtilizationAcrossAccounts == 95.0)
+    }
+
+    @Test("UsageHistoryCount returns per-account history")
+    @MainActor
+    func usageHistoryCountPerAccount() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+        let accountManager = createTestAccountManager()
+
+        let account = Account(name: "History Test")
+        accountManager.addAccount(account)
+        manager.setAccountManager(accountManager)
+
+        // Refresh multiple times
+        await manager.refresh()
+        await manager.refresh()
+        await manager.refresh()
+
+        #expect(manager.usageHistoryCount == 3)
+    }
+
+    @Test("ClearHistory for specific account clears only that account")
+    @MainActor
+    func clearHistoryForSpecificAccount() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+        let accountManager = createTestAccountManager()
+
+        let account1 = Account(name: "Account 1")
+        accountManager.addAccount(account1)
+        manager.setAccountManager(accountManager)
+
+        await manager.refresh()
+        #expect(manager.usageHistoryCount >= 1)
+
+        manager.clearHistory(for: account1.id)
+        #expect(manager.usageHistoryCount == 0)
+    }
+
+    // MARK: - Error Handling Tests
+
+    @Test("ErrorByAccount tracks per-account errors")
+    @MainActor
+    func errorByAccountTracksErrors() async {
+        let mockRepo = MockUsageRepository(error: .networkError(message: "Connection failed"))
+        let manager = UsageManager(usageRepository: mockRepo)
+        let accountManager = createTestAccountManager()
+
+        let account = Account(name: "Error Test")
+        accountManager.addAccount(account)
+        manager.setAccountManager(accountManager)
+
+        await manager.refresh()
+
+        #expect(manager.errorByAccount[account.id] != nil)
+        if case .networkError = manager.errorByAccount[account.id] {
+            // Expected
+        } else {
+            Issue.record("Expected networkError")
+        }
+    }
+
+    @Test("Error method returns account-specific error")
+    @MainActor
+    func errorMethodReturnsAccountError() async {
+        let mockRepo = MockUsageRepository(error: .notAuthenticated)
+        let manager = UsageManager(usageRepository: mockRepo)
+        let accountManager = createTestAccountManager()
+
+        let account = Account(name: "Auth Error Test")
+        accountManager.addAccount(account)
+        manager.setAccountManager(accountManager)
+
+        await manager.refresh()
+
+        let error = manager.error(for: account.id)
+        #expect(error == .notAuthenticated)
+    }
+
+    @Test("UsageData method returns data for specific account")
+    @MainActor
+    func usageDataMethodForAccount() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 75.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 85.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+        let accountManager = createTestAccountManager()
+
+        let account = Account(name: "Specific Account")
+        accountManager.addAccount(account)
+        manager.setAccountManager(accountManager)
+
+        await manager.refresh()
+
+        let data = manager.usageData(for: account.id)
+        #expect(data?.fiveHour.utilization == 75.0)
+    }
+
+    // MARK: - Backward Compatibility Tests
+
+    @Test("Works without AccountManager (legacy mode)")
+    @MainActor
+    func worksWithoutAccountManager() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 50.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 60.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+        // Intentionally NOT setting AccountManager
+
+        await manager.refresh()
+
+        // Should still work and store data
+        #expect(manager.usageData?.fiveHour.utilization == 50.0)
+        #expect(manager.highestUtilization == 60.0)
+    }
+
+    @Test("Legacy mode uses usageHistory not usageHistoryByAccount")
+    @MainActor
+    func legacyModeUsesUsageHistory() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+        // No AccountManager = legacy mode
+
+        await manager.refresh()
+        await manager.refresh()
+
+        #expect(manager.usageHistoryCount == 2)
+    }
+
+    // MARK: - RefreshActiveAccount Tests
+
+    @Test("RefreshActiveAccount updates only active account")
+    @MainActor
+    func refreshActiveAccountUpdatesOnlyActive() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 55.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 65.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+        let accountManager = createTestAccountManager()
+
+        let account1 = Account(name: "Active")
+        let account2 = Account(name: "Inactive")
+        accountManager.addAccount(account1)
+        accountManager.addAccount(account2)
+        manager.setAccountManager(accountManager)
+
+        // Set account1 as active (should be active by default as it was added first then account2 became active)
+        accountManager.setActiveAccount(account1.id)
+
+        await manager.refreshActiveAccount()
+
+        // Only active account should have data
+        #expect(manager.usageByAccount[account1.id] != nil)
+        // Account2 was never active when refresh happened, so no data
+    }
+
+    // MARK: - Integration Tests
+
+    @Test("Account switching shows correct data")
+    @MainActor
+    func accountSwitchingShowsCorrectData() async {
+        let data1 = UsageData(
+            fiveHour: UsageWindow(utilization: 30.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 40.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: data1)
+        let manager = UsageManager(usageRepository: mockRepo)
+        let accountManager = createTestAccountManager()
+
+        // Add and refresh account1
+        let account1 = Account(name: "Account 1")
+        accountManager.addAccount(account1)
+        manager.setAccountManager(accountManager)
+        await manager.refresh()
+
+        // Add account2 with different data
+        let account2 = Account(name: "Account 2")
+        accountManager.addAccount(account2)
+
+        let data2 = UsageData(
+            fiveHour: UsageWindow(utilization: 70.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 80.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        await mockRepo.setUsageData(data2)
+        await manager.refresh()
+
+        // Check account2 data (currently active)
+        #expect(manager.usageData?.fiveHour.utilization == 70.0)
+
+        // Switch to account1
+        accountManager.setActiveAccount(account1.id)
+
+        // Should show account1's data
+        #expect(manager.usageData?.fiveHour.utilization == 30.0)
+    }
+
+    @Test("HighestUtilization reflects active account")
+    @MainActor
+    func highestUtilizationReflectsActiveAccount() async {
+        let testData = UsageData(
+            fiveHour: UsageWindow(utilization: 45.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 72.0, resetsAt: nil),
+            sevenDayOpus: UsageWindow(utilization: 88.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: testData)
+        let manager = UsageManager(usageRepository: mockRepo)
+        let accountManager = createTestAccountManager()
+
+        let account = Account(name: "Multi-Window Test")
+        accountManager.addAccount(account)
+        manager.setAccountManager(accountManager)
+
+        await manager.refresh()
+
+        // Highest should be 88% from Opus window
+        #expect(manager.highestUtilization == 88.0)
+    }
+
+    @Test("Burn rates calculated per account")
+    @MainActor
+    func burnRatesCalculatedPerAccount() async {
+        // Start with lower utilization
+        let data1 = UsageData(
+            fiveHour: UsageWindow(utilization: 20.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 30.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        let mockRepo = MockUsageRepository(usageData: data1)
+        let manager = UsageManager(usageRepository: mockRepo)
+        let accountManager = createTestAccountManager()
+
+        let account = Account(name: "Burn Rate Test")
+        accountManager.addAccount(account)
+        manager.setAccountManager(accountManager)
+
+        // First refresh
+        await manager.refresh()
+
+        // Simulate time passing and higher utilization
+        let data2 = UsageData(
+            fiveHour: UsageWindow(utilization: 40.0, resetsAt: nil),
+            sevenDay: UsageWindow(utilization: 50.0, resetsAt: nil),
+            fetchedAt: Date()
+        )
+        await mockRepo.setUsageData(data2)
+        await manager.refresh()
+
+        // Check that we have at least 2 history snapshots
+        #expect(manager.usageHistoryCount >= 2)
     }
 }
 

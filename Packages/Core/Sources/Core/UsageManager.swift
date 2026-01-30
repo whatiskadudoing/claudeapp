@@ -16,13 +16,28 @@ public enum RefreshState: Sendable, Equatable {
 /// Main state manager for usage data.
 /// Handles fetching, caching, and exposing usage state to the UI layer.
 /// Calculates burn rates from usage history to predict time-to-exhaustion.
+/// Supports multi-account usage tracking through per-account data storage.
 @MainActor
 @Observable
 public final class UsageManager {
     // MARK: - Published State
 
-    /// Current usage data (nil if not yet fetched or on error)
-    public private(set) var usageData: UsageData?
+    /// Current usage data for the active account (nil if not yet fetched or on error)
+    /// For backward compatibility, this returns the active account's data
+    public var usageData: UsageData? {
+        guard let id = accountManager?.activeAccountId else {
+            // No AccountManager set - use legacy single-account storage
+            return legacyUsageData
+        }
+        return usageByAccount[id]
+    }
+
+    /// Per-account usage data storage
+    /// Key is account UUID, value is the latest usage data for that account
+    public private(set) var usageByAccount: [UUID: UsageData] = [:]
+
+    /// Legacy single-account usage data (for backward compatibility when AccountManager is not set)
+    private var legacyUsageData: UsageData?
 
     /// Previous usage data for notification comparison
     /// Stored after each successful refresh to detect threshold crossings
@@ -34,6 +49,9 @@ public final class UsageManager {
     /// Last error encountered during refresh (nil on success)
     public private(set) var lastError: AppError?
 
+    /// Per-account error tracking for multi-account refresh
+    public private(set) var errorByAccount: [UUID: AppError] = [:]
+
     /// Timestamp of last successful data fetch
     public private(set) var lastUpdated: Date?
 
@@ -43,6 +61,7 @@ public final class UsageManager {
     // MARK: - Dependencies
 
     private let usageRepository: UsageRepository
+    private var accountManager: AccountManager?
     private var notificationChecker: UsageNotificationChecker?
     private var usageHistoryManager: UsageHistoryManager?
     private var sharedCacheManager: SharedCacheManager?
@@ -50,9 +69,12 @@ public final class UsageManager {
 
     // MARK: - Burn Rate State
 
-    /// History of usage snapshots for burn rate calculation.
+    /// History of usage snapshots for burn rate calculation (legacy single-account).
     /// Newest snapshots are at the beginning (index 0).
     private var usageHistory: [UsageSnapshot] = []
+
+    /// Per-account usage history for burn rate calculation
+    private var usageHistoryByAccount: [UUID: [UsageSnapshot]] = [:]
 
     /// Calculator for burn rates and time-to-exhaustion predictions.
     private let burnRateCalculator = BurnRateCalculator()
@@ -122,25 +144,63 @@ public final class UsageManager {
         self.sharedCacheManager = manager
     }
 
+    /// Sets the account manager for multi-account support.
+    /// When set, usage data is stored per-account instead of globally.
+    /// - Parameter manager: The account manager to use
+    public func setAccountManager(_ manager: AccountManager) {
+        self.accountManager = manager
+    }
+
     // MARK: - Computed Properties
 
-    /// Returns the highest utilization across all usage windows.
+    /// Returns the highest utilization across all usage windows for the active account.
     /// Returns 0 if no data is available.
     public var highestUtilization: Double {
         usageData?.highestUtilization ?? 0
     }
 
     /// Returns the overall burn rate level for the header badge.
-    /// This is the highest burn rate level across all usage windows.
+    /// This is the highest burn rate level across all usage windows for the active account.
     /// Returns nil if insufficient data for burn rate calculation.
     public var overallBurnRateLevel: BurnRateLevel? {
         usageData?.highestBurnRate?.level
     }
 
-    /// Returns the current count of usage history snapshots.
+    /// Returns the current count of usage history snapshots for the active account.
     /// Useful for testing and debugging burn rate calculation.
     public var usageHistoryCount: Int {
-        usageHistory.count
+        if let accountManager, let activeId = accountManager.activeAccountId {
+            return usageHistoryByAccount[activeId]?.count ?? 0
+        }
+        return usageHistory.count
+    }
+
+    /// Returns the highest utilization across all active accounts.
+    /// Useful for menu bar display when monitoring multiple accounts.
+    /// Falls back to active account's utilization if no AccountManager.
+    public var highestUtilizationAcrossAccounts: Double {
+        guard let accountManager else {
+            return highestUtilization
+        }
+
+        return accountManager.accounts
+            .filter { $0.isActive }
+            .compactMap { usageByAccount[$0.id]?.highestUtilization }
+            .max() ?? 0
+    }
+
+    /// Returns usage data for a specific account ID.
+    /// - Parameter accountId: The UUID of the account
+    /// - Returns: The usage data for that account, or nil if not available
+    public func usageData(for accountId: UUID) -> UsageData? {
+        usageByAccount[accountId]
+    }
+
+    /// Returns the error for a specific account ID.
+    /// - Parameter accountId: The UUID of the account
+    /// - Returns: The error for that account, or nil if no error
+    public func error(for accountId: UUID) -> AppError? {
+        errorByAccount[accountId]
     }
 
     /// Calculates the retry interval using exponential backoff.
@@ -166,11 +226,20 @@ public final class UsageManager {
     // MARK: - Public Methods
 
     /// Fetches fresh usage data from the repository.
+    /// In multi-account mode, refreshes the active account.
+    /// In single-account mode (no AccountManager), uses the default repository.
     /// Updates `usageData` on success, `lastError` on failure.
     /// Tracks consecutive failures for exponential backoff.
     /// Records usage snapshots and calculates burn rates.
     /// Manages `refreshState` for visual feedback (success/error flash).
     public func refresh() async {
+        // In multi-account mode, delegate to refreshActiveAccount
+        if accountManager != nil {
+            await refreshActiveAccount()
+            return
+        }
+
+        // Legacy single-account mode
         guard !isLoading else { return }
 
         isLoading = true
@@ -184,7 +253,7 @@ public final class UsageManager {
 
             // Check notifications before updating state (needs previous data)
             if let checker = notificationChecker {
-                await checker.check(current: newData, previous: usageData)
+                await checker.check(current: newData, previous: legacyUsageData)
             }
 
             // Detect session reset and clear session history if needed
@@ -206,8 +275,8 @@ public final class UsageManager {
             sharedCacheManager?.writeUsageCache(enrichedData)
 
             // Update previous data before current (for next comparison)
-            previousUsageData = usageData
-            usageData = enrichedData
+            previousUsageData = legacyUsageData
+            legacyUsageData = enrichedData
             lastUpdated = Date()
             consecutiveFailures = 0 // Reset backoff on success
             succeeded = true
@@ -243,6 +312,240 @@ public final class UsageManager {
         }
     }
 
+    /// Refreshes usage data for the active account only.
+    /// This is the primary refresh method when in multi-account mode.
+    public func refreshActiveAccount() async {
+        guard let accountManager, let account = accountManager.activeAccount else {
+            // Fall back to legacy refresh if no active account
+            await refreshLegacy()
+            return
+        }
+
+        guard !isLoading else { return }
+
+        isLoading = true
+        refreshState = .loading
+        lastError = nil
+        errorByAccount[account.id] = nil
+
+        var succeeded = false
+
+        do {
+            let newData = try await usageRepository.fetchUsage()
+            let previousData = usageByAccount[account.id]
+
+            // Check notifications before updating state
+            if let checker = notificationChecker {
+                await checker.check(current: newData, previous: previousData)
+            }
+
+            // Detect session reset and clear session history if needed
+            checkAndHandleSessionReset(newData)
+
+            // Record snapshot for burn rate calculation (per-account)
+            recordSnapshot(newData, for: account.id)
+
+            // Record to usage history manager for sparkline charts (active account only)
+            usageHistoryManager?.record(
+                sessionUtilization: newData.fiveHour.utilization,
+                weeklyUtilization: newData.sevenDay.utilization
+            )
+
+            // Enrich data with burn rates and time-to-exhaustion
+            let enrichedData = enrichWithBurnRates(newData, for: account.id)
+
+            // Write to shared cache for CLI access (active account data)
+            sharedCacheManager?.writeUsageCache(enrichedData)
+
+            // Update previous data before current (for next comparison)
+            previousUsageData = previousData
+            usageByAccount[account.id] = enrichedData
+            lastUpdated = Date()
+            consecutiveFailures = 0 // Reset backoff on success
+            succeeded = true
+        } catch let error as AppError {
+            lastError = error
+            errorByAccount[account.id] = error
+            if shouldRetry(for: error) {
+                consecutiveFailures += 1
+            }
+        } catch {
+            let appError = AppError.networkError(message: error.localizedDescription)
+            lastError = appError
+            errorByAccount[account.id] = appError
+            consecutiveFailures += 1
+        }
+
+        isLoading = false
+        refreshState = succeeded ? .success : .error
+
+        // Post VoiceOver announcement for state change
+        if succeeded {
+            accessibilityAnnouncer.announce(AccessibilityAnnouncementMessages.refreshComplete)
+        } else {
+            accessibilityAnnouncer.announce(AccessibilityAnnouncementMessages.refreshFailed)
+        }
+
+        Task {
+            try? await Task.sleep(for: .seconds(1))
+            if self.refreshState == .success || self.refreshState == .error {
+                self.refreshState = .idle
+            }
+        }
+    }
+
+    /// Refreshes usage data for all active accounts in parallel.
+    /// Useful for getting a complete view of usage across all accounts.
+    /// - Note: Does not update refreshState during individual account refreshes to avoid flickering.
+    public func refreshAllAccounts() async {
+        guard let accountManager else {
+            await refresh()
+            return
+        }
+
+        let activeAccounts = accountManager.accounts.filter { $0.isActive }
+        guard !activeAccounts.isEmpty else { return }
+
+        guard !isLoading else { return }
+
+        isLoading = true
+        refreshState = .loading
+
+        await withTaskGroup(of: Void.self) { group in
+            for account in activeAccounts {
+                group.addTask { [self] in
+                    await self.refreshAccount(account)
+                }
+            }
+        }
+
+        // Update overall state based on results
+        let hasAnySuccess = activeAccounts.contains { usageByAccount[$0.id] != nil }
+        let hasAnyError = activeAccounts.contains { errorByAccount[$0.id] != nil }
+
+        if hasAnySuccess && !hasAnyError {
+            lastError = nil
+            consecutiveFailures = 0
+        } else if hasAnyError {
+            // Set lastError to the first error found
+            lastError = activeAccounts.compactMap { errorByAccount[$0.id] }.first
+        }
+
+        isLoading = false
+        refreshState = hasAnySuccess ? .success : .error
+        lastUpdated = Date()
+
+        // Post VoiceOver announcement
+        if hasAnySuccess {
+            accessibilityAnnouncer.announce(AccessibilityAnnouncementMessages.refreshComplete)
+        } else {
+            accessibilityAnnouncer.announce(AccessibilityAnnouncementMessages.refreshFailed)
+        }
+
+        Task {
+            try? await Task.sleep(for: .seconds(1))
+            if self.refreshState == .success || self.refreshState == .error {
+                self.refreshState = .idle
+            }
+        }
+    }
+
+    /// Refreshes a specific account without affecting overall loading state.
+    /// Internal method used by refreshAllAccounts for parallel refresh.
+    /// - Parameter account: The account to refresh
+    private func refreshAccount(_ account: Account) async {
+        errorByAccount[account.id] = nil
+
+        do {
+            let newData = try await usageRepository.fetchUsage()
+            let previousData = usageByAccount[account.id]
+
+            // Check notifications for this account
+            if let checker = notificationChecker, accountManager?.activeAccountId == account.id {
+                await checker.check(current: newData, previous: previousData)
+            }
+
+            // Record snapshot for this account
+            recordSnapshot(newData, for: account.id)
+
+            // Enrich with burn rates
+            let enrichedData = enrichWithBurnRates(newData, for: account.id)
+
+            // Update per-account storage
+            usageByAccount[account.id] = enrichedData
+
+            // Update shared cache if this is the active account
+            if accountManager?.activeAccountId == account.id {
+                sharedCacheManager?.writeUsageCache(enrichedData)
+            }
+        } catch let error as AppError {
+            errorByAccount[account.id] = error
+        } catch {
+            errorByAccount[account.id] = .networkError(message: error.localizedDescription)
+        }
+    }
+
+    /// Legacy refresh method for backward compatibility.
+    /// Used internally when AccountManager is set but no active account exists.
+    private func refreshLegacy() async {
+        guard !isLoading else { return }
+
+        isLoading = true
+        refreshState = .loading
+        lastError = nil
+
+        var succeeded = false
+
+        do {
+            let newData = try await usageRepository.fetchUsage()
+
+            if let checker = notificationChecker {
+                await checker.check(current: newData, previous: legacyUsageData)
+            }
+
+            checkAndHandleSessionReset(newData)
+            recordSnapshot(newData)
+
+            usageHistoryManager?.record(
+                sessionUtilization: newData.fiveHour.utilization,
+                weeklyUtilization: newData.sevenDay.utilization
+            )
+
+            let enrichedData = enrichWithBurnRates(newData)
+            sharedCacheManager?.writeUsageCache(enrichedData)
+
+            previousUsageData = legacyUsageData
+            legacyUsageData = enrichedData
+            lastUpdated = Date()
+            consecutiveFailures = 0
+            succeeded = true
+        } catch let error as AppError {
+            lastError = error
+            if shouldRetry(for: error) {
+                consecutiveFailures += 1
+            }
+        } catch {
+            lastError = .networkError(message: error.localizedDescription)
+            consecutiveFailures += 1
+        }
+
+        isLoading = false
+        refreshState = succeeded ? .success : .error
+
+        if succeeded {
+            accessibilityAnnouncer.announce(AccessibilityAnnouncementMessages.refreshComplete)
+        } else {
+            accessibilityAnnouncer.announce(AccessibilityAnnouncementMessages.refreshFailed)
+        }
+
+        Task {
+            try? await Task.sleep(for: .seconds(1))
+            if self.refreshState == .success || self.refreshState == .error {
+                self.refreshState = .idle
+            }
+        }
+    }
+
     /// Determines if an error should trigger retry with backoff.
     /// Auth errors should not retry automatically.
     private func shouldRetry(for error: AppError) -> Bool {
@@ -258,7 +561,7 @@ public final class UsageManager {
 
     // MARK: - Burn Rate Calculation
 
-    /// Records a usage snapshot for burn rate calculation.
+    /// Records a usage snapshot for burn rate calculation (legacy single-account mode).
     /// Newer snapshots are inserted at the beginning of the history array.
     /// Trims history to maxHistoryCount to prevent unbounded growth.
     /// - Parameter data: The usage data to record
@@ -280,19 +583,68 @@ public final class UsageManager {
         }
     }
 
-    /// Enriches usage data with burn rates and time-to-exhaustion predictions.
+    /// Records a usage snapshot for burn rate calculation (per-account mode).
+    /// Newer snapshots are inserted at the beginning of the history array.
+    /// Trims history to maxHistoryCount to prevent unbounded growth.
+    /// - Parameters:
+    ///   - data: The usage data to record
+    ///   - accountId: The UUID of the account to record for
+    private func recordSnapshot(_ data: UsageData, for accountId: UUID) {
+        let snapshot = UsageSnapshot(
+            fiveHourUtilization: data.fiveHour.utilization,
+            sevenDayUtilization: data.sevenDay.utilization,
+            opusUtilization: data.sevenDayOpus?.utilization,
+            sonnetUtilization: data.sevenDaySonnet?.utilization,
+            timestamp: Date()
+        )
+
+        // Get or create history for this account
+        var history = usageHistoryByAccount[accountId] ?? []
+
+        // Insert at beginning (newest first)
+        history.insert(snapshot, at: 0)
+
+        // Trim history if exceeds max
+        if history.count > Self.maxHistoryCount {
+            history.removeLast()
+        }
+
+        usageHistoryByAccount[accountId] = history
+    }
+
+    /// Enriches usage data with burn rates and time-to-exhaustion predictions (legacy single-account mode).
     /// Uses the accumulated usage history to calculate consumption velocity.
     /// - Parameter data: The raw usage data from the API
     /// - Returns: Usage data with burn rate and time-to-exhaustion populated
     private func enrichWithBurnRates(_ data: UsageData) -> UsageData {
+        enrichWithBurnRates(data, history: usageHistory)
+    }
+
+    /// Enriches usage data with burn rates and time-to-exhaustion predictions (per-account mode).
+    /// Uses the accumulated usage history for the specific account to calculate consumption velocity.
+    /// - Parameters:
+    ///   - data: The raw usage data from the API
+    ///   - accountId: The UUID of the account
+    /// - Returns: Usage data with burn rate and time-to-exhaustion populated
+    private func enrichWithBurnRates(_ data: UsageData, for accountId: UUID) -> UsageData {
+        let history = usageHistoryByAccount[accountId] ?? []
+        return enrichWithBurnRates(data, history: history)
+    }
+
+    /// Core implementation for enriching usage data with burn rates.
+    /// - Parameters:
+    ///   - data: The raw usage data from the API
+    ///   - history: The usage history to use for burn rate calculation
+    /// - Returns: Usage data with burn rate and time-to-exhaustion populated
+    private func enrichWithBurnRates(_ data: UsageData, history: [UsageSnapshot]) -> UsageData {
         // Extract snapshots for each window type
-        let fiveHourSnapshots = usageHistory.map { ($0.fiveHourUtilization, $0.timestamp) }
-        let sevenDaySnapshots = usageHistory.map { ($0.sevenDayUtilization, $0.timestamp) }
-        let opusSnapshots = usageHistory.compactMap { snapshot -> (Double, Date)? in
+        let fiveHourSnapshots = history.map { ($0.fiveHourUtilization, $0.timestamp) }
+        let sevenDaySnapshots = history.map { ($0.sevenDayUtilization, $0.timestamp) }
+        let opusSnapshots = history.compactMap { snapshot -> (Double, Date)? in
             guard let util = snapshot.opusUtilization else { return nil }
             return (util, snapshot.timestamp)
         }
-        let sonnetSnapshots = usageHistory.compactMap { snapshot -> (Double, Date)? in
+        let sonnetSnapshots = history.compactMap { snapshot -> (Double, Date)? in
             guard let util = snapshot.sonnetUtilization else { return nil }
             return (util, snapshot.timestamp)
         }
@@ -364,10 +716,17 @@ public final class UsageManager {
         )
     }
 
-    /// Clears the usage history.
+    /// Clears the usage history for all accounts.
     /// Useful for testing or when resetting state.
     public func clearHistory() {
         usageHistory.removeAll()
+        usageHistoryByAccount.removeAll()
+    }
+
+    /// Clears the usage history for a specific account.
+    /// - Parameter accountId: The UUID of the account to clear history for
+    public func clearHistory(for accountId: UUID) {
+        usageHistoryByAccount[accountId] = nil
     }
 
     /// Checks if the 5-hour session window has reset and clears session history if so.
@@ -385,6 +744,8 @@ public final class UsageManager {
             usageHistoryManager?.clearSessionHistory()
             // Also clear burn rate history since it's a new session
             usageHistory.removeAll()
+            // Clear all per-account histories too
+            usageHistoryByAccount.removeAll()
         }
 
         // Update tracked reset time

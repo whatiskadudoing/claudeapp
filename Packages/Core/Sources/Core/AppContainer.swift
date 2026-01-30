@@ -57,6 +57,9 @@ public final class AppContainer {
     /// Manager for shared cache (CLI data sharing)
     public let sharedCacheManager: SharedCacheManager
 
+    /// Manager for multi-account support
+    public let accountManager: AccountManager
+
     /// The detected subscription plan type from credentials
     public private(set) var detectedPlanType: PlanType = .pro
 
@@ -141,6 +144,16 @@ public final class AppContainer {
         let sharedCache = SharedCacheManager()
         self.sharedCacheManager = sharedCache
         usageMgr.setSharedCacheManager(sharedCache)
+
+        // Create account manager for multi-account support
+        let acctMgr = AccountManager()
+        self.accountManager = acctMgr
+
+        // Perform migration if needed (creates Default account from Claude Code credentials)
+        acctMgr.migrateIfNeeded()
+
+        // Connect account manager to usage manager
+        usageMgr.setAccountManager(acctMgr)
 
         // Configure settings callback to update refresh interval
         // When power-aware is enabled, AdaptiveRefreshManager handles intervals automatically
@@ -236,6 +249,7 @@ public final class AppContainer {
     ///   - launchAtLoginService: Custom launch at login service (optional)
     ///   - notificationService: Custom notification service (optional)
     ///   - systemStateMonitor: Custom system state monitor (optional, creates real one if nil)
+    ///   - accountStorage: Custom account storage (optional, creates real one if nil)
     ///   - startAutoRefresh: Whether to start auto-refresh (default false for tests)
     public init(
         credentialsRepository: CredentialsRepository,
@@ -244,6 +258,7 @@ public final class AppContainer {
         launchAtLoginService: LaunchAtLoginService? = nil,
         notificationService: NotificationService? = nil,
         systemStateMonitor: SystemStateMonitor? = nil,
+        accountStorage: AccountStorage? = nil,
         startAutoRefresh: Bool = false
     ) {
         self.credentialsRepository = credentialsRepository
@@ -295,6 +310,13 @@ public final class AppContainer {
         let sharedCache = SharedCacheManager()
         self.sharedCacheManager = sharedCache
         usageMgr.setSharedCacheManager(sharedCache)
+
+        // Create account manager for multi-account support
+        let acctMgr = AccountManager(storage: accountStorage ?? UserDefaultsAccountStorage())
+        self.accountManager = acctMgr
+
+        // Connect account manager to usage manager (but don't auto-migrate in tests)
+        usageMgr.setAccountManager(acctMgr)
 
         if startAutoRefresh {
             if settings.enablePowerAwareRefresh {
