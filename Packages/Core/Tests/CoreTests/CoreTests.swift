@@ -5235,3 +5235,586 @@ struct AppContainerPowerAwareTests {
         container.adaptiveRefreshManager.stopAutoRefresh()
     }
 }
+
+// MARK: - SettingsExportManager Tests
+
+@Suite("SettingsExportManager Tests")
+struct SettingsExportManagerTests {
+    // MARK: - Mock LaunchAtLoginService for tests
+
+    final class MockLaunchAtLoginService: LaunchAtLoginService, @unchecked Sendable {
+        var _status: SMAppService.Status = .notRegistered
+        var _isEnabled = false
+
+        var status: SMAppService.Status { _status }
+
+        func register() throws {
+            _status = .enabled
+            _isEnabled = true
+        }
+
+        func unregister() throws {
+            _status = .notRegistered
+            _isEnabled = false
+        }
+    }
+
+    // MARK: - Helper to create test manager
+
+    @MainActor
+    private func createTestManager(
+        userDefaults: UserDefaults = UserDefaults(suiteName: UUID().uuidString)!
+    ) -> (SettingsExportManager, SettingsManager, LaunchAtLoginManager, UsageHistoryManager) {
+        let settingsRepo = UserDefaultsSettingsRepository(defaults: userDefaults)
+        let settingsManager = SettingsManager(repository: settingsRepo)
+        let mockService = MockLaunchAtLoginService()
+        let launchAtLoginManager = LaunchAtLoginManager(service: mockService)
+        let historyManager = UsageHistoryManager(userDefaults: userDefaults)
+
+        let exportManager = SettingsExportManager(
+            settingsManager: settingsManager,
+            launchAtLoginManager: launchAtLoginManager,
+            usageHistoryManager: historyManager,
+            appVersionProvider: { "1.8.0" }
+        )
+
+        return (exportManager, settingsManager, launchAtLoginManager, historyManager)
+    }
+
+    // MARK: - Export Tests
+
+    @Test("export creates correct structure")
+    @MainActor
+    func exportCreatesCorrectStructure() {
+        let (exportManager, _, _, _) = createTestManager()
+
+        let exported = exportManager.export()
+
+        #expect(exported.version == ExportedSettings.currentVersion)
+        #expect(exported.appVersion == "1.8.0")
+        #expect(exported.settings.display.iconStyle == "percentage")
+        #expect(exported.settings.refresh.interval == 5)
+        #expect(exported.settings.notifications.enabled == true)
+        #expect(exported.usageHistory == nil)
+    }
+
+    @Test("export includes usage history when requested")
+    @MainActor
+    func exportIncludesUsageHistory() {
+        let (exportManager, _, _, historyManager) = createTestManager()
+
+        // Add some history
+        historyManager.importSessionHistory([
+            UsageDataPoint(utilization: 30.0),
+            UsageDataPoint(utilization: 40.0)
+        ])
+        historyManager.importWeeklyHistory([
+            UsageDataPoint(utilization: 50.0)
+        ])
+
+        let exported = exportManager.export(includeUsageHistory: true)
+
+        #expect(exported.usageHistory != nil)
+        #expect(exported.usageHistory?.sessionHistory.count == 2)
+        #expect(exported.usageHistory?.weeklyHistory.count == 1)
+    }
+
+    @Test("export reflects current settings values")
+    @MainActor
+    func exportReflectsCurrentSettings() {
+        let (exportManager, settingsManager, _, _) = createTestManager()
+
+        // Change settings
+        settingsManager.iconStyle = .battery
+        settingsManager.refreshInterval = 15
+        settingsManager.warningThreshold = 80
+        settingsManager.showSparklines = false
+
+        let exported = exportManager.export()
+
+        #expect(exported.settings.display.iconStyle == "battery")
+        #expect(exported.settings.refresh.interval == 15)
+        #expect(exported.settings.notifications.warningThreshold == 80)
+        #expect(exported.settings.display.showSparklines == false)
+    }
+
+    @Test("export without history has nil usageHistory")
+    @MainActor
+    func exportWithoutHistoryIsNil() {
+        let (exportManager, _, _, _) = createTestManager()
+
+        let exported = exportManager.export(includeUsageHistory: false)
+
+        #expect(exported.usageHistory == nil)
+    }
+
+    // MARK: - Import Tests
+
+    @Test("applySettings updates all settings values")
+    @MainActor
+    func applySettingsUpdatesAllValues() {
+        let (exportManager, settingsManager, launchAtLoginManager, _) = createTestManager()
+
+        let imported = ExportedSettings(
+            version: "1.0",
+            exportedAt: Date(),
+            appVersion: "1.8.0",
+            settings: ExportedSettings.SettingsPayload(
+                display: ExportedSettings.DisplaySettings(
+                    iconStyle: "progressBar",
+                    showPlanBadge: true,
+                    showPercentage: false,
+                    percentageSource: "Current Session",
+                    showSparklines: false,
+                    planType: "max5x"
+                ),
+                refresh: ExportedSettings.RefreshSettings(
+                    interval: 10,
+                    enablePowerAwareRefresh: false,
+                    reduceRefreshOnBattery: false
+                ),
+                notifications: ExportedSettings.NotificationSettings(
+                    enabled: false,
+                    warningThreshold: 75,
+                    warningEnabled: false,
+                    capacityFullEnabled: false,
+                    resetCompleteEnabled: false
+                ),
+                general: ExportedSettings.GeneralSettings(
+                    launchAtLogin: true,
+                    checkForUpdates: false
+                )
+            ),
+            usageHistory: nil
+        )
+
+        exportManager.applySettings(imported)
+
+        #expect(settingsManager.iconStyle == .progressBar)
+        #expect(settingsManager.showPlanBadge == true)
+        #expect(settingsManager.showPercentage == false)
+        #expect(settingsManager.percentageSource == .session)
+        #expect(settingsManager.showSparklines == false)
+        #expect(settingsManager.planType == .max5x)
+        #expect(settingsManager.refreshInterval == 10)
+        #expect(settingsManager.enablePowerAwareRefresh == false)
+        #expect(settingsManager.notificationsEnabled == false)
+        #expect(settingsManager.warningThreshold == 75)
+        #expect(launchAtLoginManager.isEnabled == true)
+        #expect(settingsManager.checkForUpdates == false)
+    }
+
+    @Test("applySettings imports usage history when requested")
+    @MainActor
+    func applySettingsImportsHistory() {
+        let (exportManager, _, _, historyManager) = createTestManager()
+
+        let history = ExportedSettings.UsageHistoryPayload(
+            sessionHistory: [
+                UsageDataPoint(utilization: 30.0),
+                UsageDataPoint(utilization: 40.0)
+            ],
+            weeklyHistory: [
+                UsageDataPoint(utilization: 50.0),
+                UsageDataPoint(utilization: 55.0),
+                UsageDataPoint(utilization: 60.0)
+            ]
+        )
+
+        let imported = ExportedSettings(
+            version: "1.0",
+            exportedAt: Date(),
+            appVersion: "1.8.0",
+            settings: ExportedSettings.SettingsPayload(
+                display: ExportedSettings.DisplaySettings(
+                    iconStyle: "percentage",
+                    showPlanBadge: false,
+                    showPercentage: true,
+                    percentageSource: "highest",
+                    showSparklines: true,
+                    planType: "pro"
+                ),
+                refresh: ExportedSettings.RefreshSettings(
+                    interval: 5,
+                    enablePowerAwareRefresh: true,
+                    reduceRefreshOnBattery: true
+                ),
+                notifications: ExportedSettings.NotificationSettings(
+                    enabled: true,
+                    warningThreshold: 90,
+                    warningEnabled: true,
+                    capacityFullEnabled: true,
+                    resetCompleteEnabled: true
+                ),
+                general: ExportedSettings.GeneralSettings(
+                    launchAtLogin: false,
+                    checkForUpdates: true
+                )
+            ),
+            usageHistory: history
+        )
+
+        exportManager.applySettings(imported, includeUsageHistory: true)
+
+        #expect(historyManager.sessionHistory.count == 2)
+        #expect(historyManager.weeklyHistory.count == 3)
+    }
+
+    @Test("applySettings ignores unknown enum values")
+    @MainActor
+    func applySettingsIgnoresUnknownEnums() {
+        let (exportManager, settingsManager, _, _) = createTestManager()
+
+        // Set initial values
+        settingsManager.iconStyle = .battery
+        settingsManager.percentageSource = .weekly
+
+        let imported = ExportedSettings(
+            version: "1.0",
+            exportedAt: Date(),
+            appVersion: "1.8.0",
+            settings: ExportedSettings.SettingsPayload(
+                display: ExportedSettings.DisplaySettings(
+                    iconStyle: "unknownStyle", // Invalid
+                    showPlanBadge: true,
+                    showPercentage: true,
+                    percentageSource: "invalidSource", // Invalid
+                    showSparklines: true,
+                    planType: "unknownPlan" // Invalid
+                ),
+                refresh: ExportedSettings.RefreshSettings(
+                    interval: 5,
+                    enablePowerAwareRefresh: true,
+                    reduceRefreshOnBattery: true
+                ),
+                notifications: ExportedSettings.NotificationSettings(
+                    enabled: true,
+                    warningThreshold: 90,
+                    warningEnabled: true,
+                    capacityFullEnabled: true,
+                    resetCompleteEnabled: true
+                ),
+                general: ExportedSettings.GeneralSettings(
+                    launchAtLogin: false,
+                    checkForUpdates: true
+                )
+            ),
+            usageHistory: nil
+        )
+
+        exportManager.applySettings(imported)
+
+        // Invalid enums should be skipped, keeping original values
+        #expect(settingsManager.iconStyle == .battery)
+        #expect(settingsManager.percentageSource == .weekly)
+        // Valid bool should be applied
+        #expect(settingsManager.showPlanBadge == true)
+    }
+
+    // MARK: - Reset Tests
+
+    @Test("resetToDefaults restores all default values")
+    @MainActor
+    func resetToDefaultsRestoresDefaults() {
+        let (exportManager, settingsManager, _, _) = createTestManager()
+
+        // Change settings from defaults
+        settingsManager.iconStyle = .battery
+        settingsManager.showPlanBadge = true
+        settingsManager.refreshInterval = 15
+        settingsManager.warningThreshold = 75
+        settingsManager.notificationsEnabled = false
+
+        exportManager.resetToDefaults()
+
+        #expect(settingsManager.iconStyle == .percentage) // Default
+        #expect(settingsManager.showPlanBadge == false) // Default
+        #expect(settingsManager.refreshInterval == 5) // Default
+        #expect(settingsManager.warningThreshold == 90) // Default
+        #expect(settingsManager.notificationsEnabled == true) // Default
+    }
+
+    @Test("resetToDefaults clears history when requested")
+    @MainActor
+    func resetToDefaultsClearsHistory() {
+        let (exportManager, _, _, historyManager) = createTestManager()
+
+        // Add history
+        historyManager.importSessionHistory([
+            UsageDataPoint(utilization: 30.0),
+            UsageDataPoint(utilization: 40.0)
+        ])
+
+        #expect(historyManager.sessionHistory.count == 2)
+
+        exportManager.resetToDefaults(clearHistory: true)
+
+        #expect(historyManager.sessionHistory.isEmpty)
+        #expect(historyManager.weeklyHistory.isEmpty)
+    }
+
+    @Test("resetToDefaults preserves history by default")
+    @MainActor
+    func resetToDefaultsPreservesHistory() {
+        let (exportManager, _, _, historyManager) = createTestManager()
+
+        // Add history
+        historyManager.importSessionHistory([
+            UsageDataPoint(utilization: 30.0),
+            UsageDataPoint(utilization: 40.0)
+        ])
+
+        #expect(historyManager.sessionHistory.count == 2)
+
+        exportManager.resetToDefaults(clearHistory: false)
+
+        #expect(historyManager.sessionHistory.count == 2) // Still there
+    }
+
+    // MARK: - File Export/Import Tests
+
+    @Test("exportToFile creates valid JSON file")
+    @MainActor
+    func exportToFileCreatesValidJSON() throws {
+        let (exportManager, _, _, _) = createTestManager()
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("test-export-\(UUID()).json")
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        try exportManager.exportToFile(url: tempURL)
+
+        // Verify file exists and is valid JSON
+        let data = try Data(contentsOf: tempURL)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let imported = try decoder.decode(ExportedSettings.self, from: data)
+
+        #expect(imported.version == ExportedSettings.currentVersion)
+        #expect(imported.appVersion == "1.8.0")
+    }
+
+    @Test("importFromFile reads valid JSON")
+    @MainActor
+    func importFromFileReadsValidJSON() throws {
+        let (exportManager, _, _, _) = createTestManager()
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("test-import-\(UUID()).json")
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        // Create test file
+        let settings = ExportedSettings(
+            version: "1.0",
+            exportedAt: Date(),
+            appVersion: "1.8.0",
+            settings: ExportedSettings.SettingsPayload(
+                display: ExportedSettings.DisplaySettings(
+                    iconStyle: "battery",
+                    showPlanBadge: true,
+                    showPercentage: true,
+                    percentageSource: "highest",
+                    showSparklines: true,
+                    planType: "pro"
+                ),
+                refresh: ExportedSettings.RefreshSettings(
+                    interval: 10,
+                    enablePowerAwareRefresh: true,
+                    reduceRefreshOnBattery: true
+                ),
+                notifications: ExportedSettings.NotificationSettings(
+                    enabled: true,
+                    warningThreshold: 85,
+                    warningEnabled: true,
+                    capacityFullEnabled: true,
+                    resetCompleteEnabled: true
+                ),
+                general: ExportedSettings.GeneralSettings(
+                    launchAtLogin: false,
+                    checkForUpdates: true
+                )
+            ),
+            usageHistory: nil
+        )
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(settings)
+        try data.write(to: tempURL)
+
+        // Import
+        let imported = try exportManager.importFromFile(url: tempURL)
+
+        #expect(imported.settings.display.iconStyle == "battery")
+        #expect(imported.settings.refresh.interval == 10)
+        #expect(imported.settings.notifications.warningThreshold == 85)
+    }
+
+    @Test("importFromData parses JSON data")
+    @MainActor
+    func importFromDataParsesJSON() throws {
+        let (exportManager, _, _, _) = createTestManager()
+
+        let json = """
+        {
+            "version": "1.0",
+            "exportedAt": "2026-01-30T12:00:00Z",
+            "appVersion": "1.8.0",
+            "settings": {
+                "display": {
+                    "iconStyle": "compact",
+                    "showPlanBadge": false,
+                    "showPercentage": true,
+                    "percentageSource": "weekly",
+                    "showSparklines": true,
+                    "planType": "max20x"
+                },
+                "refresh": {
+                    "interval": 20,
+                    "enablePowerAwareRefresh": false,
+                    "reduceRefreshOnBattery": false
+                },
+                "notifications": {
+                    "enabled": false,
+                    "warningThreshold": 70,
+                    "warningEnabled": false,
+                    "capacityFullEnabled": true,
+                    "resetCompleteEnabled": false
+                },
+                "general": {
+                    "launchAtLogin": true,
+                    "checkForUpdates": false
+                }
+            }
+        }
+        """
+
+        let data = json.data(using: .utf8)!
+        let imported = try exportManager.importFromData(data)
+
+        #expect(imported.settings.display.iconStyle == "compact")
+        #expect(imported.settings.display.planType == "max20x")
+        #expect(imported.settings.refresh.interval == 20)
+        #expect(imported.settings.notifications.warningThreshold == 70)
+        #expect(imported.settings.general.launchAtLogin == true)
+    }
+
+    // MARK: - Round-trip Tests
+
+    @Test("export and import round-trip preserves all settings")
+    @MainActor
+    func roundTripPreservesSettings() throws {
+        let (exportManager1, settingsManager1, _, historyManager1) = createTestManager()
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("test-roundtrip-\(UUID()).json")
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        // Configure settings
+        settingsManager1.iconStyle = .progressBar
+        settingsManager1.showPlanBadge = true
+        settingsManager1.refreshInterval = 12
+        settingsManager1.warningThreshold = 85
+        settingsManager1.enablePowerAwareRefresh = false
+
+        historyManager1.importSessionHistory([
+            UsageDataPoint(utilization: 25.0),
+            UsageDataPoint(utilization: 35.0)
+        ])
+
+        // Export
+        try exportManager1.exportToFile(url: tempURL, includeUsageHistory: true)
+
+        // Create fresh manager and import
+        let (exportManager2, settingsManager2, _, historyManager2) = createTestManager()
+
+        let imported = try exportManager2.importFromFile(url: tempURL)
+        exportManager2.applySettings(imported, includeUsageHistory: true)
+
+        // Verify
+        #expect(settingsManager2.iconStyle == .progressBar)
+        #expect(settingsManager2.showPlanBadge == true)
+        #expect(settingsManager2.refreshInterval == 12)
+        #expect(settingsManager2.warningThreshold == 85)
+        #expect(settingsManager2.enablePowerAwareRefresh == false)
+        #expect(historyManager2.sessionHistory.count == 2)
+    }
+}
+
+// MARK: - UsageHistoryManager Import Methods Tests
+
+@Suite("UsageHistoryManager Import Tests")
+struct UsageHistoryManagerImportTests {
+    @Test("importSessionHistory replaces existing history")
+    @MainActor
+    func importSessionHistoryReplaces() {
+        let userDefaults = UserDefaults(suiteName: UUID().uuidString)!
+        let manager = UsageHistoryManager(userDefaults: userDefaults)
+
+        // Add initial history
+        manager.importSessionHistory([UsageDataPoint(utilization: 10.0)])
+        #expect(manager.sessionHistory.count == 1)
+
+        // Import new history
+        manager.importSessionHistory([
+            UsageDataPoint(utilization: 20.0),
+            UsageDataPoint(utilization: 30.0),
+            UsageDataPoint(utilization: 40.0)
+        ])
+
+        #expect(manager.sessionHistory.count == 3)
+        #expect(manager.sessionHistory[0].utilization == 20.0)
+    }
+
+    @Test("importWeeklyHistory replaces existing history")
+    @MainActor
+    func importWeeklyHistoryReplaces() {
+        let userDefaults = UserDefaults(suiteName: UUID().uuidString)!
+        let manager = UsageHistoryManager(userDefaults: userDefaults)
+
+        // Add initial history
+        manager.importWeeklyHistory([UsageDataPoint(utilization: 10.0)])
+        #expect(manager.weeklyHistory.count == 1)
+
+        // Import new history
+        manager.importWeeklyHistory([
+            UsageDataPoint(utilization: 50.0),
+            UsageDataPoint(utilization: 60.0)
+        ])
+
+        #expect(manager.weeklyHistory.count == 2)
+        #expect(manager.weeklyHistory[0].utilization == 50.0)
+    }
+
+    @Test("importSessionHistory respects max points limit")
+    @MainActor
+    func importSessionHistoryRespectsLimit() {
+        let userDefaults = UserDefaults(suiteName: UUID().uuidString)!
+        let manager = UsageHistoryManager(userDefaults: userDefaults)
+
+        // Create more points than max
+        var points: [UsageDataPoint] = []
+        for i in 0..<100 { // More than maxSessionPoints (60)
+            points.append(UsageDataPoint(utilization: Double(i)))
+        }
+
+        manager.importSessionHistory(points)
+
+        #expect(manager.sessionHistory.count == UsageHistoryManager.maxSessionPoints)
+        // Should keep the last 60 points (40-99)
+        #expect(manager.sessionHistory.first?.utilization == 40.0)
+    }
+
+    @Test("importWeeklyHistory respects max points limit")
+    @MainActor
+    func importWeeklyHistoryRespectsLimit() {
+        let userDefaults = UserDefaults(suiteName: UUID().uuidString)!
+        let manager = UsageHistoryManager(userDefaults: userDefaults)
+
+        // Create more points than max
+        var points: [UsageDataPoint] = []
+        for i in 0..<200 { // More than maxWeeklyPoints (168)
+            points.append(UsageDataPoint(utilization: Double(i)))
+        }
+
+        manager.importWeeklyHistory(points)
+
+        #expect(manager.weeklyHistory.count == UsageHistoryManager.maxWeeklyPoints)
+        // Should keep the last 168 points (32-199)
+        #expect(manager.weeklyHistory.first?.utilization == 32.0)
+    }
+}

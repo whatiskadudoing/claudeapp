@@ -1109,3 +1109,630 @@ struct AppErrorTests {
         #expect(error1 != error2)
     }
 }
+
+// MARK: - ExportedSettings Tests
+
+@Suite("ExportedSettings Tests")
+struct ExportedSettingsTests {
+    // MARK: - Helper to create test settings
+
+    private func createTestSettings() -> ExportedSettings {
+        ExportedSettings(
+            version: ExportedSettings.currentVersion,
+            exportedAt: Date(),
+            appVersion: "1.8.0",
+            settings: ExportedSettings.SettingsPayload(
+                display: ExportedSettings.DisplaySettings(
+                    iconStyle: "percentage",
+                    showPlanBadge: false,
+                    showPercentage: true,
+                    percentageSource: "highest",
+                    showSparklines: true,
+                    planType: "pro"
+                ),
+                refresh: ExportedSettings.RefreshSettings(
+                    interval: 5,
+                    enablePowerAwareRefresh: true,
+                    reduceRefreshOnBattery: true
+                ),
+                notifications: ExportedSettings.NotificationSettings(
+                    enabled: true,
+                    warningThreshold: 90,
+                    warningEnabled: true,
+                    capacityFullEnabled: true,
+                    resetCompleteEnabled: true
+                ),
+                general: ExportedSettings.GeneralSettings(
+                    launchAtLogin: false,
+                    checkForUpdates: true
+                )
+            ),
+            usageHistory: nil
+        )
+    }
+
+    @Test("ExportedSettings initializes with all fields")
+    func initialization() {
+        let settings = createTestSettings()
+
+        #expect(settings.version == "1.0")
+        #expect(settings.appVersion == "1.8.0")
+        #expect(settings.settings.display.iconStyle == "percentage")
+        #expect(settings.settings.refresh.interval == 5)
+        #expect(settings.settings.notifications.warningThreshold == 90)
+        #expect(settings.settings.general.launchAtLogin == false)
+        #expect(settings.usageHistory == nil)
+    }
+
+    @Test("ExportedSettings currentVersion is 1.0")
+    func currentVersion() {
+        #expect(ExportedSettings.currentVersion == "1.0")
+    }
+
+    @Test("ExportedSettings is Equatable")
+    func equatable() {
+        let date = Date()
+        let settings1 = ExportedSettings(
+            version: "1.0",
+            exportedAt: date,
+            appVersion: "1.8.0",
+            settings: ExportedSettings.SettingsPayload(
+                display: ExportedSettings.DisplaySettings(
+                    iconStyle: "percentage",
+                    showPlanBadge: false,
+                    showPercentage: true,
+                    percentageSource: "highest",
+                    showSparklines: true,
+                    planType: "pro"
+                ),
+                refresh: ExportedSettings.RefreshSettings(
+                    interval: 5,
+                    enablePowerAwareRefresh: true,
+                    reduceRefreshOnBattery: true
+                ),
+                notifications: ExportedSettings.NotificationSettings(
+                    enabled: true,
+                    warningThreshold: 90,
+                    warningEnabled: true,
+                    capacityFullEnabled: true,
+                    resetCompleteEnabled: true
+                ),
+                general: ExportedSettings.GeneralSettings(
+                    launchAtLogin: false,
+                    checkForUpdates: true
+                )
+            ),
+            usageHistory: nil
+        )
+        let settings2 = settings1
+
+        #expect(settings1 == settings2)
+    }
+
+    @Test("ExportedSettings is Codable")
+    func codable() throws {
+        let settings = createTestSettings()
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(settings)
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let decoded = try decoder.decode(ExportedSettings.self, from: data)
+
+        #expect(decoded.version == settings.version)
+        #expect(decoded.appVersion == settings.appVersion)
+        #expect(decoded.settings.display.iconStyle == settings.settings.display.iconStyle)
+        #expect(decoded.settings.refresh.interval == settings.settings.refresh.interval)
+    }
+
+    @Test("ExportedSettings is Sendable")
+    func sendable() async {
+        let settings = createTestSettings()
+
+        let result = await Task.detached {
+            settings.version
+        }.value
+
+        #expect(result == "1.0")
+    }
+
+    @Test("ExportedSettings with usage history")
+    func withUsageHistory() {
+        let history = ExportedSettings.UsageHistoryPayload(
+            sessionHistory: [
+                UsageDataPoint(utilization: 30.0, timestamp: Date().addingTimeInterval(-300)),
+                UsageDataPoint(utilization: 40.0, timestamp: Date())
+            ],
+            weeklyHistory: [
+                UsageDataPoint(utilization: 50.0, timestamp: Date().addingTimeInterval(-3600)),
+                UsageDataPoint(utilization: 55.0, timestamp: Date())
+            ]
+        )
+
+        let settings = ExportedSettings(
+            version: "1.0",
+            exportedAt: Date(),
+            appVersion: "1.8.0",
+            settings: ExportedSettings.SettingsPayload(
+                display: ExportedSettings.DisplaySettings(
+                    iconStyle: "percentage",
+                    showPlanBadge: false,
+                    showPercentage: true,
+                    percentageSource: "highest",
+                    showSparklines: true,
+                    planType: "pro"
+                ),
+                refresh: ExportedSettings.RefreshSettings(
+                    interval: 5,
+                    enablePowerAwareRefresh: true,
+                    reduceRefreshOnBattery: true
+                ),
+                notifications: ExportedSettings.NotificationSettings(
+                    enabled: true,
+                    warningThreshold: 90,
+                    warningEnabled: true,
+                    capacityFullEnabled: true,
+                    resetCompleteEnabled: true
+                ),
+                general: ExportedSettings.GeneralSettings(
+                    launchAtLogin: false,
+                    checkForUpdates: true
+                )
+            ),
+            usageHistory: history
+        )
+
+        #expect(settings.usageHistory != nil)
+        #expect(settings.usageHistory?.sessionHistory.count == 2)
+        #expect(settings.usageHistory?.weeklyHistory.count == 2)
+    }
+}
+
+// MARK: - ExportedSettings Validation Tests
+
+@Suite("ExportedSettings Validation Tests")
+struct ExportedSettingsValidationTests {
+    @Test("validate returns valid for correct settings")
+    func validateCorrectSettings() {
+        let settings = ExportedSettings(
+            version: "1.0",
+            exportedAt: Date(),
+            appVersion: "1.8.0",
+            settings: ExportedSettings.SettingsPayload(
+                display: ExportedSettings.DisplaySettings(
+                    iconStyle: IconStyle.percentage.rawValue,
+                    showPlanBadge: false,
+                    showPercentage: true,
+                    percentageSource: PercentageSource.highest.rawValue,
+                    showSparklines: true,
+                    planType: PlanType.pro.rawValue
+                ),
+                refresh: ExportedSettings.RefreshSettings(
+                    interval: 5,
+                    enablePowerAwareRefresh: true,
+                    reduceRefreshOnBattery: true
+                ),
+                notifications: ExportedSettings.NotificationSettings(
+                    enabled: true,
+                    warningThreshold: 90,
+                    warningEnabled: true,
+                    capacityFullEnabled: true,
+                    resetCompleteEnabled: true
+                ),
+                general: ExportedSettings.GeneralSettings(
+                    launchAtLogin: false,
+                    checkForUpdates: true
+                )
+            ),
+            usageHistory: nil
+        )
+
+        let result = settings.validate()
+
+        #expect(result.isValid == true)
+        #expect(result.messages.first?.contains("valid") == true)
+    }
+
+    @Test("validate warns on unknown icon style")
+    func validateUnknownIconStyle() {
+        let settings = ExportedSettings(
+            version: "1.0",
+            exportedAt: Date(),
+            appVersion: "1.8.0",
+            settings: ExportedSettings.SettingsPayload(
+                display: ExportedSettings.DisplaySettings(
+                    iconStyle: "unknownStyle",
+                    showPlanBadge: false,
+                    showPercentage: true,
+                    percentageSource: "highest",
+                    showSparklines: true,
+                    planType: "pro"
+                ),
+                refresh: ExportedSettings.RefreshSettings(
+                    interval: 5,
+                    enablePowerAwareRefresh: true,
+                    reduceRefreshOnBattery: true
+                ),
+                notifications: ExportedSettings.NotificationSettings(
+                    enabled: true,
+                    warningThreshold: 90,
+                    warningEnabled: true,
+                    capacityFullEnabled: true,
+                    resetCompleteEnabled: true
+                ),
+                general: ExportedSettings.GeneralSettings(
+                    launchAtLogin: false,
+                    checkForUpdates: true
+                )
+            ),
+            usageHistory: nil
+        )
+
+        let result = settings.validate()
+
+        #expect(result.messages.contains { $0.contains("icon style") })
+    }
+
+    @Test("validate warns on out of range refresh interval")
+    func validateOutOfRangeRefreshInterval() {
+        let settings = ExportedSettings(
+            version: "1.0",
+            exportedAt: Date(),
+            appVersion: "1.8.0",
+            settings: ExportedSettings.SettingsPayload(
+                display: ExportedSettings.DisplaySettings(
+                    iconStyle: "percentage",
+                    showPlanBadge: false,
+                    showPercentage: true,
+                    percentageSource: "highest",
+                    showSparklines: true,
+                    planType: "pro"
+                ),
+                refresh: ExportedSettings.RefreshSettings(
+                    interval: 60, // Out of range (1-30)
+                    enablePowerAwareRefresh: true,
+                    reduceRefreshOnBattery: true
+                ),
+                notifications: ExportedSettings.NotificationSettings(
+                    enabled: true,
+                    warningThreshold: 90,
+                    warningEnabled: true,
+                    capacityFullEnabled: true,
+                    resetCompleteEnabled: true
+                ),
+                general: ExportedSettings.GeneralSettings(
+                    launchAtLogin: false,
+                    checkForUpdates: true
+                )
+            ),
+            usageHistory: nil
+        )
+
+        let result = settings.validate()
+
+        #expect(result.messages.contains { $0.contains("Refresh interval") })
+    }
+
+    @Test("validate provides correct summary")
+    func validateProvidesSummary() {
+        let settings = ExportedSettings(
+            version: "1.0",
+            exportedAt: Date(),
+            appVersion: "1.8.0",
+            settings: ExportedSettings.SettingsPayload(
+                display: ExportedSettings.DisplaySettings(
+                    iconStyle: "percentage",
+                    showPlanBadge: false,
+                    showPercentage: true,
+                    percentageSource: "highest",
+                    showSparklines: true,
+                    planType: "pro"
+                ),
+                refresh: ExportedSettings.RefreshSettings(
+                    interval: 5,
+                    enablePowerAwareRefresh: true,
+                    reduceRefreshOnBattery: true
+                ),
+                notifications: ExportedSettings.NotificationSettings(
+                    enabled: true,
+                    warningThreshold: 90,
+                    warningEnabled: true,
+                    capacityFullEnabled: true,
+                    resetCompleteEnabled: true
+                ),
+                general: ExportedSettings.GeneralSettings(
+                    launchAtLogin: false,
+                    checkForUpdates: true
+                )
+            ),
+            usageHistory: nil
+        )
+
+        let result = settings.validate()
+
+        #expect(result.summary?.displaySettingsCount == 6)
+        #expect(result.summary?.refreshSettingsCount == 3)
+        #expect(result.summary?.notificationSettingsCount == 5)
+        #expect(result.summary?.generalSettingsCount == 2)
+        #expect(result.summary?.includesUsageHistory == false)
+    }
+
+    @Test("validate summary includes usage history when present")
+    func validateSummaryWithHistory() {
+        let history = ExportedSettings.UsageHistoryPayload(
+            sessionHistory: [
+                UsageDataPoint(utilization: 30.0),
+                UsageDataPoint(utilization: 40.0)
+            ],
+            weeklyHistory: [
+                UsageDataPoint(utilization: 50.0),
+                UsageDataPoint(utilization: 55.0),
+                UsageDataPoint(utilization: 60.0)
+            ]
+        )
+
+        let settings = ExportedSettings(
+            version: "1.0",
+            exportedAt: Date(),
+            appVersion: "1.8.0",
+            settings: ExportedSettings.SettingsPayload(
+                display: ExportedSettings.DisplaySettings(
+                    iconStyle: "percentage",
+                    showPlanBadge: false,
+                    showPercentage: true,
+                    percentageSource: "highest",
+                    showSparklines: true,
+                    planType: "pro"
+                ),
+                refresh: ExportedSettings.RefreshSettings(
+                    interval: 5,
+                    enablePowerAwareRefresh: true,
+                    reduceRefreshOnBattery: true
+                ),
+                notifications: ExportedSettings.NotificationSettings(
+                    enabled: true,
+                    warningThreshold: 90,
+                    warningEnabled: true,
+                    capacityFullEnabled: true,
+                    resetCompleteEnabled: true
+                ),
+                general: ExportedSettings.GeneralSettings(
+                    launchAtLogin: false,
+                    checkForUpdates: true
+                )
+            ),
+            usageHistory: history
+        )
+
+        let result = settings.validate()
+
+        #expect(result.summary?.includesUsageHistory == true)
+        #expect(result.summary?.sessionHistoryPoints == 2)
+        #expect(result.summary?.weeklyHistoryPoints == 3)
+    }
+
+    @Test("validate warns on different version")
+    func validateDifferentVersion() {
+        let settings = ExportedSettings(
+            version: "2.0", // Different version
+            exportedAt: Date(),
+            appVersion: "1.8.0",
+            settings: ExportedSettings.SettingsPayload(
+                display: ExportedSettings.DisplaySettings(
+                    iconStyle: "percentage",
+                    showPlanBadge: false,
+                    showPercentage: true,
+                    percentageSource: "highest",
+                    showSparklines: true,
+                    planType: "pro"
+                ),
+                refresh: ExportedSettings.RefreshSettings(
+                    interval: 5,
+                    enablePowerAwareRefresh: true,
+                    reduceRefreshOnBattery: true
+                ),
+                notifications: ExportedSettings.NotificationSettings(
+                    enabled: true,
+                    warningThreshold: 90,
+                    warningEnabled: true,
+                    capacityFullEnabled: true,
+                    resetCompleteEnabled: true
+                ),
+                general: ExportedSettings.GeneralSettings(
+                    launchAtLogin: false,
+                    checkForUpdates: true
+                )
+            ),
+            usageHistory: nil
+        )
+
+        let result = settings.validate()
+
+        #expect(result.messages.contains { $0.contains("version") })
+    }
+}
+
+// MARK: - ExportedSettings Nested Types Tests
+
+@Suite("ExportedSettings DisplaySettings Tests")
+struct ExportedSettingsDisplaySettingsTests {
+    @Test("DisplaySettings initializes correctly")
+    func initialization() {
+        let display = ExportedSettings.DisplaySettings(
+            iconStyle: "battery",
+            showPlanBadge: true,
+            showPercentage: false,
+            percentageSource: "session",
+            showSparklines: false,
+            planType: "max5x"
+        )
+
+        #expect(display.iconStyle == "battery")
+        #expect(display.showPlanBadge == true)
+        #expect(display.showPercentage == false)
+        #expect(display.percentageSource == "session")
+        #expect(display.showSparklines == false)
+        #expect(display.planType == "max5x")
+    }
+
+    @Test("DisplaySettings is Codable")
+    func codable() throws {
+        let display = ExportedSettings.DisplaySettings(
+            iconStyle: "progressBar",
+            showPlanBadge: true,
+            showPercentage: true,
+            percentageSource: "weekly",
+            showSparklines: true,
+            planType: "max20x"
+        )
+
+        let data = try JSONEncoder().encode(display)
+        let decoded = try JSONDecoder().decode(ExportedSettings.DisplaySettings.self, from: data)
+
+        #expect(decoded == display)
+    }
+}
+
+@Suite("ExportedSettings RefreshSettings Tests")
+struct ExportedSettingsRefreshSettingsTests {
+    @Test("RefreshSettings initializes correctly")
+    func initialization() {
+        let refresh = ExportedSettings.RefreshSettings(
+            interval: 10,
+            enablePowerAwareRefresh: false,
+            reduceRefreshOnBattery: false
+        )
+
+        #expect(refresh.interval == 10)
+        #expect(refresh.enablePowerAwareRefresh == false)
+        #expect(refresh.reduceRefreshOnBattery == false)
+    }
+
+    @Test("RefreshSettings is Codable")
+    func codable() throws {
+        let refresh = ExportedSettings.RefreshSettings(
+            interval: 15,
+            enablePowerAwareRefresh: true,
+            reduceRefreshOnBattery: false
+        )
+
+        let data = try JSONEncoder().encode(refresh)
+        let decoded = try JSONDecoder().decode(ExportedSettings.RefreshSettings.self, from: data)
+
+        #expect(decoded == refresh)
+    }
+}
+
+@Suite("ExportedSettings NotificationSettings Tests")
+struct ExportedSettingsNotificationSettingsTests {
+    @Test("NotificationSettings initializes correctly")
+    func initialization() {
+        let notifications = ExportedSettings.NotificationSettings(
+            enabled: false,
+            warningThreshold: 80,
+            warningEnabled: false,
+            capacityFullEnabled: true,
+            resetCompleteEnabled: false
+        )
+
+        #expect(notifications.enabled == false)
+        #expect(notifications.warningThreshold == 80)
+        #expect(notifications.warningEnabled == false)
+        #expect(notifications.capacityFullEnabled == true)
+        #expect(notifications.resetCompleteEnabled == false)
+    }
+
+    @Test("NotificationSettings is Codable")
+    func codable() throws {
+        let notifications = ExportedSettings.NotificationSettings(
+            enabled: true,
+            warningThreshold: 75,
+            warningEnabled: true,
+            capacityFullEnabled: false,
+            resetCompleteEnabled: true
+        )
+
+        let data = try JSONEncoder().encode(notifications)
+        let decoded = try JSONDecoder().decode(ExportedSettings.NotificationSettings.self, from: data)
+
+        #expect(decoded == notifications)
+    }
+}
+
+@Suite("ExportedSettings GeneralSettings Tests")
+struct ExportedSettingsGeneralSettingsTests {
+    @Test("GeneralSettings initializes correctly")
+    func initialization() {
+        let general = ExportedSettings.GeneralSettings(
+            launchAtLogin: true,
+            checkForUpdates: false
+        )
+
+        #expect(general.launchAtLogin == true)
+        #expect(general.checkForUpdates == false)
+    }
+
+    @Test("GeneralSettings is Codable")
+    func codable() throws {
+        let general = ExportedSettings.GeneralSettings(
+            launchAtLogin: true,
+            checkForUpdates: true
+        )
+
+        let data = try JSONEncoder().encode(general)
+        let decoded = try JSONDecoder().decode(ExportedSettings.GeneralSettings.self, from: data)
+
+        #expect(decoded == general)
+    }
+}
+
+@Suite("ExportedSettings UsageHistoryPayload Tests")
+struct ExportedSettingsUsageHistoryPayloadTests {
+    @Test("UsageHistoryPayload initializes correctly")
+    func initialization() {
+        let session = [UsageDataPoint(utilization: 30.0)]
+        let weekly = [UsageDataPoint(utilization: 50.0)]
+
+        let history = ExportedSettings.UsageHistoryPayload(
+            sessionHistory: session,
+            weeklyHistory: weekly
+        )
+
+        #expect(history.sessionHistory.count == 1)
+        #expect(history.weeklyHistory.count == 1)
+        #expect(history.sessionHistory[0].utilization == 30.0)
+        #expect(history.weeklyHistory[0].utilization == 50.0)
+    }
+
+    @Test("UsageHistoryPayload is Codable")
+    func codable() throws {
+        let history = ExportedSettings.UsageHistoryPayload(
+            sessionHistory: [
+                UsageDataPoint(utilization: 30.0),
+                UsageDataPoint(utilization: 40.0)
+            ],
+            weeklyHistory: [
+                UsageDataPoint(utilization: 50.0)
+            ]
+        )
+
+        let data = try JSONEncoder().encode(history)
+        let decoded = try JSONDecoder().decode(ExportedSettings.UsageHistoryPayload.self, from: data)
+
+        #expect(decoded.sessionHistory.count == 2)
+        #expect(decoded.weeklyHistory.count == 1)
+    }
+
+    @Test("UsageHistoryPayload handles empty arrays")
+    func emptyArrays() {
+        let history = ExportedSettings.UsageHistoryPayload(
+            sessionHistory: [],
+            weeklyHistory: []
+        )
+
+        #expect(history.sessionHistory.isEmpty)
+        #expect(history.weeklyHistory.isEmpty)
+    }
+}

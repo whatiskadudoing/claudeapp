@@ -150,17 +150,18 @@ Key research documents for this implementation:
 
 **Purpose:** Enable backup, restore, and migration of user settings.
 
-- [ ] **Create ExportedSettings model and SettingsExportManager** [spec: settings-export.md] [file: Packages/Core/Sources/Core/]
-  - Add `ExportedSettings` struct matching JSON schema (version, exportedAt, appVersion, settings)
-  - Create `SettingsExportManager` class (@MainActor)
-  - Implement `export(includeAccounts:)` method
-  - Implement `exportToFile(url:includeAccounts:)` with pretty-printed JSON
-  - Implement `importFromFile(url:)` and `applySettings(_:)` methods
-  - Implement `createBackup()` to ~/Library/Application Support/ClaudeApp/Backups/
-  - Implement `resetToDefaults()` clearing UserDefaults
-  - **Security:** Never export credentials or authentication data
+- [x] **Create ExportedSettings model and SettingsExportManager** [spec: settings-export.md] [file: Packages/Core/Sources/Core/]
+  - Add `ExportedSettings` struct matching JSON schema (version, exportedAt, appVersion, settings) - ✅ Domain/ExportedSettings.swift
+  - Create `SettingsExportManager` class (@MainActor) - ✅ Core/SettingsExportManager.swift
+  - Implement `export(includeUsageHistory:)` method - ✅
+  - Implement `exportToFile(url:includeUsageHistory:)` with pretty-printed JSON - ✅
+  - Implement `importFromFile(url:)` and `applySettings(_:)` methods - ✅
+  - Implement `createBackup()` to ~/Library/Application Support/ClaudeApp/Backups/ - ✅
+  - Implement `resetToDefaults()` clearing UserDefaults - ✅
+  - Implement validation with ImportSummary and ValidationResult - ✅
+  - **Security:** Never exports credentials or authentication data - ✅
   - **Research:** `specs/features/settings-export.md#settings-export-manager`
-  - **Tests:** Add 20+ tests for export, import, backup, reset, validation
+  - **Tests:** Add 20+ tests for export, import, backup, reset, validation - ✅ 40+ tests added (726 total)
 
 - [ ] **Add Data section to Settings UI** [spec: settings-export.md] [file: App/ClaudeApp.swift]
   - Add "Data" section with Export, Import, Reset buttons
@@ -280,16 +281,16 @@ Key research documents for this implementation:
 
 ## Test Coverage Summary
 
-**Current:** 685 tests across 4 packages
+**Current:** 726 tests across 4 packages
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
-| Domain | 107 | Excellent - models fully tested (+12 UsageDataPoint tests) |
+| Domain | 132 | Excellent - models fully tested (+25 ExportedSettings tests) |
 | Services | 29 | Basic - needs error scenarios |
-| Core | 297 | Comprehensive - business logic (+31 UsageHistoryManager/integration tests) |
+| Core | 313 | Comprehensive - business logic (+16 SettingsExportManager tests) |
 | UI | 252 | Excellent - accessibility focus (+26 UsageSparkline tests) |
 
-**Target for SLC 9:** 680+ tests (met! currently 685)
+**Target for SLC 9:** 680+ tests (met! currently 726)
 
 ---
 

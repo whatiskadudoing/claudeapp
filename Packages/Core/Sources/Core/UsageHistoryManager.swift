@@ -191,4 +191,20 @@ public final class UsageHistoryManager {
     public var weeklyPointCount: Int {
         weeklyHistory.count
     }
+
+    // MARK: - Import (Settings Restore)
+
+    /// Imports session history points directly (for settings import).
+    /// Bypasses the normal recording interval check.
+    /// - Parameter points: The data points to import
+    public func importSessionHistory(_ points: [UsageDataPoint]) {
+        sessionHistory = Array(points.suffix(Self.maxSessionPoints))
+    }
+
+    /// Imports weekly history points directly (for settings import).
+    /// Bypasses the normal recording interval check.
+    /// - Parameter points: The data points to import
+    public func importWeeklyHistory(_ points: [UsageDataPoint]) {
+        weeklyHistory = Array(points.suffix(Self.maxWeeklyPoints))
+    }
 }
