@@ -419,6 +419,50 @@
         }
       }
     },
+    "accessibility.powerState.idle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System idle, reduced refresh rate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sistema inactivo, tasa de actualización reducida"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sistema ocioso, taxa de atualização reduzida"
+          }
+        }
+      }
+    },
+    "accessibility.powerState.onBattery" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On battery power, conserving energy"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funcionando con batería, ahorrando energía"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usando bateria, economizando energia"
+          }
+        }
+      }
+    },
     "accessibility.progressBar.resets %@" : {
       "localizations" : {
         "en" : {

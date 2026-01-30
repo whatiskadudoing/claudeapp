@@ -69,6 +69,7 @@ struct ClaudeApp: App {
                 .environment(container.settingsManager)
                 .environment(container.launchAtLoginManager)
                 .environment(container.notificationPermissionManager)
+                .environment(container.systemStateMonitor)
         } label: {
             MenuBarLabel(detectedPlanType: container.detectedPlanType)
                 .environment(container.usageManager)
@@ -265,6 +266,7 @@ struct DropdownView: View {
 
     @Environment(UsageManager.self) private var usageManager
     @Environment(SettingsManager.self) private var settings
+    @Environment(SystemStateMonitor.self) private var systemStateMonitor
     @Environment(\.sizeCategory) private var sizeCategory
 
     /// Whether to show settings instead of usage
@@ -369,17 +371,27 @@ struct DropdownView: View {
 
                     Spacer(minLength: 0)
 
-                    // Footer timestamp
-                    if let lastUpdated = usageManager.lastUpdated {
-                        KOSMABracketText(
-                            updatedAgoText(for: lastUpdated),
-                            bracketColor: Theme.Colors.accentRed,
-                            textColor: Theme.Colors.textTertiary,
-                            font: Theme.Typography.caption
-                        )
-                        .padding(.horizontal, Theme.KOSMASpace.cardPadding)
-                        .padding(.bottom, 12)
+                    // Footer: timestamp + power state indicator
+                    HStack(spacing: 8) {
+                        if let lastUpdated = usageManager.lastUpdated {
+                            KOSMABracketText(
+                                updatedAgoText(for: lastUpdated),
+                                bracketColor: Theme.Colors.accentRed,
+                                textColor: Theme.Colors.textTertiary,
+                                font: Theme.Typography.caption
+                            )
+                        }
+
+                        // Power state indicator (only when smart refresh is enabled)
+                        if settings.enablePowerAwareRefresh {
+                            PowerStateIndicator(
+                                isOnBattery: systemStateMonitor.isOnBattery,
+                                isIdle: systemStateMonitor.currentState == .idle
+                            )
+                        }
                     }
+                    .padding(.horizontal, Theme.KOSMASpace.cardPadding)
+                    .padding(.bottom, 12)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -529,6 +541,53 @@ struct SettingsButton: View {
         .buttonStyle(HoverHighlightButtonStyle())
         .keyboardShortcut(",", modifiers: .command)
         .accessibilityLabel(L("accessibility.openSettings"))
+    }
+}
+
+// MARK: - Power State Indicator
+
+/// Shows the current power state when power-aware refresh is enabled.
+/// Displays battery icon when on battery power, moon icon when idle.
+/// Only visible when there's a non-default power state to show.
+struct PowerStateIndicator: View {
+    let isOnBattery: Bool
+    let isIdle: Bool
+
+    /// Whether any indicator should be shown
+    private var shouldShow: Bool {
+        isOnBattery || isIdle
+    }
+
+    /// Accessibility label describing current power state
+    private var accessibilityLabel: String {
+        var states: [String] = []
+        if isOnBattery {
+            states.append(L("accessibility.powerState.onBattery"))
+        }
+        if isIdle {
+            states.append(L("accessibility.powerState.idle"))
+        }
+        return states.joined(separator: ", ")
+    }
+
+    var body: some View {
+        if shouldShow {
+            HStack(spacing: 4) {
+                if isOnBattery {
+                    Image(systemName: "battery.50")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Theme.Colors.textTertiary)
+                }
+
+                if isIdle {
+                    Image(systemName: "moon.zzz")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Theme.Colors.textTertiary)
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(accessibilityLabel)
+        }
     }
 }
 

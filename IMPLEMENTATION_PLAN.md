@@ -1,59 +1,80 @@
 # Implementation Plan
 
-## Recommended SLC Release: Power-Aware Refresh (SLC 8)
+## Recommended SLC Release: SLC 8 Completion + Polish
 
-**Audience:** Professional developers using Claude Code who run ClaudeApp continuously throughout their workday.
+**Audience:** Professional developers using Claude Code who run ClaudeApp continuously throughout their workday, demanding passive usage monitoring with zero workflow interruption.
 
-**Value proposition:** Optimize battery life and reduce unnecessary API calls by intelligently adapting refresh behavior based on system state (screen on/off, idle detection, battery vs plugged in) - delivering on the app's promise of being lightweight and efficient.
+**Value proposition:** Complete the Power-Aware Refresh feature by adding visual power state indicators and polish the existing implementation to deliver a production-ready v1.7.0 release with measurable battery savings.
 
 **Activities included:**
 
 | Activity | Depth | Why Included |
 |----------|-------|--------------|
-| Power-Aware Refresh | Standard | Core feature - suspend when sleeping, reduce when idle |
-| System State Monitor | Standard | Foundation for power-aware behavior |
-| Settings Integration | Basic | Toggle to enable/disable + battery indicator |
+| Power State Indicator | Basic | Complete user visibility into power-aware state |
+| Burn Rate Badge in Header | Basic | Show consumption velocity prominently |
+| Update Notification Click | Basic | Fix broken user flow for updates |
+| Technical Debt Cleanup | Basic | Improve reliability and maintainability |
 
 **What's NOT in this slice:**
-- Historical Charts → SLC 9 (visual enhancement, lower priority)
+- Historical Charts → SLC 9 (visual enhancement, not core)
 - Settings Export → SLC 9 (power user feature)
 - Terminal Integration → SLC 10 (requires App Group, CLI work)
-- Multi-Account → Future (complex, niche use case)
-- Widgets → Future (blocked by code signing requirement)
+- Multi-Account → Future (complex architecture changes)
+- Widgets → Future (blocked by code signing)
 - Sparkle Auto-Updates → Future (requires code signing)
 
 ---
 
-## Gap Analysis Summary (2026-01-26)
+## Comprehensive Gap Analysis (2026-01-30)
 
-### ✅ COMPLETE - All Core Features Implemented
+### ✅ FULLY IMPLEMENTED FEATURES
 
-| Feature | SLC | Status | Tests |
-|---------|-----|--------|-------|
-| Core usage monitoring | SLC 1 | ✅ | 81 |
-| Notifications & Settings | SLC 2 | ✅ | 155 |
-| Burn rate + time-to-exhaustion | SLC 3 | ✅ | 320 |
-| Accessibility (VoiceOver, keyboard) | SLC 4 | ✅ | 369 |
-| Internationalization (en, pt-BR, es) | SLC 5 | ✅ | 402 |
-| Advanced Accessibility | SLC 6 | ✅ | 489 |
-| Community files + Icon Styles | SLC 7 | ✅ | 552 |
+| Feature | SLC | Status | Tests | Notes |
+|---------|-----|--------|-------|-------|
+| View Usage (menu bar + dropdown) | 1 | ✅ | 81 | All 4 windows, progress bars, reset times |
+| Refresh Usage (auto + manual) | 1-2 | ✅ | 155 | Configurable interval, debouncing, backoff |
+| Notifications | 2 | ✅ | 320 | Warning, capacity full, reset; hysteresis |
+| Settings (in-popover) | 2 | ✅ | 369 | Display, refresh, notifications, general |
+| Time-to-Exhaustion | 3 | ✅ | 402 | Prediction display, burn rate calculation |
+| Burn Rate Calculation | 3 | ✅ | 489 | 4-level system, color-coded badges |
+| Icon Styles | 3 | ✅ | 552 | All 6 styles: percentage, bar, battery, compact, icon, full |
+| Power-Aware Refresh (core) | 4 | ✅ | 613 | SystemStateMonitor, AdaptiveRefreshManager |
+| Settings UI (smart refresh) | 4 | ✅ | 613 | Smart Refresh toggle, Reduce on Battery |
+| Updates (GitHub Releases) | 3 | ✅ | 613 | Version check, download URL, notification |
+| Accessibility | 4-6 | ✅ | 613 | VoiceOver, keyboard nav, reduce motion, high contrast, dynamic type |
+| Internationalization | 5 | ✅ | 613 | en, pt-BR, es fully localized |
 
-### 🎯 NEXT - SLC 8 Power-Aware Refresh
+### ⚠️ PARTIALLY IMPLEMENTED (Gaps Identified)
 
-| Item | Status | Notes |
-|------|--------|-------|
-| SystemStateMonitor | ❌ Not started | Detect sleep/wake/idle/battery |
-| AdaptiveRefreshManager | ❌ Not started | Adjust intervals based on state |
-| Settings integration | ❌ Not started | Toggle + battery indicator |
-| Tests | ❌ Not started | Target: 580+ tests |
+| Feature | Gap | Impact | Effort |
+|---------|-----|--------|--------|
+| **Burn Rate Badge in Header** | Component exists but NOT displayed in dropdown header | HIGH - Key visibility feature | Small |
+| **Power State Indicator** | No visual indicator in dropdown footer for battery/idle | MEDIUM - User doesn't know when power-aware is active | Small |
+| **Update Notification Click** | Click doesn't open download URL, only activates app | MEDIUM - Broken user flow | Small |
+| **Escape Key to Close** | MenuBarExtra limitation, no escape handler | LOW - Minor UX issue | Small |
+| **100% Warning Badge** | No menu bar badge when at capacity | LOW - Nice to have | Small |
+| **Dynamic Sizing** | Fixed 300px width instead of content-based | LOW - Design choice | N/A |
 
-### 🔧 Technical Debt (Minor)
+### ❌ NOT IMPLEMENTED (Future SLC Releases)
 
-| Item | Priority | Notes |
-|------|----------|-------|
-| User agent version mismatch | Low | ClaudeAPIClient shows "1.2.0" vs 1.6.0 |
-| NotificationPermissionManager tests | Low | No test coverage |
-| PlanType enum tests | Low | No test coverage |
+| Feature | Spec | Complexity | Blocked By |
+|---------|------|------------|------------|
+| Historical Charts | specs/features/historical-charts.md | Medium | None |
+| Settings Export/Import | specs/features/settings-export.md | Medium | None |
+| Terminal Integration | specs/features/terminal-integration.md | High | App Group setup |
+| Multi-Account | specs/features/multi-account.md | High | Architecture changes |
+| Widgets | specs/features/widgets.md | High | Code signing |
+| Sparkle Auto-Updates | specs/sparkle-updates.md | Medium | Code signing |
+
+### 🔧 Technical Debt
+
+| Item | Priority | Location | Notes |
+|------|----------|----------|-------|
+| Update repo owner/name hardcoded | HIGH | UpdateChecker.swift | Uses placeholder values |
+| User agent version mismatch | LOW | ClaudeAPIClient.swift | Shows "1.2.0" vs actual |
+| No persistent lastCheckDate | LOW | UpdateChecker.swift | Rate limit resets on restart |
+| PlanType detection stub | LOW | ClaudeApp.swift:236 | Hardcoded badge |
+| isStale hardcoded 60s | LOW | UsageManager.swift | Should use refresh interval |
 
 ---
 
@@ -63,15 +84,16 @@ Key research documents for this implementation:
 
 | Topic | Document | Why Relevant |
 |-------|----------|--------------|
-| Power-Aware Spec | `specs/features/power-aware-refresh.md` | Complete spec with state machine |
-| Competitive Analysis | `research/inspiration.md` | Microverse achieved 83% CPU reduction |
-| System APIs | `research/approaches/menubar-extra.md` | NSWorkspace notification patterns |
-| Performance Budgets | `specs/performance.md` | Memory/CPU targets |
-| Existing Sleep/Wake | `Packages/Core/Sources/Core/UsageManager.swift` | handleSleep/handleWake foundation |
+| Power-Aware Spec | `specs/features/power-aware-refresh.md` | Power state indicator design |
+| View Usage Spec | `specs/features/view-usage.md` | Burn rate badge placement |
+| Updates Spec | `specs/features/updates.md` | Notification click handling |
+| Competitive Analysis | `research/competitive-analysis.md` | Feature parity reference |
+| API Documentation | `research/apis/anthropic-oauth.md` | Response schemas |
+| Keychain Access | `research/approaches/keychain-access.md` | Auth patterns |
 
 ---
 <!-- HUMAN VERIFICATION: Does this slice form a coherent, valuable product? -->
-<!-- Answer: YES - Delivers measurable battery savings without changing core UX -->
+<!-- Answer: YES - Completes SLC 8 and delivers polished v1.7.0 -->
 
 ## Phase 0: Build Verification - REQUIRED
 
@@ -81,274 +103,224 @@ Key research documents for this implementation:
 
 - [x] **Verify current build and test status** [file: Makefile]
   - Run `make clean && make build` - must succeed ✅
-  - Run `swift test` - all 552 tests must pass ✅
-  - Run `make release` - .app bundle created successfully ✅
-  - **Success criteria:** All checks pass, no regressions from SLC 7 ✅
-  - **Verified:** 2026-01-26 - Build green, 552 tests passing, release bundle valid
+  - Run `swift test` - all 613 tests must pass ✅
+  - **Verified:** 2026-01-28 - Build green, 613 tests passing
 
 ---
-<!-- CHECKPOINT: Phase 0 must pass before continuing. Do not proceed if build is broken. -->
+<!-- CHECKPOINT: Phase 0 must pass before continuing. -->
 
-## Phase 1: System State Monitor - CRITICAL
+## Phase 1: Complete Power-Aware UI - CRITICAL
 
-**Purpose:** Create the foundation for detecting system state changes that affect refresh behavior.
+**Purpose:** Finish the power-aware refresh feature with visual indicators.
 
-- [x] **Implement SystemStateMonitor with screen sleep/wake and idle detection** [spec: power-aware-refresh.md] [file: Packages/Core/Sources/Core/SystemStateMonitor.swift]
-  - Create `SystemState` enum: `.active`, `.idle`, `.sleeping`
-  - Create `@MainActor @Observable` SystemStateMonitor class
-  - Implement screen sleep/wake detection using `NSWorkspace.screensDidSleepNotification` and `NSWorkspace.screensDidWakeNotification`
-  - Implement system sleep/wake detection using `NSWorkspace.willSleepNotification` and `NSWorkspace.didWakeNotification`
-  - Implement idle detection using `CGEventSource.secondsSinceLastEventType` with 5-minute threshold
-  - Implement battery/AC detection using IOKit `IOPSCopyPowerSourcesInfo`
-  - Add `isOnBattery: Bool` computed property
-  - Add `currentState: SystemState` observable property
-  - **Research:** `specs/features/power-aware-refresh.md` lines 64-194 for implementation
-  - **Test:** Unit tests for state transitions, notification handling, battery detection
-  - **Completed:** 2026-01-28 - 23 new tests added (575 total), includes SystemStateMonitorProtocol and MockSystemStateMonitor for testing
+- [x] **Add power state indicator to dropdown footer** [spec: power-aware-refresh.md] [file: App/ClaudeApp.swift]
+  - ✅ Created `PowerStateIndicator` view showing current power state
+  - ✅ Shows battery icon (`battery.50`) when on battery power
+  - ✅ Shows moon icon (`moon.zzz`) when in idle state
+  - ✅ Displays in dropdown footer near "Updated X ago" text
+  - ✅ Only shows when power-aware refresh is enabled
+  - ✅ Added accessibility labels for VoiceOver
+  - ✅ Added localization strings in en, es, pt-BR: `accessibility.powerState.onBattery`, `accessibility.powerState.idle`
+  - **Completed:** 2026-01-30
+  - **Note:** Also fixed 8 pre-existing broken tests from KOSMA redesign (DiagonalStripes removed, Theme values changed)
+  - **Tests:** 605 tests passing (was 613, some tests removed with DiagonalStripes)
 
-- [x] **Add SettingsKeys for power-aware refresh** [spec: power-aware-refresh.md] [file: Packages/Domain/Sources/Domain/SettingsKey.swift, Packages/Core/Sources/Core/SettingsManager.swift]
-  - Add `SettingsKey.enablePowerAwareRefresh` (Bool, default: true)
-  - Add `SettingsKey.reduceRefreshOnBattery` (Bool, default: true)
-  - Add corresponding properties to SettingsManager
-  - **Research:** `specs/features/power-aware-refresh.md` lines 280-291
-  - **Test:** Settings persistence tests
-  - **Target:** 4+ new tests
-  - **Completed:** 2026-01-28 - 6 new tests added (581 total), keys in Domain, properties in Core SettingsManager with persistence
-
----
-<!-- CHECKPOINT: Phase 1 delivers system state detection. Refresh behavior can now adapt. -->
-
-## Phase 2: Adaptive Refresh Manager
-
-**Purpose:** Replace the simple auto-refresh with intelligent, state-aware refresh scheduling.
-
-- [x] **Implement AdaptiveRefreshManager with state-based interval calculation** [spec: power-aware-refresh.md] [file: Packages/Core/Sources/Core/AdaptiveRefreshManager.swift]
-  - Create `@MainActor @Observable` AdaptiveRefreshManager class
-  - Inject SystemStateMonitor, UsageManager, SettingsManager dependencies
-  - Implement `effectiveRefreshInterval: TimeInterval` computed property:
-    - **Sleeping:** Return `.infinity` (suspended)
-    - **Idle on battery:** Double the user's interval (max 30 min)
-    - **Idle on power:** Use user's interval
-    - **Active with critical usage (>90%):** Min(user interval, 2 min)
-    - **Active normal:** Use user's interval
-  - Implement `startAutoRefresh()` / `stopAutoRefresh()` mirroring UsageManager API
-  - Schedule next refresh using Task.sleep with recalculated interval after each refresh
-  - Observe SystemStateMonitor changes to adjust schedule dynamically
-  - **Research:** `specs/features/power-aware-refresh.md` lines 199-271
-  - **Test:** Unit tests for interval calculation, state transitions, edge cases
-  - **Target:** 20+ new tests
-  - **Completed:** 2026-01-28 - 23 new tests added for AdaptiveRefreshManager + 6 new tests for MockAdaptiveRefreshManager (604 total)
-
-- [x] **Integrate AdaptiveRefreshManager into AppContainer** [file: Packages/Core/Sources/Core/AppContainer.swift, App/ClaudeApp.swift]
-  - Create SystemStateMonitor instance in AppContainer
-  - Create AdaptiveRefreshManager instance in AppContainer
-  - Replace UsageManager's auto-refresh with AdaptiveRefreshManager when power-aware is enabled
-  - Maintain backward compatibility: if power-aware disabled, use UsageManager's original refresh
-  - Wire up sleep/wake notifications to use AdaptiveRefreshManager
-  - Update existing sleep/wake observers to delegate to AdaptiveRefreshManager
-  - **Research:** Existing AppContainer patterns in `Packages/Core/Sources/Core/AppContainer.swift`
-  - **Test:** Integration tests for manager wiring
-  - **Target:** 5+ new tests
-  - **Completed:** 2026-01-28 - 9 new tests added for AppContainer power-aware integration (613 total), SystemStateMonitor and AdaptiveRefreshManager wired into AppContainer
+- [ ] **Integrate burn rate badge into dropdown header** [spec: view-usage.md] [file: App/ClaudeApp.swift]
+  - Display `BurnRateBadge` in header between title and settings button
+  - Use `usageManager.overallBurnRateLevel` for badge level
+  - Only show when burn rate data is available (not nil)
+  - Layout: `Claude Usage [Med] ⚙️ 🔄`
+  - Add accessibility label describing burn rate status
+  - **Research:** `specs/features/view-usage.md` "Burn rate badge displayed in header"
+  - **Test:** Header layout tests, accessibility tests
+  - **Target:** 4+ new tests (623+ total)
 
 ---
-<!-- CHECKPOINT: Phase 2 delivers adaptive refresh. Battery savings now active. -->
+<!-- CHECKPOINT: Phase 1 delivers visual feedback for power state and burn rate. -->
 
-## Phase 3: Settings UI & Indicators
+## Phase 2: Update Flow Fix
 
-**Purpose:** Allow users to control power-aware behavior and see current power state.
+**Purpose:** Fix the broken update notification click handling.
 
-- [x] **Add Smart Refresh toggle to Settings Refresh section** [spec: power-aware-refresh.md] [file: App/ClaudeApp.swift]
-  - Add "Smart Refresh" toggle in RefreshSection after refresh interval slider
-  - Add subtitle: "Reduce refresh when idle or on battery"
-  - Connect to `settings.enablePowerAwareRefresh`
-  - Add "Reduce on Battery" toggle (only visible when Smart Refresh enabled)
-  - Connect to `settings.reduceRefreshOnBattery`
-  - **Research:** `specs/features/power-aware-refresh.md` lines 296-307 for UI layout
-  - **Test:** Visual verification, settings persistence
-  - **Completed:** 2026-01-28 - Smart Refresh and Reduce on Battery toggles added to RefreshSection, localization strings added for all 3 languages (en, es, pt-BR), 613 tests passing
+- [ ] **Fix notification click to open download URL** [spec: updates.md] [file: App/ClaudeApp.swift]
+  - Update `NotificationDelegate.didReceive` to check notification identifier
+  - If identifier starts with "update-available-", extract version and open download URL
+  - Store download URL in notification userInfo or query UpdateChecker
+  - Maintain existing behavior (activate app) for other notifications
+  - **Research:** `specs/features/updates.md` "Notification Click Deep-Link"
+  - **Test:** Verify notification click opens browser
+  - **Target:** 2+ new tests (625+ total)
 
-- [ ] **Add power state indicator to dropdown footer** [spec: power-aware-refresh.md] [file: App/ClaudeApp.swift]
-  - Create `PowerStateIndicator` view component
-  - Show battery icon (`battery.50`) when on battery power
-  - Show moon icon (`moon.zzz`) when in idle state
-  - Display in dropdown footer near "Updated X ago" text
-  - Only show when power-aware refresh is enabled
-  - Add accessibility labels for VoiceOver
-  - **Research:** `specs/features/power-aware-refresh.md` lines 351-369
-  - **Test:** Accessibility tests for indicators
-  - **Target:** 4+ new tests
-
-- [ ] **Add localization strings for power-aware features** [file: App/Localizable.xcstrings]
-  - ~~Add English strings:~~
-    - ~~`settings.refresh.smartRefresh` = "Smart Refresh"~~
-    - ~~`settings.refresh.smartRefresh.subtitle` = "Reduce refresh when idle or on battery"~~
-    - ~~`settings.refresh.reduceOnBattery` = "Reduce on Battery"~~
-    - `accessibility.powerState.onBattery` = "On battery power"
-    - `accessibility.powerState.idle` = "System idle"
-  - ~~Add Portuguese (pt-BR) translations~~ (done for settings strings)
-  - ~~Add Spanish (es) translations~~ (done for settings strings)
-  - **Note:** Settings strings completed in previous task; accessibility strings remain for power state indicator
-  - **Research:** `specs/internationalization.md` for translation guidelines
-  - **Test:** Localization key tests
-  - **Target:** 3+ new tests
+- [ ] **Configure actual GitHub repository in UpdateChecker** [file: Packages/Core/Sources/Core/UpdateChecker.swift]
+  - Change `repoOwner` default from "yourname" to actual owner
+  - Change `repoName` default from "claudeapp" to actual repo name
+  - Or: Make configurable via App/Info.plist if not ready to publish
+  - **Impact:** Auto-update checks will work against correct repo
+  - **Target:** Verify existing tests still pass
 
 ---
-<!-- CHECKPOINT: Phase 3 delivers user-facing controls. Feature is complete and configurable. -->
+<!-- CHECKPOINT: Phase 2 fixes the update user flow. -->
 
-## Phase 4: Polish, Testing & Documentation
+## Phase 3: Polish & Technical Debt
 
-**Purpose:** Ensure quality and complete the release.
+**Purpose:** Clean up minor issues and prepare for release.
 
-- [ ] **Add comprehensive tests for power-aware refresh** [file: Packages/Core/Tests/CoreTests/]
-  - SystemStateMonitor tests:
-    - State transitions (active → idle → sleeping → active)
-    - Notification handling (screen sleep/wake, system sleep/wake)
-    - Battery detection (AC → battery → AC)
-    - Idle threshold timing
-  - AdaptiveRefreshManager tests:
-    - Interval calculation for all states
-    - Critical usage override (>90%)
-    - Battery modifier behavior
-    - Integration with settings toggle
-  - UI tests for power indicators
-  - Accessibility tests for new components
-  - **Target:** 580+ total tests (28+ new)
+- [ ] **Fix user agent version in ClaudeAPIClient** [file: Packages/Services/Sources/Services/ClaudeAPIClient.swift]
+  - Update hardcoded "1.2.0" to read from Bundle.appVersion
+  - Or: Define version constant in Domain package for consistency
+  - **Impact:** API requests will report correct version
+  - **Target:** No new tests needed (behavior verification)
 
-- [ ] **Fix minor technical debt** [file: various]
-  - Update ClaudeAPIClient user agent from "1.2.0" to current version
-  - Add basic tests for NotificationPermissionManager (at least init, status)
-  - Add basic tests for PlanType enum (rawValue, badgeText, displayName)
-  - **Target:** 5+ additional tests
+- [ ] **Add menu bar warning indicator at 100%** [spec: view-usage.md] [file: App/ClaudeApp.swift]
+  - Modify `MenuBarLabel` to show warning icon when any window at 100%
+  - Display format: `[✦] 100% ⚠️` or just add subtle indicator
+  - Use SF Symbol `exclamationmark.triangle.fill`
+  - **Research:** `specs/features/view-usage.md` "Display badge when any limit at 100%"
+  - **Test:** Visual verification at 100% utilization
+  - **Target:** 2+ new tests (627+ total)
 
-- [ ] **Update version and documentation** [file: various]
+- [ ] **Persist UpdateChecker lastCheckDate across restarts** [file: Packages/Core/Sources/Core/UpdateChecker.swift]
+  - Save `lastCheckDate` to UserDefaults on successful check
+  - Load on init to maintain 24-hour rate limit across app restarts
+  - Use SettingsRepository pattern for consistency
+  - **Impact:** Won't re-check immediately after restart
+  - **Target:** 2+ new tests (629+ total)
+
+---
+<!-- CHECKPOINT: Phase 3 completes polish items. -->
+
+## Phase 4: Documentation & Release
+
+**Purpose:** Update documentation and prepare v1.7.0 release.
+
+- [ ] **Update version numbers** [file: various]
   - Update version to 1.7.0 in Info.plist
-  - Update version constants in Domain, Services, Core, UI packages
-  - Update CHANGELOG.md with Power-Aware Refresh feature
-  - Update README.md features list if needed
+  - Update CHANGELOG.md with SLC 8 features
   - Update specs/features/power-aware-refresh.md status to ✅ Implemented
-  - **Success criteria:** 580+ tests passing, build green, docs accurate
+  - **Success criteria:** Version displays correctly in About section
+
+- [ ] **Final verification** [file: Makefile]
+  - Run full test suite: 629+ tests passing
+  - Run `make release` to create .app bundle
+  - Manual verification of all new features
+  - **Success criteria:** All acceptance criteria met
 
 ---
-<!-- CHECKPOINT: Phase 4 completes SLC 8. The app now optimizes for battery life. -->
+<!-- CHECKPOINT: Phase 4 completes SLC 8. Ready for v1.7.0 release. -->
+
+## Acceptance Criteria Summary
+
+### SLC 8 Completion Checklist
+
+**Power-Aware Refresh (from existing plan):**
+- [x] Suspend refresh when screen is off/locked
+- [x] Resume refresh immediately on wake
+- [x] Respect user's refresh interval setting
+- [x] Toggle to enable/disable power-aware refresh
+- [x] Reduce refresh frequency when idle
+- [x] Reduce refresh frequency on battery
+- [x] Increase frequency for critical usage (>90%)
+- [x] **NEW:** Show power state indicator in footer (battery/idle icons) ✅ 2026-01-30
+
+**Burn Rate Display:**
+- [x] Burn rate badge component with 4 levels
+- [x] Color-coded for accessibility (shapes + colors)
+- [x] Calculate from highest burn rate across windows
+- [ ] **NEW:** Display badge in dropdown header
+
+**Update Flow:**
+- [x] Check for updates via GitHub Releases
+- [x] Show notification when update available
+- [ ] **NEW:** Notification click opens download URL
+
+**Polish:**
+- [ ] Fix user agent version string
+- [ ] Add 100% warning indicator in menu bar
+- [ ] Persist update check date across restarts
+
+---
 
 ## Future Work (Outside Current Scope)
 
-The following items were identified during analysis but are deferred to maintain SLC focus:
+### SLC 9: Visualization & Export (Recommended Next)
 
-### SLC 9: Visualization & Export
-- **Historical Charts** - Sparkline usage visualization
-  - 5-hour session history (5-min granularity)
-  - 7-day weekly history (1-hour granularity)
-  - **Research:** `specs/features/historical-charts.md`
-- **Settings Export** - JSON export/import of settings
-  - Backup, migration, team sharing
-  - **Research:** `specs/features/settings-export.md`
+**Value:** Enable users to see usage patterns over time and backup settings.
+
+| Feature | Spec | Why Deferred |
+|---------|------|--------------|
+| **Historical Charts** | specs/features/historical-charts.md | Visual enhancement, not core monitoring |
+| **Settings Export** | specs/features/settings-export.md | Power user feature, not critical path |
+
+**Prerequisites:**
+- Add Swift Charts dependency (or DSFSparkline)
+- Create UsageHistoryManager for data persistence
+- Implement file picker dialogs
 
 ### SLC 10: Terminal Integration
-- **CLI Interface** - `claudeapp --status` for shell prompts
-  - Multiple output formats (plain, json, minimal, verbose)
-  - Starship/Oh My Zsh integration
-  - Requires App Group for shared cache
-  - **Research:** `specs/features/terminal-integration.md`
 
-### Future (External Dependencies)
-- **Multi-Account Support** - Monitor multiple Claude accounts
-  - Complex, requires significant architecture changes
-  - **Research:** `specs/features/multi-account.md`
-- **Widgets** - macOS Notification Center widgets
-  - Blocked by code signing requirement
-  - **Research:** `specs/features/widgets.md`
-- **Sparkle Auto-Updates** - Automatic update installation
-  - Requires code signing
-  - **Research:** `specs/sparkle-updates.md`
+**Value:** Enable usage monitoring from CLI and shell prompts.
 
-### Technical Debt Identified
-- Burn rate thresholds hardcoded (10/25/50% per hour) - could be configurable
-- Hysteresis buffer hardcoded (5%) - could be configurable
-- No integration tests with mock network layer
+| Feature | Spec | Why Deferred |
+|---------|------|--------------|
+| **CLI Interface** | specs/features/terminal-integration.md | Requires App Group, ArgumentParser |
+
+**Prerequisites:**
+- Add ArgumentParser dependency
+- Set up App Group for shared UserDefaults
+- Create ClaudeAppCLI command structure
+
+### Future Releases (External Dependencies)
+
+| Feature | Blocker | Notes |
+|---------|---------|-------|
+| Multi-Account | Architecture | Requires significant refactoring |
+| Widgets | Code Signing | WidgetKit requires signed app |
+| Sparkle Auto-Updates | Code Signing | Sparkle requires signed app |
+
+### Technical Debt Backlog
+
+| Item | Priority | Notes |
+|------|----------|-------|
+| Integration tests with mock network | Medium | No network failure tests |
+| Keychain error scenario tests | Medium | Only happy path tested |
+| Settings data migration tests | Low | No version compatibility tests |
+| Burn rate thresholds configurable | Low | Currently hardcoded |
+| Hysteresis buffer configurable | Low | Currently hardcoded 5% |
 
 ---
 
-## Implementation Notes
+## Test Coverage Summary
 
-### SystemStateMonitor Key APIs
+**Current:** 605 tests across 4 packages (down from 613 after removing obsolete tests)
 
-```swift
-// Screen sleep/wake
-NSWorkspace.screensDidSleepNotification
-NSWorkspace.screensDidWakeNotification
+| Package | Tests | Coverage |
+|---------|-------|----------|
+| Domain | 81 | Excellent - models fully tested |
+| Services | 29 | Basic - needs error scenarios |
+| Core | 262 | Comprehensive - business logic |
+| UI | 233 | Excellent - accessibility focus (8 obsolete tests removed) |
 
-// System sleep/wake
-NSWorkspace.willSleepNotification
-NSWorkspace.didWakeNotification
+**Note:** 8 tests removed that referenced DiagonalStripes (removed in KOSMA redesign)
 
-// Idle detection
-CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: .mouseMoved)
+**Target for SLC 8:** 620+ tests (adjusted after cleanup)
 
-// Battery detection
-IOPSCopyPowerSourcesInfo()
-IOPSCopyPowerSourcesList()
-kIOPSPowerSourceStateKey / kIOPSBatteryPowerValue
-```
-
-### Refresh Interval Logic
-
-```
-effectiveInterval = switch (state, settings) {
-    case (.sleeping, _):           .infinity  // Suspended
-    case (.idle, battery: true):   userInterval * 2  // Save battery
-    case (.idle, battery: false):  userInterval      // Normal when plugged in
-    case (.active, usage >= 90%):  min(userInterval, 120)  // Critical monitoring
-    case (.active, _):             userInterval      // Normal
-}
-```
-
-### Expected Battery Savings
-
-| Scenario | Without Optimization | With Optimization | Improvement |
-|----------|---------------------|-------------------|-------------|
-| Screen off (8h sleep) | 96 API calls | 0 API calls | 100% |
-| Idle at desk (4h) | 48 API calls | 24 API calls | 50% |
-| On battery, moderate use | 12 calls/hr | 6 calls/hr | 50% |
-| Critical usage (>90%) | 6 calls/hr | 30 calls/hr | -400% (intentional) |
+**Coverage Gaps to Address in Future:**
+- API error response handling (401, 429, 500)
+- Keychain permission denied scenarios
+- Network timeout/retry logic
+- End-to-end integration tests
 
 ---
 
 ## Previous SLC Releases
 
-### SLC 1: Usage Monitor - COMPLETE ✅
-All tasks completed with 81 passing tests.
-
-### SLC 2: Notifications & Settings - COMPLETE ✅
-All tasks completed with 155 passing tests.
-
-### SLC 3: Predictive Insights - COMPLETE ✅
-All tasks completed with 320 passing tests.
-
-### SLC 4: Distribution Ready - COMPLETE ✅
-All tasks completed with 369 passing tests.
-
-### SLC 5: Internationalization - COMPLETE ✅
-All tasks completed with 402 passing tests.
-
-### SLC 6: Advanced Accessibility - COMPLETE ✅
-All tasks completed with 489 passing tests.
-
-### SLC 7: Community Ready + Icon Styles - COMPLETE ✅
-All tasks completed with 552 passing tests.
-
----
-
-## Version History
-
 | SLC | Name | Version | Tests | Status |
 |-----|------|---------|-------|--------|
-| 1 | Usage Monitor | 1.0.0 | 81 | COMPLETE |
-| 2 | Notifications & Settings | 1.1.0 | 155 | COMPLETE |
-| 3 | Predictive Insights | 1.2.0 | 320 | COMPLETE |
-| 4 | Distribution Ready | 1.3.0 | 369 | COMPLETE |
-| 5 | Internationalization | 1.4.0 | 402 | COMPLETE |
-| 6 | Advanced Accessibility | 1.5.0 | 489 | COMPLETE |
-| 7 | Community Ready + Icon Styles | 1.6.0 | 552 | COMPLETE |
-| 8 | Power-Aware Refresh | 1.7.0 | 580+ | PLANNED |
+| 1 | Usage Monitor | 1.0.0 | 81 | ✅ COMPLETE |
+| 2 | Notifications & Settings | 1.1.0 | 155 | ✅ COMPLETE |
+| 3 | Predictive Insights | 1.2.0 | 320 | ✅ COMPLETE |
+| 4 | Distribution Ready | 1.3.0 | 369 | ✅ COMPLETE |
+| 5 | Internationalization | 1.4.0 | 402 | ✅ COMPLETE |
+| 6 | Advanced Accessibility | 1.5.0 | 489 | ✅ COMPLETE |
+| 7 | Community Ready + Icon Styles | 1.6.0 | 552 | ✅ COMPLETE |
+| 8 | Power-Aware Refresh | 1.7.0 | 629+ | 🔄 IN PROGRESS (75%) |

@@ -39,13 +39,13 @@ struct ThemeTests {
         #expect(Theme.Spacing.sm == 8)
         #expect(Theme.Spacing.md == 12)
         #expect(Theme.Spacing.lg == 16)
-        #expect(Theme.Spacing.xl == 24)
-        #expect(Theme.Spacing.xxl == 32)
+        #expect(Theme.Spacing.xl == 20)  // KOSMA: 20pt for section gaps
+        #expect(Theme.Spacing.xxl == 24) // KOSMA: maps to Space.xl
     }
 
     @Test("Theme.CornerRadius has all values")
     func cornerRadiusValues() {
-        #expect(Theme.CornerRadius.sm == 4)
+        #expect(Theme.CornerRadius.sm == 6)  // KOSMA: 6pt for small elements
         #expect(Theme.CornerRadius.md == 8)
         #expect(Theme.CornerRadius.lg == 12)
         #expect(Theme.CornerRadius.full == 9999)
@@ -330,50 +330,8 @@ struct UsageProgressBarPatternTests {
     }
 }
 
-@Suite("DiagonalStripes Shape Tests")
-struct DiagonalStripesShapeTests {
-    @Test("DiagonalStripes can be initialized with default parameters")
-    func defaultInit() {
-        let stripes = DiagonalStripes()
-        // Default values: lineWidth = 2, spacing = 6
-        #expect(Bool(true)) // Compiles and creates successfully
-    }
-
-    @Test("DiagonalStripes can be initialized with custom parameters")
-    func customInit() {
-        let stripes = DiagonalStripes(lineWidth: 1.5, spacing: 4)
-        // Custom values should be accepted
-        #expect(Bool(true))
-    }
-
-    @Test("DiagonalStripes generates valid path")
-    func validPath() {
-        let stripes = DiagonalStripes()
-        let rect = CGRect(x: 0, y: 0, width: 100, height: 6)
-        let path = stripes.path(in: rect)
-        // Path should not be empty for a valid rect
-        #expect(!path.isEmpty)
-    }
-
-    @Test("DiagonalStripes handles zero-size rect gracefully")
-    func zeroSizeRectPath() {
-        let stripes = DiagonalStripes()
-        let rect = CGRect.zero
-        let path = stripes.path(in: rect)
-        // Path may contain degenerate lines (0,0 to 0,0) but this is acceptable
-        // The key requirement is that it doesn't crash and renders invisibly
-        #expect(Bool(true)) // No crash, graceful handling
-    }
-
-    @Test("DiagonalStripes creates multiple lines for wider rects")
-    func multipleLines() {
-        let stripes = DiagonalStripes(spacing: 4)
-        let wideRect = CGRect(x: 0, y: 0, width: 200, height: 6)
-        let path = stripes.path(in: wideRect)
-        // With 4pt spacing over 200px width + 6px height, we should have multiple lines
-        #expect(!path.isEmpty)
-    }
-}
+// DiagonalStripes tests removed - DiagonalStripes struct was removed in KOSMA redesign
+// The KOSMA design system uses different visual indicators for color-blind accessibility
 
 @Suite("Color-Blind Accessibility Tests")
 struct ColorBlindAccessibilityTests {
@@ -1448,30 +1406,9 @@ struct HighContrastModeTests {
         #expect(width == 2)
     }
 
-    @Test("HighContrastBorderModifier can be initialized with default parameters")
-    func highContrastModifierDefaultInit() {
-        let modifier = HighContrastBorderModifier()
-        // Modifier initializes with defaults (corner radius, widths)
-        #expect(Bool(true))
-    }
-
-    @Test("HighContrastBorderModifier can be initialized with custom parameters")
-    func highContrastModifierCustomInit() {
-        let modifier = HighContrastBorderModifier(
-            cornerRadius: Theme.CornerRadius.md,
-            standardWidth: 1,
-            highContrastWidth: 3
-        )
-        // Modifier accepts custom corner radius and widths
-        #expect(Bool(true))
-    }
-
-    @Test("ProgressBarHighContrastModifier can be initialized")
-    func progressBarHighContrastModifierInit() {
-        let modifier = ProgressBarHighContrastModifier()
-        // Progress bar modifier initializes successfully
-        #expect(Bool(true))
-    }
+    // HighContrastBorderModifier and ProgressBarHighContrastModifier struct tests removed
+    // These are now implemented as view extensions rather than standalone modifiers
+    // The view extension tests below verify the functionality
 
     @Test("View extension highContrastBorder is available")
     func highContrastBorderExtension() {
@@ -1563,8 +1500,10 @@ struct HighContrastAccessibilityTests {
     @Test("Corner radius preserved in high contrast mode")
     func cornerRadiusPreserved() {
         // High contrast borders should maintain corner radius for visual consistency
-        let modifier = HighContrastBorderModifier(cornerRadius: Theme.CornerRadius.md)
-        // Modifier preserves corner radius
+        // The highContrastBorder view extension accepts a cornerRadius parameter
+        let _ = Text("Test")
+            .highContrastBorder(cornerRadius: Theme.CornerRadius.md)
+        // View extension preserves corner radius
         #expect(Bool(true))
     }
 }
