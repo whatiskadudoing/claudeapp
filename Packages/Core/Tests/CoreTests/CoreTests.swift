@@ -1468,6 +1468,7 @@ struct SettingsManagerTests {
         #expect(manager.iconStyle == .percentage)
         #expect(manager.showPlanBadge == false)
         #expect(manager.showPercentage == true)
+        #expect(manager.showSparklines == true)
         #expect(manager.percentageSource == .highest)
 
         // Refresh settings defaults
@@ -1499,12 +1500,14 @@ struct SettingsManagerTests {
         manager.iconStyle = .battery
         manager.showPlanBadge = true
         manager.showPercentage = false
+        manager.showSparklines = false
         manager.percentageSource = .session
 
         // Verify persisted
         #expect(mockRepo.get(.iconStyle) == .battery)
         #expect(mockRepo.get(.showPlanBadge) == true)
         #expect(mockRepo.get(.showPercentage) == false)
+        #expect(mockRepo.get(.showSparklines) == false)
         #expect(mockRepo.get(.percentageSource) == .session)
     }
 
@@ -1591,6 +1594,7 @@ struct SettingsManagerTests {
         mockRepo.set(.iconStyle, value: IconStyle.compact)
         mockRepo.set(.showPlanBadge, value: true)
         mockRepo.set(.showPercentage, value: false)
+        mockRepo.set(.showSparklines, value: false)
         mockRepo.set(.percentageSource, value: PercentageSource.weekly)
         mockRepo.set(.refreshInterval, value: 10)
         mockRepo.set(.warningThreshold, value: 80)
@@ -1601,6 +1605,7 @@ struct SettingsManagerTests {
         #expect(manager.iconStyle == .compact)
         #expect(manager.showPlanBadge == true)
         #expect(manager.showPercentage == false)
+        #expect(manager.showSparklines == false)
         #expect(manager.percentageSource == .weekly)
         #expect(manager.refreshInterval == 10)
         #expect(manager.warningThreshold == 80)

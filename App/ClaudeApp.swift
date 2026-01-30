@@ -1099,6 +1099,12 @@ struct DisplaySectionContent: View {
                 isOn: $settings.showPercentage
             )
 
+            SettingsToggle(
+                title: L("settings.display.showSparklines"),
+                isOn: $settings.showSparklines,
+                subtitle: L("settings.display.showSparklines.subtitle")
+            )
+
             if settings.showPercentage {
                 SettingsPickerRow(
                     title: L("settings.display.percentageSource"),

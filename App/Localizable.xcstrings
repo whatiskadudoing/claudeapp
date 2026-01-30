@@ -1783,6 +1783,50 @@
         }
       }
     },
+    "settings.display.showSparklines" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Usage Charts"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar Gráficos de Uso"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar Gráficos de Uso"
+          }
+        }
+      }
+    },
+    "settings.display.showSparklines.subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display usage trend sparklines"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar tendencias de uso en minigráficos"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exibir tendências de uso em minigráficos"
+          }
+        }
+      }
+    },
     "settings.display.planType" : {
       "localizations" : {
         "en" : {

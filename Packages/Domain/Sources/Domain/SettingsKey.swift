@@ -23,6 +23,7 @@ public extension SettingsKey where Value == Bool {
     // Display Settings
     static let showPlanBadge = SettingsKey<Bool>(key: "showPlanBadge", defaultValue: false)
     static let showPercentage = SettingsKey<Bool>(key: "showPercentage", defaultValue: true)
+    static let showSparklines = SettingsKey<Bool>(key: "showSparklines", defaultValue: true)
 
     // Notification Settings
     static let notificationsEnabled = SettingsKey<Bool>(key: "notificationsEnabled", defaultValue: true)

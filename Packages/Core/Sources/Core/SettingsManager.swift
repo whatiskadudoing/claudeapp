@@ -51,6 +51,11 @@ public final class SettingsManager {
         didSet { save(.showPercentage, value: showPercentage) }
     }
 
+    /// Whether to show sparkline charts below usage progress bars
+    public var showSparklines: Bool {
+        didSet { save(.showSparklines, value: showSparklines) }
+    }
+
     /// Which usage metric to display in the menu bar percentage
     public var percentageSource: PercentageSource {
         didSet { save(.percentageSource, value: percentageSource) }
@@ -153,6 +158,7 @@ public final class SettingsManager {
         iconStyle = repository.get(.iconStyle)
         showPlanBadge = repository.get(.showPlanBadge)
         showPercentage = repository.get(.showPercentage)
+        showSparklines = repository.get(.showSparklines)
         percentageSource = repository.get(.percentageSource)
         planType = repository.get(.planType)
         refreshInterval = repository.get(.refreshInterval)

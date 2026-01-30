@@ -125,12 +125,13 @@ Key research documents for this implementation:
   - **Research:** `specs/features/historical-charts.md#option-1-native-swift-charts-recommended`
   - **Tests:** Added 26 tests for sparkline initialization, edge cases, accessibility, and visual styling
 
-- [ ] **Add showSparklines settings toggle** [spec: historical-charts.md] [file: Packages/Domain/Sources/Domain/SettingsKey.swift]
-  - Add `SettingsKey<Bool>("showSparklines", defaultValue: true)`
-  - Add setting toggle in Display section of Settings UI
-  - Wire to UsageProgressBar conditional display
+- [x] **Add showSparklines settings toggle** [spec: historical-charts.md] [file: Packages/Domain/Sources/Domain/SettingsKey.swift]
+  - Add `SettingsKey<Bool>("showSparklines", defaultValue: true)` - ✅ Domain/SettingsKey.swift
+  - Add setting toggle in Display section of Settings UI - ✅ ClaudeApp.swift DisplaySectionContent
+  - Wire to SettingsManager property with persistence - ✅ Core/SettingsManager.swift
+  - Add localization strings for all 3 languages (en, es, pt-BR) - ✅ App/Localizable.xcstrings
   - **Research:** `specs/features/historical-charts.md#settings-toggle`
-  - **Tests:** Add tests for setting persistence and UI toggle behavior
+  - **Tests:** Add tests for setting persistence and UI toggle behavior - ✅ 3 tests updated in CoreTests.swift
 
 - [ ] **Integrate sparklines into UsageProgressBar** [spec: historical-charts.md] [file: App/ClaudeApp.swift]
   - Add optional historyDataPoints parameter to UsageProgressBar
