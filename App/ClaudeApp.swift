@@ -339,8 +339,25 @@ struct DropdownView: View {
                         .tint(Theme.Colors.brand)
                         .transition(.opacity.combined(with: .move(edge: .trailing)))
                 } else {
-                    // Main content (no header - cleaner KOSMA look)
+                    // Main content with header
                     VStack(alignment: .leading, spacing: Theme.KOSMASpace.elementGap) {
+                        // Header: Title + Burn Rate Badge
+                        HStack(spacing: 8) {
+                            Text(L("usage.header.title").uppercased())
+                                .font(Theme.Typography.sectionHeader)
+                                .foregroundStyle(Theme.Colors.brand.opacity(0.9))
+                                .tracking(1.2)
+
+                            // Burn rate badge (only shown when data available)
+                            if let burnRateLevel = usageManager.overallBurnRateLevel {
+                                BurnRateBadge(level: burnRateLevel)
+                            }
+
+                            Spacer()
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(headerAccessibilityLabel)
+
                         if hasErrorWithCachedData, let error = usageManager.lastError {
                             StaleDataBanner(error: error) {
                                 Task { await usageManager.refresh() }
@@ -523,6 +540,17 @@ struct DropdownView: View {
         case .decodingError(let message):
             message
         }
+    }
+
+    /// Accessibility label for header including burn rate status
+    private var headerAccessibilityLabel: String {
+        var label = L("usage.header.title")
+        if let burnRateLevel = usageManager.overallBurnRateLevel {
+            let burnRateKey = "accessibility.burnRate.\(burnRateLevel.localizationKey)"
+            let burnRateDescription = Bundle.main.localizedString(forKey: burnRateKey, value: nil, table: nil)
+            label += ", " + burnRateDescription
+        }
+        return label
     }
 }
 

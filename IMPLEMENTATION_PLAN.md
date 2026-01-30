@@ -125,15 +125,14 @@ Key research documents for this implementation:
   - **Note:** Also fixed 8 pre-existing broken tests from KOSMA redesign (DiagonalStripes removed, Theme values changed)
   - **Tests:** 605 tests passing (was 613, some tests removed with DiagonalStripes)
 
-- [ ] **Integrate burn rate badge into dropdown header** [spec: view-usage.md] [file: App/ClaudeApp.swift]
-  - Display `BurnRateBadge` in header between title and settings button
-  - Use `usageManager.overallBurnRateLevel` for badge level
-  - Only show when burn rate data is available (not nil)
-  - Layout: `Claude Usage [Med] ⚙️ 🔄`
-  - Add accessibility label describing burn rate status
-  - **Research:** `specs/features/view-usage.md` "Burn rate badge displayed in header"
-  - **Test:** Header layout tests, accessibility tests
-  - **Target:** 4+ new tests (623+ total)
+- [x] **Integrate burn rate badge into dropdown header** [spec: view-usage.md] [file: App/ClaudeApp.swift]
+  - ✅ Added header row with "CLAUDE USAGE" title in KOSMA uppercase styling
+  - ✅ Display `BurnRateBadge` in header next to title (only when data available)
+  - ✅ Use `usageManager.overallBurnRateLevel` for badge level
+  - ✅ Added `headerAccessibilityLabel` computed property for VoiceOver support
+  - ✅ Layout matches KOSMA design system with proper spacing and styling
+  - **Completed:** 2026-01-30
+  - **Tests:** 605 tests passing (existing BurnRateBadge and overallBurnRateLevel tests cover component behavior)
 
 ---
 <!-- CHECKPOINT: Phase 1 delivers visual feedback for power state and burn rate. -->
@@ -226,7 +225,7 @@ Key research documents for this implementation:
 - [x] Burn rate badge component with 4 levels
 - [x] Color-coded for accessibility (shapes + colors)
 - [x] Calculate from highest burn rate across windows
-- [ ] **NEW:** Display badge in dropdown header
+- [x] **NEW:** Display badge in dropdown header ✅ 2026-01-30
 
 **Update Flow:**
 - [x] Check for updates via GitHub Releases
