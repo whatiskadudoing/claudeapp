@@ -199,11 +199,12 @@ Key research documents for this implementation:
 
 **Purpose:** Update documentation and prepare v1.7.0 release.
 
-- [ ] **Update version numbers** [file: various]
-  - Update version to 1.7.0 in Info.plist
-  - Update CHANGELOG.md with SLC 8 features
-  - Update specs/features/power-aware-refresh.md status to ✅ Implemented
-  - **Success criteria:** Version displays correctly in About section
+- [x] **Update version numbers** [file: various]
+  - ✅ Updated version to 1.7.0 in Info.plist (CFBundleVersion + CFBundleShortVersionString)
+  - ✅ Updated CHANGELOG.md with full SLC 8 release notes (Power-Aware, Burn Rate, Warning Badge, Update Click, Design System)
+  - ✅ Updated specs/features/power-aware-refresh.md acceptance criteria to ✅ Implemented
+  - **Completed:** 2026-01-30
+  - **Tests:** 620 tests passing (no changes to tests needed)
 
 - [ ] **Final verification** [file: Makefile]
   - Run full test suite: 629+ tests passing

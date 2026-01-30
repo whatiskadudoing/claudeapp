@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-01-30
+
 ### Added
 - **Power-Aware Refresh**: Smart refresh scheduling based on battery/power state
   - AdaptiveRefreshManager with system state monitoring
   - Longer intervals on battery, shorter when charging
   - Respects Low Power Mode settings
+  - Power state indicator in dropdown footer (battery/idle icons)
+- **Burn Rate Badge in Header**: Display consumption velocity badge prominently in dropdown header
+- **Menu Bar Warning Indicator**: Shows ⚠️ warning icon when any usage window reaches 100%
+- **Update Notification Click**: Clicking update notification now opens download URL in browser
 - **Premium Design System**: Hybrid McLaren/Teenage Engineering/KOSMA aesthetic
   - McLaren Papaya orange `#FF7300` as primary brand color
   - TE-style light typography (300 weight) for elegant technical feel
@@ -26,12 +32,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Typography weights reduced for TE-inspired elegance
 - Animation timing updated to McLaren standard (300ms)
 - Section headers use lighter font weights with increased tracking
+- UpdateChecker now persists lastCheckDate across app restarts
+
+### Fixed
+- User agent now reports correct app version to API (was hardcoded to 1.2.0)
+- GitHub repository configured correctly for update checking
 
 ### Documentation
 - Complete rewrite of `specs/design-system.md`
 - New `specs/BRANDING.MD` with brand identity guidelines
 - Updated `research/inspiration.md` with design sources
 - Updated README with design system section
+
+### Technical
+- Added `isAtCapacity` computed property to UsageData
+- Added `userInfo` parameter to NotificationManager for update notification handling
+- Total test count: 620 tests passing
 
 ## [1.6.0] - 2026-01-26
 
@@ -158,7 +174,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - macOS 14 (Sonoma) required
 - 81 tests passing
 
-[Unreleased]: https://github.com/kaduwaengertner/claudeapp/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/kaduwaengertner/claudeapp/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.3.0...v1.4.0
