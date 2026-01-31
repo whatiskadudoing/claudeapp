@@ -33,6 +33,8 @@ help: ## Show this help message
 build: ## Build debug version
 	@echo "$(CYAN)Building debug...$(NC)"
 	@swift build --configuration debug 2>&1 | xcbeautify || swift build --configuration debug
+	@echo "$(CYAN)Compiling localization strings...$(NC)"
+	@python3 scripts/compile-strings.py App/Localizable.xcstrings $(BUILD_DIR)/arm64-apple-macosx/debug/ClaudeApp_ClaudeApp.bundle 2>/dev/null || true
 
 build-release: ## Build release version (optimized)
 	@echo "$(CYAN)Building release...$(NC)"

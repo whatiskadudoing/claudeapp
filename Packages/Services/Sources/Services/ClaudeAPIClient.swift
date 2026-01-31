@@ -56,12 +56,16 @@ public actor ClaudeAPIClient: UsageRepository {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
 
+        // Always fetch fresh data, never use cached responses
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+
         // Required headers per API specification
         request.setValue("Bearer \(credentials.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
+        request.setValue("no-cache, no-store", forHTTPHeaderField: "Cache-Control")
 
         return request
     }
