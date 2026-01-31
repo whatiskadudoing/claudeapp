@@ -155,7 +155,7 @@ SLC 12 has **no external dependencies**. Proceed immediately.
 
 **Purpose:** Automate DMG builds when tags are pushed.
 
-- [ ] **Create release workflow for tag-based releases** [spec: toolchain.md] [file: .github/workflows/release.yml]
+- [x] **Create release workflow for tag-based releases** [spec: toolchain.md] [file: .github/workflows/release.yml]
   - Create `.github/workflows/release.yml`
   - Trigger on `v*` tags only
   - Workflow steps:
@@ -231,11 +231,11 @@ SLC 12 has **no external dependencies**. Proceed immediately.
 - [x] Failed tests block PR merge
 
 ### Release Automation
-- [ ] GitHub Actions workflow exists at `.github/workflows/release.yml`
-- [ ] Triggers on `v*` tags
-- [ ] Builds release DMG
-- [ ] Creates GitHub Release with DMG attached
-- [ ] Includes SHA256 checksum
+- [x] GitHub Actions workflow exists at `.github/workflows/release.yml`
+- [x] Triggers on `v*` tags
+- [x] Builds release DMG
+- [x] Creates GitHub Release with DMG attached
+- [x] Includes SHA256 checksum
 
 ### Documentation
 - [ ] README.md has CI status badge

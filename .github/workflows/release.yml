@@ -1,0 +1,77 @@
+# ClaudeApp Release Workflow
+# Creates GitHub Releases with DMG when tags are pushed
+#
+# Trigger: Push a tag matching v* (e.g., v2.0.1)
+#
+# Steps:
+#   1. Run full test suite (gate release on tests)
+#   2. Build release app bundle
+#   3. Create DMG
+#   4. Generate SHA256 checksum
+#   5. Create GitHub Release with assets attached
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 15.2
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Cache SPM dependencies
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Run tests
+        run: swift test
+
+      - name: Build release
+        run: |
+          swift build --configuration release
+          ./scripts/create-bundle.sh release
+
+      - name: Create DMG
+        run: ./scripts/create-dmg.sh
+
+      - name: Generate checksums
+        run: |
+          cd release
+          shasum -a 256 ClaudeApp.dmg > checksums.txt
+          echo "SHA256 Checksum:"
+          cat checksums.txt
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ClaudeApp v${{ steps.version.outputs.version }}
+          files: |
+            release/ClaudeApp.dmg
+            release/checksums.txt
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') || contains(github.ref, '-alpha') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
