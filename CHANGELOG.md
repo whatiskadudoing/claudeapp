@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-01-31
+
+### Added
+- **CI/CD Pipeline**: Restored GitHub Actions for automated testing on all PRs
+  - `swift build` and `swift test` (853 tests) on every push/PR
+  - SwiftFormat lint check (`--lint`) enforces code formatting
+  - SwiftLint with `--strict` flag ensures code quality
+  - SPM dependency caching for faster CI runs
+  - 30-minute timeout with `macos-14` runner (Apple Silicon)
+- **Release Automation**: GitHub Actions workflow for tag-based releases
+  - Triggers on `v*` tags (e.g., `v2.0.1`)
+  - Runs full test suite before building
+  - Creates DMG with `make dmg`
+  - Generates SHA256 checksum for verification
+  - Attaches DMG and checksums to GitHub Release
+  - Auto-generates release notes from commits
+- **Contributing Documentation**: Comprehensive `CONTRIBUTING.md` guide
+  - Development setup instructions with prerequisites
+  - Makefile commands reference
+  - Code style guidelines (SwiftFormat + SwiftLint)
+  - Testing requirements and coverage goals
+  - Pull request process and checklist
+  - Architecture overview (4-package DDD structure)
+- **CI Badges**: README now displays CI status and test count badges
+  - CI workflow status badge
+  - Test count badge (853 tests)
+  - Existing: Release, Swift 5.9+, macOS 14+, MIT License badges
+
+### Technical
+- SLC 12: CI/CD Infrastructure complete
+- No new tests (infrastructure only)
+- Total test count: 853 tests passing
+
 ## [2.0.0] - 2026-01-30
 
 ### Added
@@ -283,7 +316,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - macOS 14 (Sonoma) required
 - 81 tests passing
 
-[Unreleased]: https://github.com/kaduwaengertner/claudeapp/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/kaduwaengertner/claudeapp/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/kaduwaengertner/claudeapp/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.9.0...v2.0.0
 [1.9.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/kaduwaengertner/claudeapp/compare/v1.7.0...v1.8.0

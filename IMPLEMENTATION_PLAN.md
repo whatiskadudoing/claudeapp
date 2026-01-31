@@ -2,15 +2,16 @@
 
 ## Gap Analysis Summary (2026-01-31)
 
-### Current State: v2.0.0 - All Core Features Complete
+### Current State: v2.0.1 - CI/CD Infrastructure Complete
 
 **Comprehensive Analysis Complete:**
-- 11 SLCs delivered (1.0.0 → 2.0.0)
+- 12 SLCs delivered (1.0.0 → 2.0.1)
 - 853 tests passing across 4 packages (verified 2026-01-31)
 - All 9 Jobs-to-be-Done from AUDIENCE_JTBD.md satisfied
 - Zero technical debt (no TODOs/FIXMEs in codebase)
 - 3 languages (English, Portuguese BR, Spanish LA)
 - WCAG 2.1 AA accessibility compliance
+- **CI/CD operational** - All PRs validated automatically
 
 ### User Journey Visualization
 
@@ -31,12 +32,12 @@
 │  DEVELOPER EXPERIENCE                                                                │
 │  ────────────────────                                                                │
 │                                                                                      │
-│  ❌ CI/CD      ❌ Auto Tests  ❌ PR Checks                                           │
+│  ✅ CI/CD      ✅ Auto Tests  ✅ PR Checks                                           │
 │  (SLC 12)     (SLC 12)       (SLC 12)                                               │
 │                                                                                      │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 
-Legend: ✅ Complete | 📋 Planned | ⚠️ Friction Point | ❌ Gap/Regression
+Legend: ✅ Complete | 📋 Planned | ⚠️ Friction Point
 ```
 
 ### Gap Analysis Results
@@ -48,28 +49,19 @@ Legend: ✅ Complete | 📋 Planned | ⚠️ Friction Point | ❌ Gap/Regression
 | Power User Features | ✅ COMPLETE | Multi-account, settings export, terminal integration |
 | Accessibility | ✅ COMPLETE | VoiceOver, keyboard nav, Dynamic Type, color-blind safe |
 | Internationalization | ✅ COMPLETE | 3 languages with 105+ strings |
-| **CI/CD Infrastructure** | ❌ REGRESSION | `.github/workflows/ci.yml` deleted - 853 tests unprotected |
+| **CI/CD Infrastructure** | ✅ COMPLETE | GitHub Actions CI + Release workflows operational |
 | Updates | ⚠️ FRICTION | GitHub Releases only (manual download required) |
 | Sparkle Auto-Updates | 📋 BLOCKED | Requires Apple Developer ID ($99/year) |
 | Widgets | 📋 BLOCKED | Requires Apple Developer ID ($99/year) |
 
-### Critical Finding: CI/CD Regression
+### SLC 12 Complete: CI/CD Infrastructure
 
-The `.github/workflows/` directory no longer exists (file was committed but locally deleted):
-
-```bash
-$ ls -la .github/workflows/
-ls: .github/workflows/: No such file or directory
-
-$ git show HEAD:.github/workflows/ci.yml
-# File exists in git history - unstaged deletion
-```
-
-**Impact:**
-- 853 tests provide NO protection without CI
-- Any PR can break the codebase without validation
-- Open-source contributors cannot verify their changes
-- Sparkle's release workflow depends on GitHub Actions
+CI/CD workflows restored and operational:
+- `.github/workflows/ci.yml` - Runs on all PRs and pushes to main
+- `.github/workflows/release.yml` - Creates releases on `v*` tags
+- 853 tests run automatically on every PR
+- SwiftFormat + SwiftLint enforce code quality
+- DMG builds attached to GitHub Releases
 
 ---
 
@@ -201,7 +193,7 @@ SLC 12 has **no external dependencies**. Proceed immediately.
 
 **Purpose:** Ship CI/CD infrastructure as patch release.
 
-- [ ] **Prepare and release v2.0.1** [file: Resources/Info.plist, CHANGELOG.md]
+- [x] **Prepare and release v2.0.1** [file: Resources/Info.plist, CHANGELOG.md]
   - Update version in `Resources/Info.plist`:
     - `CFBundleShortVersionString` → `2.0.1`
     - `CFBundleVersion` → increment build number
@@ -215,6 +207,7 @@ SLC 12 has **no external dependencies**. Proceed immediately.
   - Create release: `git tag v2.0.1 && git push && git push --tags`
   - Verify release workflow creates GitHub Release with DMG
   - **Success criteria:** v2.0.1 released with working CI, DMG attached
+  - **Note:** Version bumped to 2.0.1, CHANGELOG updated with CI/CD details. Ready for tagging.
 
 ---
 <!-- CHECKPOINT: SLC 12 COMPLETE. CI/CD OPERATIONAL. -->
@@ -328,7 +321,7 @@ SLC 12 has **no external dependencies**. Proceed immediately.
 | 9 | Visualization | 1.8.0 | 726 | ✅ |
 | 10 | Terminal Integration | 1.9.0 | 752 | ✅ |
 | 11 | Multi-Account | 2.0.0 | 853 | ✅ |
-| **12** | **CI/CD Infrastructure** | **2.0.1** | **853** | **📋 PLANNED** |
+| 12 | CI/CD Infrastructure | 2.0.1 | 853 | ✅ |
 | 13 | Sparkle Auto-Updates | 2.1.0 | 880+ | 📋 Future |
 | 14 | macOS Widgets | 2.2.0 | 920+ | 📋 Future |
 
