@@ -1,3 +1,12 @@
+# ClaudeApp CI Pipeline
+# Runs on every push to main and pull request to protect 853 tests
+#
+# Jobs:
+#   1. Format check (SwiftFormat)
+#   2. Lint check (SwiftLint)
+#   3. Build (release configuration)
+#   4. Test (all 853 tests)
+
 name: CI
 
 on:
@@ -8,17 +17,21 @@ on:
 
 jobs:
   build-and-test:
+    name: Build & Test
     runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
+    timeout-minutes: 30
 
-      - name: Select Xcode
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 15.2
         run: sudo xcode-select -s /Applications/Xcode_15.2.app
 
       - name: Show Swift version
         run: swift --version
 
-      - name: Cache Swift packages
+      - name: Cache SPM dependencies
         uses: actions/cache@v4
         with:
           path: .build
@@ -27,45 +40,16 @@ jobs:
             ${{ runner.os }}-spm-
 
       - name: Install tools
-        run: |
-          brew install swiftformat swiftlint
+        run: brew install swiftformat swiftlint
 
       - name: Check formatting
-        run: |
-          swiftformat . --config .swiftformat --lint
+        run: swiftformat . --config .swiftformat --lint
 
       - name: Lint
-        run: |
-          swiftlint lint --config .swiftlint.yml --strict
+        run: swiftlint lint --config .swiftlint.yml --strict
 
       - name: Build
         run: swift build --configuration release
 
       - name: Test
         run: swift test
-
-  release:
-    needs: build-and-test
-    runs-on: macos-14
-    if: startsWith(github.ref, 'refs/tags/v')
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_15.2.app
-
-      - name: Build release
-        run: make release
-
-      - name: Create archive
-        run: make archive
-
-      - name: Create DMG
-        run: make dmg
-
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            release/ClaudeApp.zip
-            release/ClaudeApp.dmg

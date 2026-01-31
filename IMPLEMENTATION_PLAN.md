@@ -1,58 +1,105 @@
 # Implementation Plan
 
-## Recommended SLC Release: SLC 11 - Multi-Account Support
+## Gap Analysis Summary (2026-01-31)
 
-**Audience:** Professional developers using Claude Code who have multiple Claude accounts (personal + work, multiple projects, team accounts).
+### Current State: v2.0.0 - All Core Features Complete
 
-**Value proposition:** Monitor all Claude accounts from a single menu bar app, eliminating the need to switch between accounts or run multiple tools to track usage across work and personal contexts.
+**Comprehensive Analysis Complete:**
+- 11 SLCs delivered (1.0.0 → 2.0.0)
+- 853 tests passing across 4 packages (verified 2026-01-31)
+- All 9 Jobs-to-be-Done from AUDIENCE_JTBD.md satisfied
+- Zero technical debt (no TODOs/FIXMEs in codebase)
+- 3 languages (English, Portuguese BR, Spanish LA)
+- WCAG 2.1 AA accessibility compliance
+
+### User Journey Visualization
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                              ClaudeApp User Journey                                  │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                      │
+│  DISCOVER      INSTALL       CONFIGURE     MONITOR       MAINTAIN       EXTEND      │
+│  ────────      ───────       ─────────     ───────       ────────       ──────      │
+│                                                                                      │
+│  ✅ GitHub     ✅ DMG        ✅ Settings   ✅ View       ⚠️ Manual      📋 Widgets   │
+│  ✅ Homebrew   ✅ CLI        ✅ Accounts   ✅ Refresh    📋 Sparkle    (SLC 14)     │
+│  ✅ README     ✅ Keychain   ✅ Notifs     ✅ Alerts     (SLC 13)                    │
+│                              ✅ Export     ✅ Charts                                 │
+│                                            ✅ Terminal                               │
+│                                                                                      │
+│  DEVELOPER EXPERIENCE                                                                │
+│  ────────────────────                                                                │
+│                                                                                      │
+│  ❌ CI/CD      ❌ Auto Tests  ❌ PR Checks                                           │
+│  (SLC 12)     (SLC 12)       (SLC 12)                                               │
+│                                                                                      │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+Legend: ✅ Complete | 📋 Planned | ⚠️ Friction Point | ❌ Gap/Regression
+```
+
+### Gap Analysis Results
+
+| Category | Status | Details |
+|----------|--------|---------|
+| Core Features | ✅ COMPLETE | View usage, refresh, notifications, settings |
+| Enhanced Features | ✅ COMPLETE | Icon styles, historical charts, power-aware refresh |
+| Power User Features | ✅ COMPLETE | Multi-account, settings export, terminal integration |
+| Accessibility | ✅ COMPLETE | VoiceOver, keyboard nav, Dynamic Type, color-blind safe |
+| Internationalization | ✅ COMPLETE | 3 languages with 105+ strings |
+| **CI/CD Infrastructure** | ❌ REGRESSION | `.github/workflows/ci.yml` deleted - 853 tests unprotected |
+| Updates | ⚠️ FRICTION | GitHub Releases only (manual download required) |
+| Sparkle Auto-Updates | 📋 BLOCKED | Requires Apple Developer ID ($99/year) |
+| Widgets | 📋 BLOCKED | Requires Apple Developer ID ($99/year) |
+
+### Critical Finding: CI/CD Regression
+
+The `.github/workflows/` directory no longer exists (file was committed but locally deleted):
+
+```bash
+$ ls -la .github/workflows/
+ls: .github/workflows/: No such file or directory
+
+$ git show HEAD:.github/workflows/ci.yml
+# File exists in git history - unstaged deletion
+```
+
+**Impact:**
+- 853 tests provide NO protection without CI
+- Any PR can break the codebase without validation
+- Open-source contributors cannot verify their changes
+- Sparkle's release workflow depends on GitHub Actions
+
+---
+
+## Recommended SLC Release: SLC 12 - CI/CD Infrastructure
+
+**Audience:** Professional developers using Claude Code AND open-source contributors.
+
+**Value proposition:** Restore automated quality gates that protect all 853 tests, enable confident contributions, and establish the foundation for automated releases. This is **prerequisite infrastructure** for SLC 13 (Sparkle).
+
+**Why CI/CD BEFORE Sparkle?**
+1. **No external dependencies** - Can ship immediately, no $99/year requirement
+2. **Protects existing work** - 853 tests are worthless without automation
+3. **Enables Sparkle** - Sparkle's release workflow requires GitHub Actions
+4. **Enables contributions** - Open-source contributors need CI validation
+5. **Zero risk** - Internal infrastructure, not user-facing
 
 **Activities included:**
 
 | Activity | Depth | Why Included |
 |----------|-------|--------------|
-| Account Management | Basic | Core feature: add/remove/switch between accounts |
-| Multi-Account Usage Display | Basic | Show usage for active account with switcher |
-| Settings Integration | Basic | Account management in Settings panel |
+| CI Pipeline | Standard | Run tests on every PR to prevent regressions |
+| Quality Gates | Standard | SwiftFormat + SwiftLint enforce code quality |
+| Release Automation | Basic | DMG builds on tags (unsigned) |
+| Documentation | Basic | Badges + contributing guidelines |
 
 **What's NOT in this slice:**
-- Multi-account menu bar display (showing P:45% W:72%) → Future (after single-account switcher works)
-- Aggregate view across all accounts → Future (advanced feature)
-- Account-specific notification settings → Future (complexity)
-- Multiple provider support (OpenAI, Gemini) → Future (different API requirements)
-- Widgets → Blocked by code signing
-- Sparkle Auto-Updates → Blocked by code signing
-
----
-
-## Comprehensive Gap Analysis (2026-01-30)
-
-### ✅ FULLY IMPLEMENTED FEATURES (SLC 1-10 Complete)
-
-| Feature | SLC | Version | Tests | Notes |
-|---------|-----|---------|-------|-------|
-| View Usage (menu bar + dropdown) | 1 | 1.0.0 | 752 | All 4 windows, progress bars, reset times |
-| Refresh Usage (auto + manual) | 1-2 | 1.0.0 | 752 | Configurable interval, debouncing, backoff |
-| Notifications | 2 | 1.1.0 | 752 | Warning, capacity full, reset; hysteresis |
-| Settings (in-popover) | 2 | 1.1.0 | 752 | Display, refresh, notifications, general, data |
-| Time-to-Exhaustion | 3 | 1.2.0 | 752 | Prediction display, burn rate calculation |
-| Burn Rate Calculation | 3 | 1.2.0 | 752 | 4-level system, color-coded badges |
-| Icon Styles | 3 | 1.2.0 | 752 | All 6 styles: percentage, bar, battery, compact, icon, full |
-| Updates (GitHub Releases) | 3 | 1.2.0 | 752 | Version check, download URL, notification click |
-| Power-Aware Refresh | 4-8 | 1.7.0 | 752 | SystemStateMonitor, AdaptiveRefreshManager, power indicators |
-| Accessibility | 4-6 | 1.5.0 | 752 | VoiceOver, keyboard nav, reduce motion, high contrast |
-| Internationalization | 5 | 1.4.0 | 752 | en, pt-BR, es fully localized |
-| 100% Warning Badge | 8 | 1.7.0 | 752 | Menu bar warning icon when at capacity |
-| Historical Charts | 9 | 1.8.0 | 752 | Sparklines for session and weekly windows |
-| Settings Export/Import | 9 | 1.8.0 | 752 | Export, import, backup, reset functionality |
-| Terminal Integration | 10 | 1.9.0 | 752 | CLI interface, shared cache, shell integration docs |
-
-### ❌ NOT IMPLEMENTED (Planned Features)
-
-| Feature | Spec | Complexity | Blocked By | Priority |
-|---------|------|------------|------------|----------|
-| Multi-Account | specs/features/multi-account.md | High | None | **HIGH - SLC 11** |
-| Widgets | specs/features/widgets.md | High | Code signing | LOW |
-| Sparkle Auto-Updates | specs/sparkle-updates.md | Medium | Code signing | LOW |
+- Code signing → Deferred to SLC 13 (requires Apple Developer ID)
+- Sparkle integration → Deferred to SLC 13
+- Widgets → Deferred to SLC 14 (requires code signing)
+- Delta updates → Nice-to-have for SLC 13
 
 ---
 
@@ -62,258 +109,348 @@ Key research documents for this implementation:
 
 | Topic | Document | Why Relevant |
 |-------|----------|--------------|
-| Multi-Account Spec | `specs/features/multi-account.md` | Complete data model, UI design, migration strategy |
-| Competitive Analysis | `research/competitive-analysis.md` | Claude Usage Tracker (684★) has multi-profile support |
-| Architecture Patterns | `research/menubar-architecture-patterns.md` | Protocol-based services, profile management |
-| Keychain Access | `research/approaches/keychain-access.md` | Security CLI approach for per-account credentials |
-| API Documentation | `specs/api-documentation.md` | OAuth usage API works with any valid token |
+| Build System | `specs/toolchain.md` | Makefile targets, CI workflow templates |
+| Package Structure | `specs/architecture.md` | 4-package layout for targeted testing |
+| Update Patterns | `research/update-mechanisms.md` | Sparkle integration patterns for future |
+| OSS Practices | `research/competitive-analysis.md` | CI/CD patterns from 40+ analyzed apps |
+| Menu Bar Apps | `research/macos-menubar-apps.md` | GitHub Actions workflows from similar apps |
 
 ---
 <!-- HUMAN VERIFICATION: Does this slice form a coherent, valuable product? -->
-<!-- Answer: YES - Enables monitoring multiple accounts from one app, directly serves users with work+personal accounts -->
+<!-- Answer: YES - CI/CD is foundational. It protects all existing work and enables Sparkle. -->
 
-## Phase 0: Build Verification - REQUIRED
+## Prerequisites: None
 
-**Purpose:** Verify the app compiles, tests pass, and runs correctly before making changes.
-
-### Pre-Flight Checks
-
-- [x] **Verify current build and test status** [file: Makefile]
-  - Run `make clean && make build` - expect success ✅
-  - Run `swift test` - expect all 752 tests pass ✅ (fixed flaky test: increased wait time in AppContainer Power-Aware Integration test from 100ms to 500ms)
-  - Run `make release` - expect .app bundle creates successfully ✅
-  - Verified: 2026-01-30
+SLC 12 has **no external dependencies**. Proceed immediately.
 
 ---
-<!-- CHECKPOINT: Phase 0 must pass before continuing. -->
+<!-- CHECKPOINT: Confirm no blockers before proceeding. -->
 
-## Phase 1: Domain Layer - Account Model & Storage
+## Phase 1: Restore CI Pipeline - CRITICAL
 
-**Purpose:** Define core data models and storage protocol in the Domain package.
+**Purpose:** Restore automated testing on every PR and push to main.
 
-- [x] **Add Account model and storage protocol to Domain package** [spec: multi-account.md] [file: Packages/Domain/Sources/Domain/]
-  - Create `Account.swift` with Account struct (id, name, email, planType, keychainIdentifier, isActive, isPrimary, createdAt) ✅
-  - Ensure Account conforms to Identifiable, Sendable, Codable, Equatable ✅
-  - Create `AccountStorage.swift` with AccountStorage protocol ✅
-  - Add `MultiAccountDisplayMode` enum (all, activeOnly, primaryOnly) ✅
-  - Add new SettingsKey constants for multi-account settings (multiAccountDisplayMode, showAccountLabels) ✅
-  - Update `Domain.swift` exports (version bumped to 2.0.0) ✅
-  - **Research:** `specs/features/multi-account.md#data-model`
-  - **Tests:** Added 45 new tests (797 total, was 752) - Account model, MultiAccountDisplayMode, SettingsKey tests ✅
-  - **Success criteria:** Domain package builds, all new types are Sendable-safe ✅
-  - **Completed:** 2026-01-30
-
----
-<!-- CHECKPOINT: Phase 1 establishes data foundation. -->
-
-## Phase 2: Core Layer - Account Manager & Credentials
-
-**Purpose:** Implement account management business logic and multi-account credential access.
-
-- [x] **Implement AccountManager and credential retrieval in Core package** [spec: multi-account.md] [file: Packages/Core/Sources/Core/]
-  - Create `UserDefaultsAccountStorage.swift` implementing AccountStorage protocol ✅
-  - Create `AccountManager.swift` with @Observable @MainActor class ✅
-  - Implement addAccount, removeAccount, updateAccount, setActiveAccount, setPrimaryAccount ✅
-  - Implement automatic primary assignment (first account becomes primary) ✅
-  - Create `MultiAccountCredentialsRepository.swift` as actor ✅
-  - Support both "default" (Claude Code-credentials) and custom keychainIdentifier ✅
-  - Implement migration logic: auto-create "Default" account on first launch if accounts empty ✅
-  - ~~Wire AccountManager into AppContainer as shared dependency~~ (Deferred to Phase 3 with UsageManager integration)
-  - **Research:** `specs/features/multi-account.md#credentials-management`
-  - **Tests:** Added 42 new tests (839 total, was 797) - UserDefaultsAccountStorage, AccountManager CRUD, migration, MultiAccountCredentialsRepository ✅
-  - **Success criteria:** Can add/remove accounts, credentials fetched per-account ✅
-  - **Completed:** 2026-01-30
-  - **Note:** AppContainer wiring deferred to Phase 3 to integrate with UsageManager changes simultaneously
+- [x] **Restore CI workflow with build, test, and lint jobs** [spec: toolchain.md] [file: .github/workflows/ci.yml]
+  - Recreate `.github/workflows/` directory
+  - Restore `.github/workflows/ci.yml` from git history or create fresh
+  - Trigger on push to main and pull_request
+  - Use `macos-14` runner (Apple Silicon, fast)
+  - Job structure:
+    - Step 1: Checkout + select Xcode 15.2
+    - Step 2: Cache SPM dependencies (`actions/cache@v4`)
+    - Step 3: Install tools (`brew install swiftformat swiftlint`)
+    - Step 4: Check formatting (`swiftformat --lint`)
+    - Step 5: Lint (`swiftlint lint --strict`)
+    - Step 6: Build (`swift build --configuration release`)
+    - Step 7: Test (`swift test` - all 853 tests)
+  - Set 30-minute timeout
+  - **Research:** `specs/toolchain.md#ci-cd` has complete workflow template
+  - **See also:** `research/macos-menubar-apps.md` for patterns from Rectangle, Ice, Maccy
+  - **Success criteria:** CI runs on all PRs, fails on test failures or lint errors
 
 ---
-<!-- CHECKPOINT: Phase 2 delivers account management infrastructure. -->
+<!-- CHECKPOINT: Verify CI runs on a test PR before proceeding. -->
 
-## Phase 3: Core Layer - UsageManager Multi-Account Support
+## Phase 2: Release Automation
 
-**Purpose:** Update UsageManager to track usage per-account.
+**Purpose:** Automate DMG builds when tags are pushed.
 
-- [x] **Update UsageManager to support per-account usage tracking** [spec: multi-account.md] [file: Packages/Core/Sources/Core/UsageManager.swift]
-  - Added `usageByAccount: [UUID: UsageData]` dictionary ✅
-  - Added `setAccountManager()` for optional AccountManager dependency (maintains backward compat) ✅
-  - Implemented `refreshActiveAccount()` using active account's credentials ✅
-  - Implemented `refreshAllAccounts()` with TaskGroup for parallel fetches ✅
-  - Updated `usageData` computed property to return active account's data or legacy data ✅
-  - Added `highestUtilizationAcrossAccounts` computed property ✅
-  - Full backward compatibility: legacy mode works when AccountManager not set ✅
-  - SharedCacheManager writes active account's data ✅
-  - Added per-account error tracking with `errorByAccount` dictionary ✅
-  - Added per-account usage history for burn rate calculation ✅
-  - Updated AppContainer to wire AccountManager and auto-migrate on first launch ✅
-  - **Research:** `specs/features/multi-account.md#usagemanager-updates`
-  - **Tests:** Added 14 new tests (853 total, was 839) - multi-account storage, per-account refresh, account switching, burn rates per account, backward compatibility ✅
-  - **Success criteria:** Usage refreshes for active account, switching accounts shows correct data ✅
-  - **Completed:** 2026-01-30
+- [ ] **Create release workflow for tag-based releases** [spec: toolchain.md] [file: .github/workflows/release.yml]
+  - Create `.github/workflows/release.yml`
+  - Trigger on `v*` tags only
+  - Workflow steps:
+    - Checkout + cache SPM
+    - Run full test suite first (gate release on tests)
+    - Build release app (`make release`)
+    - Create DMG (`make dmg`)
+    - Generate SHA256 checksum
+    - Create GitHub Release with DMG attached using `softprops/action-gh-release@v2`
+    - Include auto-generated release notes
+  - **Research:** `specs/toolchain.md#release-process` documents DMG creation
+  - **See also:** `research/update-mechanisms.md` - Sparkle apps use similar workflows
+  - **Success criteria:** `git tag v2.0.1 && git push --tags` creates release with DMG
 
 ---
-<!-- CHECKPOINT: Phase 3 delivers functional multi-account data flow. -->
+<!-- CHECKPOINT: Test by creating a v2.0.1-rc1 tag. -->
 
-## Phase 4: UI Layer - Account Switcher & Settings
+## Phase 3: Documentation & Quality
 
-**Purpose:** Add account switcher UI and settings management.
+**Purpose:** Document CI status and contribution process.
 
-- [x] **Implement account switcher in dropdown and accounts settings section** [spec: multi-account.md] [file: App/ClaudeApp.swift, Packages/UI/]
-  - Added account switcher dropdown to DropdownView header (shows active account name with chevron) ✅
-  - Created AccountSwitcherMenu view with account list and "Add Account" option ✅
-  - Added "Accounts" section to SettingsContent with account list (name, plan type, edit/delete buttons) ✅
-  - Implemented "Add Account" flow: name input, uses new keychain identifier ✅
-  - Implemented "Edit Account" flow: rename, set primary ✅
-  - Implemented "Remove Account" with confirmation alert ✅
-  - Added account status indicator (primary indicator with ●/○) ✅
-  - Added display mode picker (All / Active Only / Primary Only) in settings ✅
-  - Updated MenuBarLabel to show active account's usage (via AccountManager environment) ✅
-  - Added 27 localization strings for all new UI (en, pt-BR, es) ✅
-  - **Research:** `specs/features/multi-account.md#design`
-  - **Tests:** UI components added; existing 853 tests all pass ✅
-  - **Success criteria:** Can switch accounts in dropdown, manage accounts in settings ✅
-  - **Completed:** 2026-01-30
-
----
-<!-- CHECKPOINT: Phase 4 delivers complete multi-account UI. -->
-
-## Phase 5: Polish & Release
-
-**Purpose:** Final testing, version bump, and release preparation.
-
-- [x] **Update version and complete final verification** [file: various]
-  - Updated version to 2.0.0 in Info.plist (major version for architecture change) ✅
-  - Updated CHANGELOG.md with SLC 11 release notes ✅
-  - Updated specs/features/multi-account.md acceptance criteria to ✅
-  - Updated specs/README.md status indicators ✅
-  - Full test suite: 853 tests pass ✅
-  - `make release` creates .app bundle successfully ✅
-  - Migration: fresh install creates "Default" account automatically (implemented in Phase 3) ✅
-  - Backward compatibility: single account setup works unchanged (verified via tests) ✅
-  - CLI works (uses active account's cached data via SharedCacheManager) ✅
-  - **Success criteria:** All acceptance criteria met, migration works, no regressions ✅
-  - **Completed:** 2026-01-30
+- [ ] **Add CI badges and contribution documentation** [file: README.md, CONTRIBUTING.md]
+  - Add badges to README.md:
+    - CI status badge: `![CI](https://github.com/.../workflows/CI/badge.svg)`
+    - Test count badge (853 tests)
+    - macOS 14+ badge
+    - Swift 5.9+ badge
+  - Enhance CONTRIBUTING.md with:
+    - Development setup instructions (reference `specs/toolchain.md`)
+    - How to run tests locally (`make test`, `make check`)
+    - PR checklist (tests pass, lint clean, format check)
+    - Code style guidelines (SwiftFormat + SwiftLint configs)
+    - Architecture overview (4-package structure)
+  - Update README.md "Development" section to reference CONTRIBUTING.md
+  - **Research:** `research/competitive-analysis.md` shows standard OSS badge patterns
+  - **Success criteria:** Contributors understand requirements; badges render correctly
 
 ---
-<!-- CHECKPOINT: Phase 5 completes SLC 11. v2.0.0 RELEASED. -->
+<!-- CHECKPOINT: Verify README renders correctly with badges. -->
+
+## Phase 4: Release v2.0.1
+
+**Purpose:** Ship CI/CD infrastructure as patch release.
+
+- [ ] **Prepare and release v2.0.1** [file: Resources/Info.plist, CHANGELOG.md]
+  - Update version in `Resources/Info.plist`:
+    - `CFBundleShortVersionString` → `2.0.1`
+    - `CFBundleVersion` → increment build number
+  - Create CHANGELOG.md entry for v2.0.1:
+    - "Restored CI/CD pipeline for automated testing"
+    - "Added release automation for GitHub Releases"
+    - "Added CONTRIBUTING.md with development guidelines"
+    - "Added CI status badges to README"
+  - Run full test suite locally: `make check` (all 853+ tests pass)
+  - Commit changes: "Prepare v2.0.1 release"
+  - Create release: `git tag v2.0.1 && git push && git push --tags`
+  - Verify release workflow creates GitHub Release with DMG
+  - **Success criteria:** v2.0.1 released with working CI, DMG attached
+
+---
+<!-- CHECKPOINT: SLC 12 COMPLETE. CI/CD OPERATIONAL. -->
 
 ## Acceptance Criteria Summary
 
-### SLC 11 Checklist ✅ COMPLETE
+### CI Pipeline
+- [x] GitHub Actions workflow exists at `.github/workflows/ci.yml`
+- [x] Triggers on push to main and pull_request
+- [x] Runs `swift build` successfully
+- [x] Runs `swift test` (853 tests pass)
+- [x] Runs SwiftFormat lint check
+- [x] Runs SwiftLint with `--strict`
+- [x] SPM dependencies are cached
+- [x] Failed tests block PR merge
 
-**Account Management:**
-- [x] Add account with custom name and keychain identifier
-- [x] Remove account with confirmation
-- [x] Edit account name
-- [x] Set account as primary
-- [x] Automatic migration creates "Default" account on first launch
+### Release Automation
+- [ ] GitHub Actions workflow exists at `.github/workflows/release.yml`
+- [ ] Triggers on `v*` tags
+- [ ] Builds release DMG
+- [ ] Creates GitHub Release with DMG attached
+- [ ] Includes SHA256 checksum
 
-**Account Switching:**
-- [x] Dropdown shows active account name with switcher
-- [x] Clicking switcher shows account list
-- [x] Selecting account switches active account
-- [x] Usage display updates to show new account's data
-
-**Credentials:**
-- [x] Default account uses "Claude Code-credentials" (backward compatible)
-- [x] Additional accounts use custom keychain identifiers
-- [x] Credential errors shown per-account (not global)
-
-**Settings:**
-- [x] Accounts section shows all accounts with plan type
-- [x] Add/edit/remove accounts from settings
-- [x] Primary account indicator (●/○)
-- [x] Display mode picker (All/Active/Primary)
-
-**Compatibility:**
-- [x] Single-account usage works unchanged (no regression)
-- [x] CLI uses active account's cached data
-- [x] Notifications work for active account
-- [x] Terminal integration continues to work
+### Documentation
+- [ ] README.md has CI status badge
+- [ ] README.md has test count badge
+- [ ] CONTRIBUTING.md exists with guidelines
+- [ ] Development setup documented
 
 ---
 
 ## Future Work (Outside Current Scope)
 
-### SLC 12+: Advanced Multi-Account Features
+### SLC 13: Sparkle Auto-Updates
 
-| Feature | Spec | Why Deferred |
-|---------|------|--------------|
-| Multi-account menu bar display | multi-account.md | Added complexity, evaluate after basic switching works |
-| Aggregate view across accounts | multi-account.md | Requires additional UI design |
-| Per-account notifications | notifications.md + multi-account.md | Significant settings complexity |
-| Refresh all accounts button | multi-account.md | Nice-to-have, not core |
+**Requires:** Apple Developer Program enrollment ($99/year)
+**Depends on:** SLC 12 (release workflow)
 
-### Future Releases (External Dependencies)
+| Phase | Task | Complexity |
+|-------|------|------------|
+| 1 | Code signing + notarization | Medium |
+| 2 | Sparkle framework integration | Medium |
+| 3 | Appcast + EdDSA signing | Medium |
+| 4 | Settings UI for updates | Low |
+| 5 | Release v2.1.0 | Low |
 
-| Feature | Blocker | Notes |
-|---------|---------|-------|
-| Widgets | Code Signing | WidgetKit requires signed app |
-| Sparkle Auto-Updates | Code Signing | Sparkle requires signed app for auto-install |
-| Multiple Providers | Different APIs | OpenAI, Gemini have different auth/endpoints |
+**Research:**
+- `specs/sparkle-updates.md` - Full Sparkle integration spec
+- `research/update-mechanisms.md` - Patterns from 9 apps (Rectangle, Ice, Maccy, etc.)
 
-### Technical Debt Backlog
+### SLC 14: macOS Widgets
 
-| Item | Priority | Notes |
-|------|----------|-------|
-| Integration tests with mock network | Medium | No network failure tests |
-| Keychain error scenario tests | Medium | Only happy path tested |
-| Account migration edge cases | Medium | What if keychain entry deleted? |
-| CLI multi-account support | Low | Currently shows active account only |
-| Account sync across devices | Low | Would need iCloud integration |
+**Requires:** Code signing from SLC 13
+
+| Feature | Complexity |
+|---------|------------|
+| Small widget (percentage) | Medium |
+| Medium widget (2 windows) | Medium |
+| Large widget (all + sparkline) | High |
+| App Group data sharing | Low |
+
+**Research:** `specs/features/widgets.md`
+
+### SLC 15+: Future Enhancements
+
+| Feature | Priority |
+|---------|----------|
+| Delta updates (Sparkle) | Low |
+| Beta channel | Low |
+| Additional languages (FR, DE, JA, ZH, KO) | Low |
+| Multiple providers (OpenAI, Gemini) | Low |
+
+### Technical Debt (Low Priority)
+
+| Item | Priority |
+|------|----------|
+| Split ClaudeApp.swift (2,809 lines) | Medium |
+| Network failure integration tests | Medium |
+| Keychain error scenario tests | Medium |
+| CLI multi-account commands | Low |
 
 ---
 
-## Test Coverage Summary
+## Test Coverage
 
-**Current (Phase 4 complete):** 853 tests across 4 packages
+**Current (v2.0.0):** 853 tests (verified passing 2026-01-31)
 
-| Package | Tests | Coverage |
-|---------|-------|----------|
-| Domain | 168 | Excellent - models fully tested (+45 from Phase 1) |
-| Services | 29 | Basic - needs error scenarios |
-| Core | 397 | Comprehensive - business logic (+14 from Phase 3: multi-account UsageManager) |
-| UI | 259 | Excellent - accessibility focus |
+| Package | Tests | Focus |
+|---------|-------|-------|
+| Domain | 168 | Models, protocols, errors |
+| Services | 29 | API client, Keychain |
+| Core | 397 | Business logic, managers |
+| UI | 259 | Components, accessibility |
 
-**Phase 5 Target:** 870+ tests (UI tests for new account views)
-
-| Package | Remaining Tests | Focus |
-|---------|-----------------|-------|
-| UI | +17 | Account switcher, settings section, display modes |
+**SLC 12 Target:** 853 tests (no new features, infrastructure only)
 
 ---
 
-## Previous SLC Releases
+## SLC History
 
 | SLC | Name | Version | Tests | Status |
 |-----|------|---------|-------|--------|
-| 1 | Usage Monitor | 1.0.0 | 81 | ✅ COMPLETE |
-| 2 | Notifications & Settings | 1.1.0 | 155 | ✅ COMPLETE |
-| 3 | Predictive Insights | 1.2.0 | 320 | ✅ COMPLETE |
-| 4 | Distribution Ready | 1.3.0 | 369 | ✅ COMPLETE |
-| 5 | Internationalization | 1.4.0 | 402 | ✅ COMPLETE |
-| 6 | Advanced Accessibility | 1.5.0 | 489 | ✅ COMPLETE |
-| 7 | Community Ready + Icon Styles | 1.6.0 | 552 | ✅ COMPLETE |
-| 8 | Power-Aware Refresh | 1.7.0 | 620 | ✅ COMPLETE |
-| 9 | Visualization & Power User | 1.8.0 | 726 | ✅ COMPLETE |
-| 10 | Terminal Integration | 1.9.0 | 752 | ✅ COMPLETE |
-| **11** | **Multi-Account Support** | **2.0.0** | **853** | **✅ COMPLETE** |
+| 1 | Usage Monitor | 1.0.0 | 81 | ✅ |
+| 2 | Notifications & Settings | 1.1.0 | 155 | ✅ |
+| 3 | Predictive Insights | 1.2.0 | 320 | ✅ |
+| 4 | Distribution Ready | 1.3.0 | 369 | ✅ |
+| 5 | Internationalization | 1.4.0 | 402 | ✅ |
+| 6 | Advanced Accessibility | 1.5.0 | 489 | ✅ |
+| 7 | Community Ready | 1.6.0 | 552 | ✅ |
+| 8 | Power-Aware Refresh | 1.7.0 | 620 | ✅ |
+| 9 | Visualization | 1.8.0 | 726 | ✅ |
+| 10 | Terminal Integration | 1.9.0 | 752 | ✅ |
+| 11 | Multi-Account | 2.0.0 | 853 | ✅ |
+| **12** | **CI/CD Infrastructure** | **2.0.1** | **853** | **📋 PLANNED** |
+| 13 | Sparkle Auto-Updates | 2.1.0 | 880+ | 📋 Future |
+| 14 | macOS Widgets | 2.2.0 | 920+ | 📋 Future |
 
 ---
 
-## Risk Assessment
+## Jobs-to-be-Done Coverage
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Keychain access for custom identifiers | Medium | High | Test early in Phase 2; fall back to CLI security tool |
-| Migration breaks existing users | Low | High | Extensive testing; automatic "Default" account creation |
-| Performance with many accounts | Low | Medium | TaskGroup for parallel refreshes; limit active accounts |
-| UI complexity in dropdown | Medium | Medium | Start with simple switcher; iterate based on feedback |
+| Job | Status | How Satisfied |
+|-----|--------|---------------|
+| J1: Monitor Usage Passively | ✅ | Menu bar percentage |
+| J2: Plan Work Sessions | ✅ | Detailed dropdown |
+| J3: Avoid Interruptions | ✅ | Notifications with hysteresis |
+| J4: Understand Patterns | ✅ | Per-model breakdown, charts |
+| J4a: Know When Limit Hits | ✅ | Time-to-exhaustion |
+| J4b: Understand Velocity | ✅ | Burn rate badge |
+| J5: Stay Informed | ✅ | Auto-refresh, notifications |
+| J6: Recover from Errors | ✅ | Clear messages, retry |
+| J7: Customize | ✅ | Settings, icon styles |
+| J8: Trust Lightweight | ✅ | Power-aware, <15MB |
+| J9: Stay Up to Date | ⚡ | GitHub Releases → Sparkle (SLC 13) |
+
+**SLC 12 serves DEVELOPER EXPERIENCE** - protects all existing JTBD implementations from regressions.
 
 ---
 
-## Implementation Notes
+## Appendix: CI Workflow Template
 
-1. **Version 2.0.0**: Major version bump signals architecture change (multi-account support)
-2. **Backward Compatibility**: Crucial - single-account users must not notice any change
-3. **Keychain Strategy**: Documented in spec - default account uses existing "Claude Code-credentials"
-4. **Test First**: Each phase has explicit test requirements before proceeding
-5. **Localization**: All new strings in en, pt-BR, es before Phase 5
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: ${{ runner.os }}-spm-
+
+      - name: Install tools
+        run: brew install swiftformat swiftlint
+
+      - name: Check formatting
+        run: swiftformat . --config .swiftformat --lint
+
+      - name: Lint
+        run: swiftlint lint --config .swiftlint.yml --strict
+
+      - name: Build
+        run: swift build --configuration release
+
+      - name: Test
+        run: swift test
+```
+
+---
+
+## Appendix: Release Workflow Template
+
+```yaml
+# .github/workflows/release.yml
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: ${{ runner.os }}-spm-
+
+      - name: Test
+        run: swift test
+
+      - name: Build Release
+        run: make release
+
+      - name: Create DMG
+        run: make dmg
+
+      - name: Create Checksums
+        run: |
+          cd release
+          shasum -a 256 ClaudeApp.dmg > checksums.txt
+          cat checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/ClaudeApp.dmg
+            release/checksums.txt
+          generate_release_notes: true
+```
