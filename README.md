@@ -1,6 +1,7 @@
 # ClaudeApp
 
 [![CI](https://github.com/kaduwaengertner/claudeapp/actions/workflows/ci.yml/badge.svg)](https://github.com/kaduwaengertner/claudeapp/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-853_passing-brightgreen)](https://github.com/kaduwaengertner/claudeapp/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/kaduwaengertner/claudeapp)](https://github.com/kaduwaengertner/claudeapp/releases/latest)
 [![Swift 5.9+](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
 [![macOS 14+](https://img.shields.io/badge/macOS-14+-blue.svg)](https://www.apple.com/macos/)
